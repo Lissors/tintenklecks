@@ -16,17 +16,35 @@ ES8311-Audio. Ausgangspunkt war convert.exe (Waveshare), nicht im Sketch.
 
 Bildverfahren (Ideen und gemessene Tinten)
 ------------------------------------------
-Wei-Ning Huang (AZ) — MIT License
+Wei-Ning Huang (AZ), MIT. Gemessene Sechs-Farben-Palette, Tonumfang ins
+Papier (CDR) und Lab-Nähe zur Tinte kommen aus dieser Linie. Unser Sketch
+ist kein Fork. Die MIT-Bedingung: Copyright und Erlaubnistext bei Weitergabe.
 
   github.com/aitjcize/esp32-photoframe
-  Copyright (c) 2025 Wei-Ning Huang (AZ)
-
   github.com/aitjcize/epaper-image-convert
-  Copyright (c) 2026 Wei-Ning Huang
 
-Gemessene Sechs-Farben-Palette, Tonumfang ins Papier (CDR) und Lab-Nähe
-zur Tinte kommen aus dieser Linie. Unser Sketch ist kein Fork; die MIT-
-Bedingung bleibt: dieser Hinweis bei Weitergabe.
+MIT License
+
+Copyright (c) 2025 Wei-Ning Huang (AZ)
+Copyright (c) 2026 Wei-Ning Huang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 Sierra im Studio ist das eigene Python-Rezept, portiert
 ins Browser-JS, mit Spektrometer-Tinten und Sierra-2-Fehlerdiffusion.
