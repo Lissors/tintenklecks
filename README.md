@@ -21,6 +21,7 @@ Hauptmenü, Galerie und Live-Anzeige im Browser:
 ## Hardware
 
 - Waveshare ESP32-S3 PhotoPainter, Spectra-6 / E6
+- **Lautsprecher am Rahmen** (ES8311 + PA, sitzt auf der Platine — ohne ihn kein Ton)
 - Micro-SD, **FAT32**
 - USB-C am Rahmen (Flashen und Web)
 - optional Akku (AXP2101)
