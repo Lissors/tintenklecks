@@ -3,7 +3,7 @@ Tintenklecks — Herkunft und Namensnennung
 
 Dieses Gerät ist eigene Firmware für den Waveshare ESP32-S3 PhotoPainter
 (Spectra-6 / E6). Studio, Galerie und Anzeige auf dem Rahmen — und
-Erinnerung an Geburt/Tod (Jahrestag morgen oder übermorgen).
+Erinnerung an Geburt, Tod und besonderes Datum (Jahrestag morgen oder übermorgen).
 
 Die folgenden Arbeiten und Lizenzen gehören genannt.
 

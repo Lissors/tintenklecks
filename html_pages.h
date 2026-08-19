@@ -219,8 +219,14 @@ async function refreshStatus(){
     document.getElementById('foot').textContent=s.copyright||'© 2026 Ingo Lissors';
   }catch(e){}
 }
+function specialLine(m){
+  const dt=(m&&m.special||'').trim();
+  if(!dt) return '';
+  const k=(m.specialKind||'').trim();
+  return k?(k+' '+dt):dt;
+}
 function metaLines(m, fallbackName){
-  if(!m || (!m.name && !m.birth && !m.death && !(m.description||m.beschreibung))){
+  if(!m || (!m.name && !m.birth && !m.death && !m.special && !(m.description||m.beschreibung))){
     return '<p class="name">'+esc(fallbackName||'—')+'</p><p class="dates"> </p>';
   }
   const lines=[];
@@ -229,6 +235,8 @@ function metaLines(m, fallbackName){
   const d=[];
   if(m.birth) d.push('* '+esc(m.birth));
   if(m.death) d.push('† '+esc(m.death));
+  const sp=specialLine(m);
+  if(sp) d.push(esc(sp));
   lines.push('<p class="dates">'+(d.length?d.join('<br/>'):' ')+'</p>');
   const desc=(m.description||m.beschreibung||'').trim();
   if(desc){
@@ -249,6 +257,8 @@ function onPicLabels(m){
   if(m.name && m.showName!==false) out.push({role:'name',text:m.name,x:0.5,y:0.80,size:m.sizeName||36,color:'#FFFFFF',font:'serif',align:'center',bold:false,rotate:0});
   if(m.birth && m.showBirth!==false) out.push({role:'birth',text:'* '+m.birth,x:0.5,y:0.88,size:m.sizeDates||22,color:'#FFFFFF',font:'serif',align:'center',bold:false,rotate:0});
   if(m.death && m.showDeath!==false) out.push({role:'death',text:'\u2020 '+m.death,x:0.5,y:0.94,size:m.sizeDates||22,color:'#FFFFFF',font:'serif',align:'center',bold:false,rotate:0});
+  const sp=specialLine(m);
+  if(sp && m.showSpecial!==false) out.push({role:'special',text:sp,x:0.5,y:0.70,size:m.sizeDates||22,color:'#FFFFFF',font:'serif',align:'center',bold:false,rotate:0});
   return out;
 }
 function onPicHtml(m){

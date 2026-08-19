@@ -204,6 +204,11 @@ function renderCaps(it){
   const d=[];
   if(m.birth) d.push('* '+esc(m.birth));
   if(m.death) d.push('† '+esc(m.death));
+  const sp=(m.special||'').trim();
+  if(sp){
+    const k=(m.specialKind||'').trim();
+    d.push(esc(k?(k+' '+sp):sp));
+  }
   if(d.length) parts.push('<p class="dates">'+d.join('<br/>')+'</p>');
   const desc=(m.description||m.beschreibung||'').trim();
   if(desc) parts.push('<p class="desc">'+esc(desc)+'</p>');
@@ -211,7 +216,7 @@ function renderCaps(it){
   const texts=labs.filter(function(L){
     if(!L||!L.text) return false;
     const role=L.role||'';
-    if(role==='name'||role==='birth'||role==='death') return false;
+    if(role==='name'||role==='birth'||role==='death'||role==='special') return false;
     return String(L.text).trim().length>0;
   }).map(function(L){ return String(L.text).trim(); });
   if(texts.length){

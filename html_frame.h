@@ -38,7 +38,7 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
 </div>
 <main>
 <h1>Rahmeneinstellung</h1>
-<p class="lead">Automatischer Wechsel. Geburtstag/Sterbetag morgen oder übermorgen: bis zu 3 Bilder übereinander. Sonst Zufall ohne Daten, ohne Zurücklegen bis der Topf leer ist. USB: bleibt wach. Akku, ab 10&nbsp;Min Intervall oder 1×/Tag: ohne Client direkt nach Bildwechsel, mit Client nach 60&nbsp;s Inaktivität Deep Sleep — Aufwachen beim nächsten Wechsel, per KEY (wechseln, wieder schlafen) oder per BOOT (Web, kein Wechsel). 5&nbsp;Min: bleibt wach. Status-Polling hält nicht wach. KEY wach: nächstes Zufallsbild.</p>
+<p class="lead">Automatischer Wechsel. Geburtstag, Sterbetag oder besonderes Datum morgen oder übermorgen: bis zu 3 Bilder übereinander. Sonst Zufall ohne Daten, ohne Zurücklegen bis der Topf leer ist. USB: bleibt wach. Akku, ab 10&nbsp;Min Intervall oder 1×/Tag: ohne Client direkt nach Bildwechsel, mit Client nach 60&nbsp;s Inaktivität Deep Sleep — Aufwachen beim nächsten Wechsel, per KEY (wechseln, wieder schlafen) oder per BOOT (Web, kein Wechsel). 5&nbsp;Min: bleibt wach. Status-Polling hält nicht wach. KEY wach: nächstes Zufallsbild.</p>
 <div class="panel">
 <h2>Uhrzeit (Chip-RTC)</h2>
 <label class="field">Datum &amp; Zeit

@@ -91,9 +91,12 @@ footer{text-align:center;padding:1rem;font-size:.75rem;color:var(--dim)}
   <label class="field">Name <input id="metaName" type="text" maxlength="80" placeholder="Name"/></label>
   <label class="field">Geburtsdatum <input id="metaBirth" type="text" maxlength="32" placeholder="TT.MM.JJJJ"/></label>
   <label class="field">Sterbedatum <input id="metaDeath" type="text" maxlength="32" placeholder="TT.MM.JJJJ"/></label>
+  <label class="field">Besonderes Datum <input id="metaSpecial" type="text" maxlength="32" placeholder="TT.MM.JJJJ"/></label>
+  <label class="field">Anlass <input id="metaSpecialKind" type="text" maxlength="80" placeholder="Hochzeitstag, Kennenlerntag…"/></label>
   <label class="row">Name auf Bild <input id="showName" type="checkbox" checked/></label>
   <label class="row">Geburt auf Bild <input id="showBirth" type="checkbox" checked/></label>
   <label class="row">Tod auf Bild <input id="showDeath" type="checkbox" checked/></label>
+  <label class="row">Besonderes auf Bild <input id="showSpecial" type="checkbox" checked/></label>
   <label class="row">Größe Name <input id="sizeName" type="range" min="16" max="80" value="36"/></label>
   <label class="row">Größe Daten <input id="sizeDates" type="range" min="12" max="56" value="22"/></label>
   <h2>Bildbeschreibung</h2>
@@ -202,8 +205,9 @@ const prepCdr=document.getElementById('prepCdr');
 const paintMode=document.getElementById('paintMode');
 const capVisible=document.getElementById('capVisible');
 const metaName=document.getElementById('metaName'), metaBirth=document.getElementById('metaBirth'), metaDeath=document.getElementById('metaDeath');
+const metaSpecial=document.getElementById('metaSpecial'), metaSpecialKind=document.getElementById('metaSpecialKind');
 const metaDesc=document.getElementById('metaDesc');
-const showName=document.getElementById('showName'), showBirth=document.getElementById('showBirth'), showDeath=document.getElementById('showDeath');
+const showName=document.getElementById('showName'), showBirth=document.getElementById('showBirth'), showDeath=document.getElementById('showDeath'), showSpecial=document.getElementById('showSpecial');
 const sizeName=document.getElementById('sizeName'), sizeDates=document.getElementById('sizeDates');
 
 function clamp(v,a,b){return v<a?a:v>b?b:v}
@@ -655,6 +659,7 @@ function roleTitle(role){
   if(role==='name') return 'Name';
   if(role==='birth') return 'Geburt';
   if(role==='death') return 'Tod';
+  if(role==='special') return 'Besonderes';
   return 'Text';
 }
 function selectLab(i){
@@ -679,6 +684,7 @@ function deleteLabAt(i){
   if(L.role==='name') showName.checked=false;
   if(L.role==='birth') showBirth.checked=false;
   if(L.role==='death') showDeath.checked=false;
+  if(L.role==='special') showSpecial.checked=false;
   labels.splice(i,1);
   if(selectedLab===i) selectedLab=-1;
   else if(selectedLab>i) selectedLab--;
@@ -735,6 +741,12 @@ function upsertRoleLabel(role, enabled, text, size, yDefault){
     labels.push({role:role, text:text, x:0.5, y:yDefault, size:size, color:color, font:font, align:align, bold:bold, rotate:rotate});
   }
 }
+function specialOnPicText(){
+  const dt=metaSpecial.value.trim();
+  if(!dt) return '';
+  const k=metaSpecialKind.value.trim();
+  return k?(k+' '+dt):dt;
+}
 function syncPersonLabels(){
   const n=metaName.value.trim();
   const b=metaBirth.value.trim();
@@ -742,6 +754,7 @@ function syncPersonLabels(){
   upsertRoleLabel('name', showName.checked, n, +sizeName.value, 0.80);
   upsertRoleLabel('birth', showBirth.checked, b?('* '+b):'', +sizeDates.value, 0.88);
   upsertRoleLabel('death', showDeath.checked, d?('\u2020 '+d):'', +sizeDates.value, 0.94);
+  upsertRoleLabel('special', showSpecial.checked, specialOnPicText(), +sizeDates.value, 0.70);
   updateLabList();
 }
 function buildMeta(){
@@ -749,10 +762,13 @@ function buildMeta(){
     name: metaName.value.trim(),
     birth: metaBirth.value.trim(),
     death: metaDeath.value.trim(),
+    special: metaSpecial.value.trim(),
+    specialKind: metaSpecialKind.value.trim(),
     description: metaDesc.value.trim(),
     showName: !!showName.checked,
     showBirth: !!showBirth.checked,
     showDeath: !!showDeath.checked,
+    showSpecial: !!showSpecial.checked,
     sizeName: +sizeName.value,
     sizeDates: +sizeDates.value,
     captionVisible: !!capVisible.checked,
@@ -1046,7 +1062,7 @@ function loadFile(f){
   status.textContent='Lade '+f.name+'…';
   const url=URL.createObjectURL(f); const im=new Image();
   im.onload=function(){
-    img=im; srcOriginal=f; editName=null; metaName.value=metaBirth.value=metaDeath.value=metaDesc.value='';
+    img=im; srcOriginal=f; editName=null; metaName.value=metaBirth.value=metaDeath.value=metaSpecial.value=metaSpecialKind.value=metaDesc.value='';
     labels=[]; selectedLab=-1; updateLabList(); zoom.value=zoomFitPct(); panX=panY=0.5;
     styleId='portrait';
     applyPrepDefaults();
@@ -1098,7 +1114,7 @@ drop.addEventListener('drop',function(e){
 });
 btnNewPic.onclick=function(){
   if(uiBusy) return;
-  img=null; srcOriginal=null; srcNeedsRewrite=false; sandboxRawFile=null; sierra2Done=false; sierra2Sig=''; editName=null; loadedPicSig=''; pictureDirty=false; lastDitherSig=''; paintMode.value='sierra2'; syncVerfahrenUi(); metaName.value=metaBirth.value=metaDeath.value=metaDesc.value=''; labels=[]; selectedLab=-1; updateLabList(); zoom.value=100; panX=panY=0.5; imgSeq++; tunedSig=null; tunePromise=null; lastDither=null; syncEditUi(); syncStage(); status.textContent='Neues Bild · Foto wählen';
+  img=null; srcOriginal=null; srcNeedsRewrite=false; sandboxRawFile=null; sierra2Done=false; sierra2Sig=''; editName=null; loadedPicSig=''; pictureDirty=false; lastDitherSig=''; paintMode.value='sierra2'; syncVerfahrenUi(); metaName.value=metaBirth.value=metaDeath.value=metaSpecial.value=metaSpecialKind.value=metaDesc.value=''; labels=[]; selectedLab=-1; updateLabList(); zoom.value=100; panX=panY=0.5; imgSeq++; tunedSig=null; tunePromise=null; lastDither=null; syncEditUi(); syncStage(); status.textContent='Neues Bild · Foto wählen';
 };
 
 document.getElementById('btnAddLab').onclick=function(){
@@ -1123,12 +1139,12 @@ document.getElementById('btnDelLab').onclick=function(){
 };
 document.getElementById('btnClearLab').onclick=function(){
   if(uiBusy) return;
-  labels=labels.filter(function(L){return L.role==='name'||L.role==='birth'||L.role==='death';});
+  labels=labels.filter(function(L){return L.role==='name'||L.role==='birth'||L.role==='death'||L.role==='special';});
   selectedLab=-1;
   updateLabList(); schedule();
 };
 capVisible.addEventListener('change', schedule);
-['metaName','metaBirth','metaDeath','showName','showBirth','showDeath','sizeName','sizeDates'].forEach(function(id){
+['metaName','metaBirth','metaDeath','metaSpecial','metaSpecialKind','showName','showBirth','showDeath','showSpecial','sizeName','sizeDates'].forEach(function(id){
   document.getElementById(id).addEventListener('input', function(){ syncPersonLabels(); updateLabList(); schedule(); });
   document.getElementById(id).addEventListener('change', function(){ syncPersonLabels(); updateLabList(); schedule(); });
 });
@@ -1395,10 +1411,13 @@ function applyMeta(m){
   metaName.value=m.name||'';
   metaBirth.value=m.birth||'';
   metaDeath.value=m.death||'';
+  metaSpecial.value=m.special||'';
+  metaSpecialKind.value=m.specialKind||'';
   metaDesc.value=m.description||m.beschreibung||'';
   if(typeof m.showName==='boolean') showName.checked=m.showName;
   if(typeof m.showBirth==='boolean') showBirth.checked=m.showBirth;
   if(typeof m.showDeath==='boolean') showDeath.checked=m.showDeath;
+  if(typeof m.showSpecial==='boolean') showSpecial.checked=m.showSpecial;
   if(m.sizeName) sizeName.value=m.sizeName;
   if(m.sizeDates) sizeDates.value=m.sizeDates;
   if(typeof m.captionVisible==='boolean') capVisible.checked=m.captionVisible;

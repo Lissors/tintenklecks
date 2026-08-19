@@ -3,7 +3,7 @@
 Deutsch · [English](README.en.md)
 
 Firmware für den **Waveshare ESP32-S3 PhotoPainter** (7,3″ Spectra-6 / E6, 480×800).
-Der Rahmen ist dafür da, **besondere Tage nicht zu vergessen**: Geburtstage und Sterbetage. Bilder mit Datum kommen von selbst, sobald der Tag morgen oder übermorgen ist — bis zu drei Bilder übereinander. Zuschnitt, Verfahren und Beschriftung laufen im Browser auf dem Rahmen. Die Galerie liegt auf der SD-Karte. Kein ESP-IDF, nur Arduino IDE.
+Der Rahmen ist dafür da, **besondere Tage nicht zu vergessen**: Geburtstage, Sterbetage und andere Jahrestage (Hochzeit, Kennenlernen …). Bilder mit Datum kommen von selbst, sobald der Tag morgen oder übermorgen ist — bis zu drei Bilder übereinander. Zuschnitt, Verfahren und Beschriftung laufen im Browser auf dem Rahmen. Die Galerie liegt auf der SD-Karte. Kein ESP-IDF, nur Arduino IDE.
 
 © 2026 Ingo Lissors · Herkunft und Lizenzen: [CREDITS.txt](CREDITS.txt) · [LICENSE](LICENSE)
 
@@ -12,19 +12,19 @@ Weiteres Demo: [`examples/peter.bmp`](examples/peter.bmp) (Person, Beschriftung,
 
 Sketch-Datei: `Bilderrahmen.ino` (Ordnername bleibt, sonst findet die Arduino IDE den Sketch nicht).
 
-## Erinnerungen — Geburt, Tod, Texte
+## Erinnerungen — Geburt, Tod, Besonderes, Texte
 
-Ohne Datum im Studio bleibt ein Bild in der normalen Zufallsreihe. Mit **Geburtsdatum** oder **Sterbedatum** (`TT.MM.JJJJ`) hängt es an diesem Jahrestag: der Rahmen zeigt es **morgen oder übermorgen**, bis zu **drei** solche Bilder übereinander. Dafür muss die Chip-Uhr stimmen und unter Rahmen ein Wechsel (**Im Intervall** oder **1× pro Tag**) an sein.
+Ohne Datum im Studio bleibt ein Bild in der normalen Zufallsreihe. Mit **Geburtsdatum**, **Sterbedatum** oder **Besonderes Datum** (`TT.MM.JJJJ`) hängt es an diesem Jahrestag: der Rahmen zeigt es **morgen oder übermorgen**, bis zu **drei** solche Bilder übereinander. Beim besonderen Datum gehört ein **Anlass** dazu (z. B. Hochzeitstag, Kennenlerntag). Dafür muss die Chip-Uhr stimmen und unter Rahmen ein Wechsel (**Im Intervall** oder **1× pro Tag**) an sein.
 
-Auf dem Bild selbst: Name, `*` Geburt, `†` Tod, plus freie Hinweise (z. B. „In Erinnerung“). Die **Bildbeschreibung** steht nur in der Live-Anzeige, nicht auf dem Panel.
+Auf dem Bild selbst: Name, `*` Geburt, `†` Tod, Anlass plus Datum, plus freie Hinweise (z. B. „In Erinnerung“). Die **Bildbeschreibung** steht nur in der Live-Anzeige, nicht auf dem Panel.
 
 ![Beschriftung im Studio](docs/beschriftung.png)
 
-Name, Daten, Häkchen **Name auf Bild** / **Geburt auf Bild** / **Tod auf Bild**. Die Daten steuern die Erinnerung, unabhängig davon, ob der Text auf dem Panel steht.
+Name, Daten, Häkchen **Name auf Bild** / **Geburt auf Bild** / **Tod auf Bild** / **Besonderes auf Bild**. Die Daten steuern die Erinnerung, unabhängig davon, ob der Text auf dem Panel steht.
 
 ![Freier Text und Hinweise](docs/hinweistexte.png)
 
-Freitexte, Schrift, **Fett**, Drehung, Farbe. In der Liste stehen Name, Geburt, Tod und Hinweise.
+Freitexte, Schrift, **Fett**, Drehung, Farbe. In der Liste stehen Name, Geburt, Tod, Besonderes und Hinweise.
 
 ![Live mit Person, Daten und Hinweis](docs/live_person.png)
 
@@ -154,7 +154,7 @@ Sechs Kacheln:
 | Live-Anzeige | aktuelles Bild im Holzrahmen, Text, blättern |
 | Neues Bild | Studio: Foto, Zuschnitt, Verfahren, Beschriftung |
 | Bilder | Galerie: anzeigen, bearbeiten, umbenennen, löschen |
-| Rahmen | Uhr, Intervall oder täglich, Erinnerung Geburt/Tod |
+| Rahmen | Uhr, Intervall oder täglich, Erinnerung Geburt/Tod/Besonderes |
 | System | Status, ntfy, Panel, Neustart, WLAN vergessen |
 | WLAN-Setup | Heimnetz und AP-Passwort |
 
@@ -188,9 +188,9 @@ E-Paper / Dither (nur Lab): Helligkeit, Kontrast, Wärme, Dither %, Algorithmus 
 
 ![Beschriftung im Studio](docs/beschriftung.png)
 
-Name, Geburtsdatum, Sterbedatum (`TT.MM.JJJJ`). Häkchen **Name auf Bild**, **Geburt auf Bild**, **Tod auf Bild** und Schieber **Größe Name** / **Größe Daten**. Name und Daten lassen sich auf dem Zuschnitt verschieben.
+Name, Geburtsdatum, Sterbedatum, Besonderes Datum (`TT.MM.JJJJ`) und Anlass (Hochzeitstag, Kennenlerntag …). Häkchen **Name auf Bild**, **Geburt auf Bild**, **Tod auf Bild**, **Besonderes auf Bild** und Schieber **Größe Name** / **Größe Daten**. Name und Daten lassen sich auf dem Zuschnitt verschieben.
 
-**Die Daten sind die Erinnerung:** steht Geburt oder Tod, nimmt der Rahmen dieses Bild aus dem Zufallstopf. Es kommt, wenn der Jahrestag **morgen oder übermorgen** ist (Rahmen-Modus nicht **Aus**, Uhr gültig). Ob der Text auf dem Bild sichtbar ist, ändert das nicht — nur die Felder Geburt/Tod.
+**Die Daten sind die Erinnerung:** steht Geburt, Tod oder Besonderes Datum, nimmt der Rahmen dieses Bild aus dem Zufallstopf. Es kommt, wenn der Jahrestag **morgen oder übermorgen** ist (Rahmen-Modus nicht **Aus**, Uhr gültig). Ob der Text auf dem Bild sichtbar ist, ändert das nicht — nur die Datumsfelder.
 
 #### Bildbeschreibung
 
@@ -208,7 +208,7 @@ Häkchen **Beschriftung anzeigen** (aus: Name, Daten und Freitexte unsichtbar). 
 
 ![Galerie](docs/galerie.png)
 
-Karten nach Personenname. Vorschau mit Beschriftung wie im Studio, darunter Name, `*` Geburt, `†` Tod, Beschreibung (Tipp klappt den ganzen Text auf), Dateiname.
+Karten nach Personenname. Vorschau mit Beschriftung wie im Studio, darunter Name, `*` Geburt, `†` Tod, Anlass plus besonderes Datum, Beschreibung (Tipp klappt den ganzen Text auf), Dateiname.
 
 | Knopf | Wirkung |
 | --- | --- |
@@ -239,7 +239,7 @@ Zuerst die Uhr. **Suchen** filtert die Stadtliste. Stadt wählen, **Standort spe
 
 **Wechsel:** Modus **Aus**, **Im Intervall** (5 / 10 / 30 / 60 Minuten) oder **1× pro Tag** (Uhrzeit, Vorgabe 08:00). **Speichern** merkt den Modus. **Jetzt wechseln** sofort. **Aus** = keine automatischen Erinnerungen.
 
-**Reihenfolge (der eigentliche Zweck):** Ist Geburt oder Tod **morgen oder übermorgen**, kommen diese Bilder zuerst — bis zu drei übereinander. Bilder **mit** Datum liegen nicht im normalen Zufallstopf. Ohne solche Jahrestage: nur Bilder **ohne** Datum, ohne Zurücklegen, bis der Topf leer ist, dann neu mischen. Gibt es nur datierte Bilder und gerade keinen Jahrestag, nimmt der Rahmen trotzdem eines. USB bleibt wach. Akku schläft wie unter „USB und Akku“.
+**Reihenfolge (der eigentliche Zweck):** Ist Geburt, Tod oder ein besonderes Datum **morgen oder übermorgen**, kommen diese Bilder zuerst — bis zu drei übereinander. Bilder **mit** Datum liegen nicht im normalen Zufallstopf. Ohne solche Jahrestage: nur Bilder **ohne** Datum, ohne Zurücklegen, bis der Topf leer ist, dann neu mischen. Gibt es nur datierte Bilder und gerade keinen Jahrestag, nimmt der Rahmen trotzdem eines. USB bleibt wach. Akku schläft wie unter „USB und Akku“.
 
 ### System
 

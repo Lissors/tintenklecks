@@ -1,4 +1,4 @@
-// Automatic picture rotation + birthday preference
+// Automatic picture rotation + anniversary preference (birth, death, special)
 
 #include "config.h"
 #include "board.h"
@@ -305,11 +305,13 @@ static bool collectCandidates(PicCand *out, int maxN, int &count) {
     String meta = readMetaFile(base);
     String birth = jsonField(meta, "birth");
     String death = jsonField(meta, "death");
+    String special = jsonField(meta, "special");
     PicCand &c = out[count];
     c.file = base;
     c.anniversarySoon =
-        haveTime && (matchAnniversarySoon(birth, ty, tm, td) || matchAnniversarySoon(death, ty, tm, td));
-    c.noDates = (birth.length() == 0 && death.length() == 0);
+        haveTime && (matchAnniversarySoon(birth, ty, tm, td) || matchAnniversarySoon(death, ty, tm, td) ||
+                     matchAnniversarySoon(special, ty, tm, td));
+    c.noDates = (birth.length() == 0 && death.length() == 0 && special.length() == 0);
     count++;
     if ((++tick & 15) == 0) {
       yield();
@@ -331,7 +333,7 @@ static bool pickNextFiles(String *paths, int &outCount) {
     return false;
   }
 
-  // 1) birth/death anniversary tomorrow / day after — up to 3, stacked
+  // 1) birth/death/special anniversary tomorrow / day after — up to 3, stacked
   int specialIdx[SLIDE_MAX];
   int specialN = 0;
   for (int i = 0; i < n; i++) {
