@@ -1,6 +1,8 @@
 Tintenklecks — Proprietary Source-Available License (Non-Commercial)
 Copyright (c) 2026 Ingo Lissors. All rights reserved.
 
+This file is the license only.
+
 SPDX-License-Identifier: LicenseRef-Tintenklecks-NonCommercial
 
 ================================================================
@@ -89,6 +91,8 @@ repository owner Lissors).
 ================================================================
 DEUTSCH
 ================================================================
+
+Diese Datei ist nur die Lizenz.
 
 Diese Lizenz gilt für die Tintenklecks-Firmware und die Web-UI in diesem
 Repository (u. a. Bilderrahmen.ino und die übrigen Sketch-Quellen, html_*.h
