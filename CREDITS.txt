@@ -50,8 +50,20 @@ Dancing Script — Impallari Type, SIL Open Font License,
 eingebunden über fonts.googleapis.com.
 
 
-Bilder und Ton auf der SD
--------------------------
-Galeriebilder und /sound/*.wav sind nicht Teil dieser Firmware.
-Nur nutzen, wozu die Rechte da sind (eigene Fotos, gemeinfreie Werke,
-selbst erzeugte oder frei lizenzierte Sprachclips).
+Systemklänge (mitgeliefert in sound/)
+-------------------------------------
+willkommen.wav, wlan.wav, ap.wav, neustart.wav — mit Piper erzeugt,
+Stimme Thorsten (thorsten / thorsten_emotional).
+
+  Thorsten-Voice — Thorsten Müller, CC0
+  github.com/thorstenMueller/Thorsten-Voice
+  www.thorsten-voice.de
+
+  Piper TTS — MIT (Rhasspy / Michael Hansen)
+
+
+Galeriebilder
+-------------
+Nicht Teil dieser Firmware, keine BMP/JPG/Thumbs im Download.
+Nur eigene Fotos, gemeinfreie Werke oder klar lizenzierte Vorlagen
+auf die SD nach /pic/ (entsteht durch Speichern im Studio).
