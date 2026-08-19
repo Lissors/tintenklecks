@@ -71,6 +71,19 @@ Die vier WAV-Dateien liegen im Ordner `sound/` dieses Downloads. Nach `sound/` a
 
 PCM-WAV, 16 Bit, Mono oder Stereo. Fehlt eine Datei, bleibt dieser Clip stumm.
 
+## Fertige Firmware (ohne Arduino)
+
+Für den Rahmen reicht: **USB-C**, die Datei `tintenklecks-merged.bin` von [Releases](https://github.com/Lissors/tintenklecks/releases), danach die SD wie oben.
+
+1. SD einlegen (Tonordner, leeres `pic/` oder Demos).
+2. [Neueste Release](https://github.com/Lissors/tintenklecks/releases/latest) → `tintenklecks-merged.bin` laden.
+3. Chrome oder Edge: [Adafruit WebSerial ESPTool](https://adafruit.github.io/Adafruit_WebSerial_ESPTool/). USB-C am Rahmen, **Connect**, Datei wählen, Offset **0x0**, **Program**. Wenn kein Port: BOOT halten, USB einstecken, loslassen.
+4. Access Point **Tintenklecks** / Passwort `tintenklecks` → [http://192.168.4.1](http://192.168.4.1) fürs Heimnetz.
+
+Keine Arduino IDE. Bilder kommen im Studio auf die Karte.
+
+Die `.bin` erzeugt der Maintainer in der Arduino IDE (unten). Ohne Release-Datei diesen Abschnitt überspringen und per Arduino hochladen.
+
 ## Arduino IDE
 
 1. [Arduino IDE 2](https://www.arduino.cc/en/software) installieren.
@@ -106,9 +119,13 @@ Diese Werte müssen stimmen. Falsches PSRAM oder zu kleine App-Partition: Bootsc
 | Events Run On | Core 1 |
 | Erase All Flash Before Sketch Upload | Disabled |
 
-Fehlt der Eintrag „16M Flash (3MB APP/9.9MB FATFS)“, nimm **Huge APP (3MB No OTA/1MB SPIFFS)**. Die Daten liegen auf der SD, nicht im Flash-Dateisystem. Nach Wechsel des Partitionsschemas können WLAN-Daten weg sein — dann einmal WLAN-Setup.
+Fehlt der Eintrag „16M Flash (3MB APP/9.9MB FATFS)“, nimm **Huge APP (3MB No OTA/1MB SPIFFS)**. Dann gibt es **kein OTA**. Die Daten liegen auf der SD, nicht im Flash-Dateisystem. Nach Wechsel des Partitionsschemas können WLAN-Daten weg sein — dann einmal WLAN-Setup.
 
 USB-C am Rahmen wählen (nativer USB des ESP32-S3). BOOT-Taste nur, wenn der Upload den Chip nicht selbst startet.
+
+**Später ohne USB (nur wer Arduino hat):** einmal mit diesem Sketch per USB hochladen. Rahmen im Heimnetz und **wach** (USB eingesteckt, oder nicht im Deep Sleep). In der Arduino IDE unter **Port** den Eintrag **tintenklecks** (Netzwerk) wählen, dann Hochladen wie sonst. Deep Sleep: kein Netzwerk-Port — BOOT oder USB, dann erneut versuchen.
+
+**`.bin` für andere (Releases):** Werkzeuge wie oben, dann Sketch → **Kompilierte Binärdatei exportieren**. Im Sketch-Ordner (oder unter `build/`) die Datei **`Bilderrahmen.ino.merged.bin`** suchen — das ist Bootloader + Partitionen + App in einem. Umbenennen nach `tintenklecks-merged.bin` und unter GitHub → Releases anhängen. Nicht die kleine `.ino.bin` allein (ohne Bootloader bootet ein leerer Chip nicht).
 
 Der Serial Monitor ist optional. Schließen der Arduino IDE startet den Chip oft neu (USB CDC / DTR) — das ist normal.
 

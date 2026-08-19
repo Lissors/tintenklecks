@@ -21,6 +21,7 @@
  * Audio: /sound/*.wav — willkommen (jeder Reset/Reboot, nicht Sleep-Wake),
  *        dann wlan (STA ok) oder ap (kein WLAN / Connect fehlgeschlagen).
  *        neustart kurz vor jedem Software-Neustart.
+ * OTA: Arduino IDE Netzwerk-Port „tintenklecks“ (nach erstem USB-Flash). Partition 16M / 3MB APP.
  * Bilder: /pic/ BMPs + JSON + Thumb
  * Power: USB = kein Deep Sleep. Akku: nur bei Wechsel ≥ 10 min oder täglich,
  *        ohne Client direkt nach Bildwechsel, mit Client 60 s Inaktivität.

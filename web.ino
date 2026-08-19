@@ -8,6 +8,7 @@
 
 #include <WiFi.h>
 #include <WebServer.h>
+#include <ArduinoOTA.h>
 #include <DNSServer.h>
 #include <ESPmDNS.h>
 #include <string.h>
@@ -2077,15 +2078,34 @@ void webLoop() {
   }
 
   static bool mdnsTried = false;
-  if (!mdnsTried && !wifiIsAp() && millis() > 8000) {
+  if (!mdnsTried && millis() > 8000) {
     mdnsTried = true;
-    if (MDNS.begin(MDNS_HOST)) {
-      MDNS.addService("http", "tcp", 80);
-      Serial.printf("mDNS http://%s.local\n", MDNS_HOST);
-    } else {
-      Serial.println(F("mDNS failed — use IP"));
+    if (!wifiIsAp()) {
+      if (MDNS.begin(MDNS_HOST)) {
+        MDNS.addService("http", "tcp", 80);
+        Serial.printf("mDNS http://%s.local\n", MDNS_HOST);
+      } else {
+        Serial.println(F("mDNS failed — use IP"));
+      }
     }
+    ArduinoOTA.setHostname(MDNS_HOST);
+    ArduinoOTA.onStart([]() {
+      powerNoteBusy(true);
+      powerNoteActivity();
+      Serial.println(F("OTA from Arduino IDE"));
+    });
+    ArduinoOTA.onEnd([]() {
+      powerNoteBusy(false);
+      Serial.println(F("OTA end"));
+    });
+    ArduinoOTA.onError([](ota_error_t e) {
+      powerNoteBusy(false);
+      Serial.printf("OTA error %u\n", (unsigned)e);
+    });
+    ArduinoOTA.begin();
+    Serial.println(F("Arduino OTA: Port tintenklecks"));
   }
+  ArduinoOTA.handle();
 
   audioLoop();
 }

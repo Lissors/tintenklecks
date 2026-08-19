@@ -73,6 +73,19 @@ The four WAV files are in the `sound/` folder of this download. Copy them into `
 
 PCM WAV, 16-bit, mono or stereo. If a file is missing, that clip stays silent.
 
+## Ready-made firmware (no Arduino)
+
+For the frame you only need **USB-C**, the file `tintenklecks-merged.bin` from [Releases](https://github.com/Lissors/tintenklecks/releases), then the SD card as above.
+
+1. Insert the SD card (`sound/` folder, empty `pic/` or the demos).
+2. [Latest release](https://github.com/Lissors/tintenklecks/releases/latest) → download `tintenklecks-merged.bin`.
+3. Chrome or Edge: [Adafruit WebSerial ESPTool](https://adafruit.github.io/Adafruit_WebSerial_ESPTool/). USB-C on the frame, **Connect**, pick the file, offset **0x0**, **Program**. No port: hold BOOT, plug in USB, release.
+4. Access point **Tintenklecks** / password `tintenklecks` → [http://192.168.4.1](http://192.168.4.1) for the home network.
+
+No Arduino IDE. Pictures reach the card in Studio.
+
+The maintainer builds the `.bin` in the Arduino IDE (below). If there is no release file yet, skip this section and flash with Arduino.
+
 ## Arduino IDE
 
 1. Install [Arduino IDE 2](https://www.arduino.cc/en/software).
@@ -108,9 +121,13 @@ These values must match. Wrong PSRAM or too small an app partition: boot loop, o
 | Events Run On | Core 1 |
 | Erase All Flash Before Sketch Upload | Disabled |
 
-If there is no “16M Flash (3MB APP/9.9MB FATFS)” entry, use **Huge APP (3MB No OTA/1MB SPIFFS)**. Data lives on the SD card, not in the flash filesystem. After changing the partition scheme, saved Wi-Fi may be gone — run WLAN-Setup once.
+If there is no “16M Flash (3MB APP/9.9MB FATFS)” entry, use **Huge APP (3MB No OTA/1MB SPIFFS)**. Then there is **no OTA**. Data lives on the SD card, not in the flash filesystem. After changing the partition scheme, saved Wi-Fi may be gone — run WLAN-Setup once.
 
 Use USB-C on the frame (native USB of the ESP32-S3). Press BOOT only if the upload does not start the chip by itself.
+
+**Later without USB (Arduino users only):** flash this sketch once over USB. Frame on the home network and **awake** (USB plugged in, or not in deep sleep). In the Arduino IDE under **Port** pick **tintenklecks** (network), then Upload as usual. Deep sleep: no network port — BOOT or USB, then try again.
+
+**`.bin` for others (Releases):** Tools as above, then Sketch → **Export Compiled Binary**. In the sketch folder (or under `build/`) find **`Bilderrahmen.ino.merged.bin`** — bootloader + partitions + app in one file. Rename to `tintenklecks-merged.bin` and attach it on GitHub → Releases. Do not ship the small `.ino.bin` alone (an empty chip will not boot without the bootloader).
 
 The Serial Monitor is optional. Closing the Arduino IDE often restarts the chip (USB CDC / DTR) — that is normal.
 
