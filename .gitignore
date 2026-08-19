@@ -1,0 +1,9 @@
+.cursor/
+.vscode/
+build/
+*.elf
+*.bin
+*.map
+Thumbs.db
+desktop.ini
+._*
