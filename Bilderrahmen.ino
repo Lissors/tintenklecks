@@ -16,6 +16,8 @@
  * Mit WLAN → http://192.168.x.x  ·  http://tintenklecks.local
  *
  * Web: Menü, Studio, Galerie, Live, System, Rahmen
+ * Erinnerung: Geburt/Tod im Studio (TT.MM.JJJJ) → Wechsel morgen/übermorgen,
+ *        bis zu 3 Bilder übereinander. Uhr und Rahmen-Modus müssen stimmen.
  * Audio: /sound/*.wav — willkommen (jeder Reset/Reboot, nicht Sleep-Wake),
  *        dann wlan (STA ok) oder ap (kein WLAN / Connect fehlgeschlagen).
  *        neustart kurz vor jedem Software-Neustart.

@@ -3,8 +3,7 @@
 [Deutsch](README.md) · English
 
 Firmware for the **Waveshare ESP32-S3 PhotoPainter** (7.3″ Spectra-6 / E6, 480×800).
-Crop, rendering and captions run in the browser on the frame.
-The gallery lives on the SD card. No ESP-IDF — Arduino IDE only.
+The frame exists so **special days are not forgotten**: birthdays and death days. Pictures with a date come up on their own when the day is tomorrow or the day after — up to three pictures stacked. Crop, rendering and captions run in the browser on the frame. The gallery lives on the SD card. No ESP-IDF — Arduino IDE only.
 
 © 2026 Ingo Lissors · Origin and licenses: [CREDITS.txt](CREDITS.txt) · [LICENSE](LICENSE)
 
@@ -14,6 +13,24 @@ Further demo: [`examples/peter.bmp`](examples/peter.bmp) (person, captions, bold
 Sketch file: `Bilderrahmen.ino` (keep that folder name, or the Arduino IDE will not find the sketch).
 
 The web UI is German. Button and field names below match the screen.
+
+## Reminders — birth, death, captions
+
+Without a date in Studio, a picture stays in the normal random rotation. With **Geburtsdatum** or **Sterbedatum** (`TT.MM.JJJJ`) it is tied to that anniversary: the frame shows it **tomorrow or the day after**, up to **three** such pictures stacked. The chip clock must be valid, and under Rahmen a change mode (**Im Intervall** or **1× pro Tag**) must be on.
+
+On the picture itself: name, `*` birth, `†` death, plus free notes (e.g. “In Erinnerung”). The **Bildbeschreibung** appears only in Live-Anzeige, not on the panel.
+
+![Captions in Studio](docs/beschriftung.png)
+
+Name, dates, checkboxes **Name auf Bild** / **Geburt auf Bild** / **Tod auf Bild**. The dates drive the reminder, whether or not the text is drawn on the panel.
+
+![Free text and notes](docs/hinweistexte.png)
+
+Free texts, typeface, **Fett**, rotation, colour. The list shows name, birth, death and notes.
+
+![Live with person, dates and note](docs/live_person.png)
+
+Live-Anzeige: picture with text, then name, dates, description and free texts below.
 
 ## Hardware
 
@@ -139,7 +156,7 @@ Six tiles:
 | Live-Anzeige | current picture in the wooden frame, text, browse |
 | Neues Bild | Studio: photo, crop, method, captions |
 | Bilder | gallery: show, edit, rename, delete |
-| Rahmen | clock, interval or daily, birthday/death day |
+| Rahmen | clock, interval or daily, birth/death reminders |
 | System | status, ntfy, panel, restart, forget Wi-Fi |
 | WLAN-Setup | home network and AP password |
 
@@ -171,17 +188,23 @@ E-Paper / Dither (Lab only): Helligkeit, Kontrast, Wärme, Dither %, algorithm A
 
 #### Person
 
-Name, birth date, death date (`TT.MM.JJJJ`). Checkboxes **Name auf Bild**, **Geburt auf Bild**, **Tod auf Bild** and sliders **Größe Name** / **Größe Daten**. Those dates drive birthday/death-day in the frame settings. Name and dates can be dragged on the crop.
+![Captions in Studio](docs/beschriftung.png)
+
+Name, birth date, death date (`TT.MM.JJJJ`). Checkboxes **Name auf Bild**, **Geburt auf Bild**, **Tod auf Bild** and sliders **Größe Name** / **Größe Daten**. Name and dates can be dragged on the crop.
+
+**The dates are the reminder:** if birth or death is set, the frame takes this picture out of the random pot. It appears when the anniversary is **tomorrow or the day after** (Rahmen mode not **Aus**, clock valid). Whether the text is visible on the picture does not change that — only the birth/death fields do.
 
 #### Bildbeschreibung (picture description)
 
-Free text for Live-Anzeige only, not on the panel.
+Free text for Live-Anzeige only, not on the panel. There it sits under the wooden frame, with name and dates.
 
 #### Freier Text (free text)
 
+![Free text](docs/hinweistexte.png)
+
 Checkbox **Beschriftung anzeigen** (off: name, dates and free texts hidden). Fields: text, typeface Serif / Sans / Schnörkel, Fett, size, rotation (−180° to 180°), colour Weiß / Schwarz / Gelb / Rot / Blau / Grün, alignment Mitte / Links / Rechts.
 
-**Freitext hinzufügen**, select in the list, drag on the crop. **Ausgewählten Text löschen** or **Alle Freitexte löschen**. **Fett** applies to the selected text (name, dates or free text), including Schnörkel.
+**Freitext hinzufügen**, select in the list, drag on the crop. **Ausgewählten Text löschen** or **Alle Freitexte löschen**. **Fett** applies to the selected text (name, dates or free text), including Schnörkel. Typical: “In Erinnerung”.
 
 ### Bilder (gallery)
 
@@ -204,6 +227,8 @@ Missing preview: **Kein Vorschaubild · neu speichern**. Without a crop file: re
 
 Wooden-frame preview of the chosen picture, including text on the image. Below: name, dates, description, free texts. **‹** / **›** browse, counter in the middle.
 
+![Live with person](docs/live_person.png)
+
 **Am Rahmen anzeigen** sends exactly this picture to the panel. If it is already showing, the button reads **Am Rahmen (aktuell)** and is disabled.
 
 Empty gallery: **Kein Bild**. Thumbnail instead of crop: **Kleine Vorschau · Zuschnitt nicht geladen**.
@@ -214,9 +239,9 @@ Empty gallery: **Kein Bild**. Thumbnail instead of crop: **Kleine Vorschau · Zu
 
 Clock first. **Suchen** filters the city list. Pick a city, **Standort speichern** (daylight saving, then NTP). Time: **Datum & Zeit** and **Uhr setzen**, or **Von diesem Gerät übernehmen**. Without a valid chip time, there is no daily switch.
 
-**Wechsel:** mode **Aus**, **Im Intervall** (5 / 10 / 30 / 60 minutes) or **1× pro Tag** (time of day, default 08:00). **Speichern** keeps the mode. **Jetzt wechseln** immediately.
+**Wechsel:** mode **Aus**, **Im Intervall** (5 / 10 / 30 / 60 minutes) or **1× pro Tag** (time of day, default 08:00). **Speichern** keeps the mode. **Jetzt wechseln** immediately. **Aus** = no automatic reminders.
 
-Order: birth or death tomorrow or the day after — up to three pictures stacked. Otherwise pictures without those dates, without replacement, until the pot is empty, then reshuffle. USB stays awake. Battery sleeps as under “USB and battery”.
+**Order (the point of the frame):** if birth or death is **tomorrow or the day after**, those pictures come first — up to three stacked. Pictures **with** a date are not in the normal random pot. Without such an anniversary: only pictures **without** dates, without replacement, until the pot is empty, then reshuffle. If every picture has a date and there is no anniversary, the frame still picks one. USB stays awake. Battery sleeps as under “USB and battery”.
 
 ### System
 

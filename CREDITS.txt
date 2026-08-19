@@ -2,8 +2,8 @@ Tintenklecks — Herkunft und Namensnennung
 ==========================================
 
 Dieses Gerät ist eigene Firmware für den Waveshare ESP32-S3 PhotoPainter
-(Spectra-6 / E6). Es ersetzt convert.exe und andere fertige GitHub-Firmware
-durch Studio, Galerie und Anzeige auf dem Rahmen.
+(Spectra-6 / E6). Studio, Galerie und Anzeige auf dem Rahmen — und
+Erinnerung an Geburt/Tod (Jahrestag morgen oder übermorgen).
 
 Die folgenden Arbeiten und Lizenzen gehören genannt.
 
