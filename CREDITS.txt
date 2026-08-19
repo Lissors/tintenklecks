@@ -82,6 +82,12 @@ Stimme Thorsten (thorsten / thorsten_emotional).
 
 Galeriebilder
 -------------
-Nicht Teil dieser Firmware, keine BMP/JPG/Thumbs im Download.
-Nur eigene Fotos, gemeinfreie Werke oder klar lizenzierte Vorlagen
-auf die SD nach /pic/ (entsteht durch Speichern im Studio).
+Zum Ausprobieren in examples/:
+  mona_lisa.bmp (+ .json, _src.jpg, _thumb.jpg) — Leonardos Mona Lisa,
+  gemeinfrei, Wikimedia Commons (PD). Siehe examples/mona_lisa.SOURCE.md.
+  peter.bmp (+ .json, _src.jpg, _thumb.jpg) — Beispiel vom Rechteinhaber.
+  Siehe examples/peter.SOURCE.md.
+Die Dateien nach pic/ auf der SD kopieren.
+
+Nur eigene Fotos, weitere gemeinfreie Werke oder klar lizenzierte Vorlagen
+im Studio speichern — nicht fremde, noch geschützte Bilder ins Git legen.

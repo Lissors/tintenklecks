@@ -6,7 +6,10 @@ Firmware für den **Waveshare ESP32-S3 PhotoPainter** (7,3″ Spectra-6 / E6, 48
 Zuschnitt, Verfahren und Beschriftung laufen im Browser auf dem Rahmen.
 Die Galerie liegt auf der SD-Karte. Kein ESP-IDF, nur Arduino IDE.
 
-© 2026 Ingo Lissors · Herkunft und Lizenzen: [CREDITS.txt](CREDITS.txt)
+© 2026 Ingo Lissors · Herkunft und Lizenzen: [CREDITS.txt](CREDITS.txt) · [LICENSE](LICENSE)
+
+Gemeinfreies Demo: [`examples/mona_lisa.bmp`](examples/mona_lisa.bmp) (Leonardo da Vinci, *Mona Lisa*).
+Weiteres Demo: [`examples/peter.bmp`](examples/peter.bmp) (Person, Beschriftung, Fett) — siehe [`examples/peter.SOURCE.md`](examples/peter.SOURCE.md).
 
 Sketch-Datei: `Bilderrahmen.ino` (Ordnername bleibt, sonst findet die Arduino IDE den Sketch nicht).
 
@@ -35,7 +38,10 @@ pic/
 
 Die vier WAV-Dateien liegen im Ordner `sound/` dieses Downloads. Nach `sound/` auf der Karte kopieren, Namen nicht ändern.
 
-`pic/` bleibt leer. Bilder entstehen erst im Studio auf dem Rahmen. Es gibt **keine** mitgelieferten BMP, JPG oder Vorschaubilder.
+`pic/` bleibt leer, außer du kopierst die Demos. Bilder entstehen sonst erst im Studio. In [`examples/`](examples/) liegen fertige Galerie-Sets — jeweils BMP, JSON, `_src.jpg` und `_thumb.jpg` nach `pic/` kopieren:
+
+- `mona_lisa.*` — Leonardos *Mona Lisa* (gemeinfrei, Wikimedia). [`SOURCE`](examples/mona_lisa.SOURCE.md)
+- `peter.*` — Beispiel mit Name, Daten und fetter Schnörkelschrift. [`SOURCE`](examples/peter.SOURCE.md)
 
 3. Karte in den Rahmen, **dann** Firmware flashen.
 
@@ -173,7 +179,7 @@ Freitext nur für die Live-Anzeige, nicht auf dem Panel.
 
 Häkchen **Beschriftung anzeigen** (aus: Name, Daten und Freitexte unsichtbar). Felder: Text, Schrift Serif / Sans / Schnörkel, Fett, Größe, Drehung (−180° bis 180°), Farbe Weiß / Schwarz / Gelb / Rot / Blau / Grün, Ausrichtung Mitte / Links / Rechts.
 
-**Freitext hinzufügen**, in der Liste auswählen, auf dem Zuschnitt verschieben. **Ausgewählten Text löschen** oder **Alle Freitexte löschen**.
+**Freitext hinzufügen**, in der Liste auswählen, auf dem Zuschnitt verschieben. **Ausgewählten Text löschen** oder **Alle Freitexte löschen**. **Fett** gilt für den ausgewählten Text (Name, Daten oder Freitext), auch bei Schrift Schnörkel.
 
 ### Bilder (Galerie)
 
@@ -229,3 +235,22 @@ Reihenfolge: Geburt oder Tod morgen oder übermorgen — bis zu drei Bilder übe
 **SSID (Heimnetz)**, **WLAN-Passwort**, **AP-Passwort (Hotspot)** — Auge zeigt oder verdeckt das Passwort. AP-Passwort mindestens 8 Zeichen (WPA2), Vorgabe `tintenklecks`. Gilt nach dem Neustart. Hotspot heißt **Tintenklecks**.
 
 **Speichern & neu starten**. **Offline · Menü öffnen** bleibt ohne Speichern im Menü.
+
+## Lizenz
+
+**Firmware & UI:** siehe [`LICENSE`](LICENSE) — **nicht-kommerziell**. Herkunft Dritter: [CREDITS.txt](CREDITS.txt).
+
+| Erlaubt | Nicht erlaubt |
+|---------|----------------|
+| Herunterladen; exakte unveränderte Kopien | **Kommerzielle Nutzung** (Verkauf, bezahlter Dienst, Produkt) |
+| Privat flashen und nutzen (eigener Rahmen) | Kommerzielles Produkt auf Basis dieses Codes |
+| | Veränderte Versionen verbreiten; neu lizenzieren; Hinweise entfernen |
+
+Ziel: Andere dürfen anschauen, kopieren und privat nutzen — aber **nicht kommerzialisieren**.
+
+Demo-Bilder nur dort anders: [`examples/mona_lisa.bmp`](examples/mona_lisa.bmp) (gemeinfrei, Wikimedia) und [`examples/peter.bmp`](examples/peter.bmp) (Beispiel vom Rechteinhaber). Siehe die `SOURCE.md` neben den Dateien.
+
+### Inhaltsregeln (fürs Repo)
+
+- Keine fremden privaten oder modern urheberrechtlich geschützten Fotos committen.
+- Keine weiteren Galerie-BMP von der SD ins Git legen, außer den gekennzeichneten Demos.

@@ -5,7 +5,7 @@ static const char PAGE_STUDIO[] PROGMEM = R"HTML(
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Studio · Tintenklecks</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet"/>
 <style>
 :root{--bg:#14110f;--panel:#241e18;--line:#4a3f35;--acc:#c4966e;--txt:#f3ebe3;--dim:#a89888}
 *{box-sizing:border-box}
@@ -640,7 +640,14 @@ function drawLabels(ctx,w,h,withFrames){
       ctx.setLineDash([]);
     }
     ctx.fillStyle='rgb('+m[0]+','+m[1]+','+m[2]+')';
-    ctx.fillText(L.text||'', 0, 0);
+    const text=L.text||'';
+    if(L.bold){
+      ctx.strokeStyle=ctx.fillStyle;
+      ctx.lineJoin='round';
+      ctx.lineWidth=Math.max(1.2, (L.size||28)*0.07);
+      ctx.strokeText(text, 0, 0);
+    }
+    ctx.fillText(text, 0, 0);
     ctx.restore();
   }
 }
@@ -1564,7 +1571,10 @@ document.getElementById('btnTuneStyle').onclick=function(){
 document.getElementById('btnShow').onclick=function(){send(true);};
 document.getElementById('btnSave').onclick=function(){send(false);};
 if(document.fonts && document.fonts.load){
-  document.fonts.load('28px "Dancing Script"').then(function(){ schedule(); }).catch(function(){});
+  Promise.all([
+    document.fonts.load('400 28px "Dancing Script"'),
+    document.fonts.load('700 28px "Dancing Script"')
+  ]).then(function(){ schedule(); }).catch(function(){});
 }
 async function refreshStatus(){
   try{

@@ -6,7 +6,10 @@ Firmware for the **Waveshare ESP32-S3 PhotoPainter** (7.3″ Spectra-6 / E6, 480
 Crop, rendering and captions run in the browser on the frame.
 The gallery lives on the SD card. No ESP-IDF — Arduino IDE only.
 
-© 2026 Ingo Lissors · Origin and licenses: [CREDITS.txt](CREDITS.txt)
+© 2026 Ingo Lissors · Origin and licenses: [CREDITS.txt](CREDITS.txt) · [LICENSE](LICENSE)
+
+Public-domain demo: [`examples/mona_lisa.bmp`](examples/mona_lisa.bmp) (Leonardo da Vinci, *Mona Lisa*).
+Further demo: [`examples/peter.bmp`](examples/peter.bmp) (person, captions, bold script) — see [`examples/peter.SOURCE.md`](examples/peter.SOURCE.md).
 
 Sketch file: `Bilderrahmen.ino` (keep that folder name, or the Arduino IDE will not find the sketch).
 
@@ -37,7 +40,10 @@ pic/
 
 The four WAV files are in the `sound/` folder of this download. Copy them into `sound/` on the card. Do not rename them.
 
-`pic/` stays empty. Pictures are created in Studio on the frame. There are **no** bundled BMP, JPG or thumbnail files.
+`pic/` stays empty unless you copy the demos. Pictures are otherwise created in Studio. [`examples/`](examples/) has ready gallery sets — copy BMP, JSON, `_src.jpg` and `_thumb.jpg` into `pic/`:
+
+- `mona_lisa.*` — Leonardo’s *Mona Lisa* (public domain, Wikimedia). [`SOURCE`](examples/mona_lisa.SOURCE.md)
+- `peter.*` — example with name, dates and bold script type. [`SOURCE`](examples/peter.SOURCE.md)
 
 3. Insert the card, **then** flash the firmware.
 
@@ -175,7 +181,7 @@ Free text for Live-Anzeige only, not on the panel.
 
 Checkbox **Beschriftung anzeigen** (off: name, dates and free texts hidden). Fields: text, typeface Serif / Sans / Schnörkel, Fett, size, rotation (−180° to 180°), colour Weiß / Schwarz / Gelb / Rot / Blau / Grün, alignment Mitte / Links / Rechts.
 
-**Freitext hinzufügen**, select in the list, drag on the crop. **Ausgewählten Text löschen** or **Alle Freitexte löschen**.
+**Freitext hinzufügen**, select in the list, drag on the crop. **Ausgewählten Text löschen** or **Alle Freitexte löschen**. **Fett** applies to the selected text (name, dates or free text), including Schnörkel.
 
 ### Bilder (gallery)
 
@@ -231,3 +237,22 @@ Order: birth or death tomorrow or the day after — up to three pictures stacked
 **SSID (Heimnetz)**, **WLAN-Passwort**, **AP-Passwort (Hotspot)** — the eye shows or hides the password. AP password at least 8 characters (WPA2), default `tintenklecks`. Takes effect after restart. The hotspot is named **Tintenklecks**.
 
 **Speichern & neu starten**. **Offline · Menü öffnen** stays in the menu without saving.
+
+## License
+
+**Firmware & UI:** see [`LICENSE`](LICENSE) — **non-commercial**. Third-party origin: [CREDITS.txt](CREDITS.txt).
+
+| Allowed | Not allowed |
+|---------|-------------|
+| Download; exact unmodified copies | **Commercial use** (sell, paid service, commercial product) |
+| Flash and use privately (your own frame) | Shipping a commercial product based on this code |
+| | Redistributing modifications; relicense / remove notices |
+
+Goal: others may look at and copy the project, and use it privately — they may **not** commercialize it.
+
+Demo images only where marked otherwise: [`examples/mona_lisa.bmp`](examples/mona_lisa.bmp) (public domain, Wikimedia) and [`examples/peter.bmp`](examples/peter.bmp) (example from the copyright holder). See the `SOURCE.md` next to the files.
+
+### Content policy (for this repo)
+
+- Do **not** commit other people’s private photos or modern copyrighted images.
+- Do **not** put further gallery BMPs from the SD card into git, except the marked demos.

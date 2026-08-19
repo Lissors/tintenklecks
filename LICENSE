@@ -1,0 +1,171 @@
+Tintenklecks — Proprietary Source-Available License (Non-Commercial)
+Copyright (c) 2026 Ingo Lissors. All rights reserved.
+
+SPDX-License-Identifier: LicenseRef-Tintenklecks-NonCommercial
+
+================================================================
+ENGLISH
+================================================================
+
+This license applies to the Tintenklecks firmware and web UI in this
+repository (including, without limitation, Bilderrahmen.ino and the other
+sketch sources, html_*.h, and related project files), unless a file
+expressly states a different license.
+
+Third-party notices in CREDITS.txt keep their own licenses
+(e.g. MIT for Wei-Ning Huang / aitjcize as required for that attribution,
+XPowersLib, Piper, Dancing Script OFL, Thorsten-Voice CC0).
+
+Separate terms apply to demo assets only where marked:
+  - examples/mona_lisa.bmp (+ .json, _src.jpg, _thumb.jpg) —
+    Leonardo da Vinci, Mona Lisa, public domain;
+    Wikimedia Commons reproduction (PD). See examples/mona_lisa.SOURCE.md.
+  - examples/peter.bmp (+ .json, _src.jpg, _thumb.jpg) —
+    demo portrait provided by the copyright holder.
+    See examples/peter.SOURCE.md.
+
+PURPOSE
+  You may look at, download, and copy this project, and use it privately
+  for yourself (including flashing your own Waveshare PhotoPainter).
+  You may NOT commercialize it or the product as implemented here
+  (no selling, no paid service, no commercial product based on this software).
+
+1. Permitted (non-commercial only)
+
+   You may:
+   (a) download this repository;
+   (b) make and redistribute exact, unmodified copies;
+   (c) run and use the software for personal, private, non-commercial
+       purposes only (e.g. flashing your own device, preparing your own
+       images in Studio).
+
+2. Not permitted (without prior written permission from the copyright holder)
+
+   You may NOT:
+   (a) use the software, or any modified or derived version, for any
+       commercial purpose — including but not limited to: selling the
+       software; offering it as a paid app, SaaS, or service; bundling it
+       in a commercial product; using it to produce paid deliverables or
+       commercial image-processing services;
+   (b) commercialize the Tintenklecks workflow/product as embodied in this
+       codebase (browser Studio → Spectra-6 dither → gallery on the frame)
+       by shipping a competing commercial product that is substantially
+       based on this code;
+   (c) modify, adapt, or create derivative works for distribution or for
+       commercial use (private experiments that you do not share or sell
+       are tolerated only if they remain strictly personal and are not
+       published);
+   (d) remove or alter copyright, license, or attribution notices;
+   (e) sublicense, sell, or relicense the covered material under other
+       terms.
+
+3. No trademark rights
+
+   This license does not grant rights to the name "Tintenklecks" or related
+   branding except as needed to identify an exact unmodified copy.
+
+4. No warranty
+
+   THE SOFTWARE AND MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
+   KIND. THE COPYRIGHT HOLDER IS NOT LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+   LIABILITY ARISING FROM THE MATERIALS OR THEIR USE OR DISTRIBUTION.
+
+5. Termination
+
+   Any breach of this license terminates your rights automatically.
+   Sections 3 and 4 survive termination.
+
+6. Note on ideas vs. code
+
+   Copyright and this license protect this software and its expression.
+   They do not monopolize abstract ideas in general. Independently created
+   software written from scratch without using this code is outside this
+   license — but using this code (or a derivative) commercially is not
+   allowed.
+
+For commercial permission, contact the copyright holder (Ingo Lissors /
+repository owner Lissors).
+
+================================================================
+DEUTSCH
+================================================================
+
+Diese Lizenz gilt für die Tintenklecks-Firmware und die Web-UI in diesem
+Repository (u. a. Bilderrahmen.ino und die übrigen Sketch-Quellen, html_*.h
+und zugehörige Projektdateien), sofern eine Datei nicht ausdrücklich etwas
+anderes bestimmt.
+
+Dritthinweise in CREDITS.txt behalten ihre eigenen Lizenzen
+(z. B. MIT für Wei-Ning Huang / aitjcize, soweit für diese Namensnennung
+nötig, XPowersLib, Piper, Dancing Script OFL, Thorsten-Voice CC0).
+
+Für Demo-Assets gelten nur dort andere Bedingungen, wo das gekennzeichnet
+ist:
+  - examples/mona_lisa.bmp (+ .json, _src.jpg, _thumb.jpg) —
+    Leonardo da Vinci, Mona Lisa, gemeinfrei;
+    Reproduktion Wikimedia Commons (PD). Siehe examples/mona_lisa.SOURCE.md.
+  - examples/peter.bmp (+ .json, _src.jpg, _thumb.jpg) —
+    Demoporträt vom Rechteinhaber. Siehe examples/peter.SOURCE.md.
+
+ZWECK
+  Anschauen, Herunterladen, Kopieren und private Nutzung für dich selbst
+  sind erlaubt (einschließlich Flashen auf den eigenen Waveshare PhotoPainter).
+  Kommerzialisieren — also verkaufen, als bezahlten Dienst anbieten oder
+  daraus ein kommerzielles Produkt machen — ist nicht erlaubt.
+
+1. Erlaubt (nur nicht-kommerziell)
+
+   Sie dürfen:
+   (a) dieses Repository herunterladen;
+   (b) exakte, unveränderte Kopien anfertigen und weitergeben;
+   (c) die Software ausschließlich privat und nicht-kommerziell nutzen
+       und ausführen (z. B. eigenes Gerät flashen, eigene Bilder im Studio
+       vorbereiten).
+
+2. Nicht erlaubt (ohne vorherige schriftliche Erlaubnis des Rechteinhabers)
+
+   Sie dürfen NICHT:
+   (a) die Software oder eine veränderte / abgeleitete Version kommerziell
+       nutzen — insbesondere: Verkauf der Software; Angebot als bezahlte
+       App, SaaS oder Dienst; Einbau in ein kommerzielles Produkt;
+       Nutzung für bezahlte Aufträge oder kommerzielle Bild-Services;
+   (b) das in diesem Code verkörperte Tintenklecks-Produkt
+       (Browser-Studio → Spectra-6-Dither → Galerie auf dem Rahmen)
+       kommerziell verwerten, indem Sie ein konkurrierendes kommerzielles
+       Produkt ausliefern, das wesentlich auf diesem Code basiert;
+   (c) für Weitergabe oder kommerzielle Nutzung verändern, anpassen oder
+       abgeleitete Werke erstellen (rein private Experimente ohne
+       Veröffentlichung und ohne Verkauf werden nur geduldet, wenn sie
+       streng persönlich bleiben);
+   (d) Urheberrechts-, Lizenz- oder Hinweisvermerke entfernen oder ändern;
+   (e) das Material unterlizenzieren, verkaufen oder unter anderen
+       Bedingungen neu lizenzieren.
+
+3. Keine Markenrechte
+
+   Diese Lizenz gewährt keine Rechte am Namen „Tintenklecks“ oder zugehörigem
+   Branding, außer soweit nötig, um eine exakte unveränderte Kopie zu
+   bezeichnen.
+
+4. Keine Gewährleistung
+
+   DIE SOFTWARE UND MATERIALIEN WERDEN „WIE BESEHEN“ BEREITGESTELLT, OHNE
+   JEGLICHE GEWÄHRLEISTUNG. DER RECHTEINHABER HAFTET NICHT FÜR ANSPRÜCHE,
+   SCHÄDEN ODER SONSTIGE VERBINDLICHKEITEN AUS DEN MATERIALIEN ODER IHRER
+   NUTZUNG ODER WEITERGABE.
+
+5. Beendigung
+
+   Jeder Verstoß beendet Ihre Rechte automatisch. Die Abschnitte 3 und 4
+   bleiben bestehen.
+
+6. Hinweis Idee vs. Code
+
+   Urheberrecht und diese Lizenz schützen diese Software und ihre konkrete
+   Umsetzung. Allgemeine Ideen sind nicht monopolisierbar. Unabhängig von
+   Grund auf neu geschriebene Software ohne Nutzung dieses Codes fällt nicht
+   unter diese Lizenz — die kommerzielle Nutzung dieses Codes (oder einer
+   Ableitung) ist aber nicht erlaubt.
+
+Für kommerzielle Erlaubnis: Rechteinhaber Ingo Lissors /
+Repository-Inhaber Lissors kontaktieren.
