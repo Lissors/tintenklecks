@@ -648,7 +648,7 @@ function drawLabels(ctx,w,h,withFrames){
     if(L.bold){
       ctx.strokeStyle=ctx.fillStyle;
       ctx.lineJoin='round';
-      ctx.lineWidth=Math.max(1.2, (L.size||28)*0.07);
+      ctx.lineWidth=Math.max(0.45, (L.size||28)*0.028);
       ctx.strokeText(text, 0, 0);
     }
     ctx.fillText(text, 0, 0);
@@ -722,24 +722,16 @@ function upsertRoleLabel(role, enabled, text, size, yDefault){
     }
     return;
   }
+  if(idx>=0){
+    labels[idx].text=text;
+    return;
+  }
   const font=document.getElementById('labFont').value;
   const color=document.getElementById('labColor').value;
   const align=document.getElementById('labAlign').value;
   const bold=!!document.getElementById('labBold').checked;
   const rotate=+document.getElementById('labRot').value||0;
-  if(idx>=0){
-    labels[idx].text=text;
-    labels[idx].size=size;
-    if(selectedLab===idx){
-      labels[idx].font=font;
-      labels[idx].color=color;
-      labels[idx].align=align;
-      labels[idx].bold=bold;
-      labels[idx].rotate=rotate;
-    }
-  } else {
-    labels.push({role:role, text:text, x:0.5, y:yDefault, size:size, color:color, font:font, align:align, bold:bold, rotate:rotate});
-  }
+  labels.push({role:role, text:text, x:0.5, y:yDefault, size:size, color:color, font:font, align:align, bold:bold, rotate:rotate});
 }
 function specialOnPicText(){
   const dt=metaSpecial.value.trim();
@@ -1144,9 +1136,21 @@ document.getElementById('btnClearLab').onclick=function(){
   updateLabList(); schedule();
 };
 capVisible.addEventListener('change', schedule);
-['metaName','metaBirth','metaDeath','metaSpecial','metaSpecialKind','showName','showBirth','showDeath','showSpecial','sizeName','sizeDates'].forEach(function(id){
+['metaName','metaBirth','metaDeath','metaSpecial','metaSpecialKind','showName','showBirth','showDeath','showSpecial'].forEach(function(id){
   document.getElementById(id).addEventListener('input', function(){ syncPersonLabels(); updateLabList(); schedule(); });
   document.getElementById(id).addEventListener('change', function(){ syncPersonLabels(); updateLabList(); schedule(); });
+});
+sizeName.addEventListener('input', function(){
+  const idx=labels.findIndex(function(L){return L.role==='name';});
+  if(idx>=0) labels[idx].size=+sizeName.value;
+  updateLabList(); schedule();
+});
+sizeDates.addEventListener('input', function(){
+  const s=+sizeDates.value;
+  labels.forEach(function(L){
+    if(L.role==='birth'||L.role==='death'||L.role==='special') L.size=s;
+  });
+  updateLabList(); schedule();
 });
 function applyControlsToSelected(){
   if(selectedLab<0 || selectedLab>=labels.length) return;
