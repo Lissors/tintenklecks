@@ -1,4 +1,5 @@
-// KEY (GPIO4): next random picture while awake; from deep sleep: wake, switch, sleep
+// KEY (GPIO4): next picture while awake; from deep sleep: wake, switch, sleep
+// Zufall, or next due memory when several share the window
 
 #include "config.h"
 #include "board.h"

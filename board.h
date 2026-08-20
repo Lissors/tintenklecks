@@ -6,6 +6,7 @@ void epdClear(uint8_t color);
 void epdSetPixel(int x, int y, uint8_t color);
 void epdDisplayCurrentBuffer();
 void epdForceBatteryWarn(bool on);  // test: overlay even if battery ≥ 10 %
+void epdSetMoreMemoriesHint(int extra);  // 0 = aus; sonst „N weitere Erinnerung(en)“ unten rechts
 
 bool pmuInit();
 bool pmuReady();
@@ -58,11 +59,12 @@ void slideshowLoop();
 void slideshowSetTimeOk(bool ok);
 void slideshowGetJson(String &out);
 bool slideshowSet(int mode, int intervalMin, int dailyHour, int dailyMin);
-void slideshowForceNow();  // KEY / Jetzt wechseln: nur Zufall
-void slideshowOnTimer();   // Intervall / Uhr: Erinnerungen zuerst, sonst Zufall
+void slideshowForceNow();  // KEY / Jetzt wechseln: Zufall; bei mehreren fälligen Erinnerungen die nächste
+void slideshowOnTimer();   // Intervall / Uhr: Erinnerungen zuerst (eine, alle 3 h die nächste), sonst Zufall
+void slideshowForgetMemoryCycle();  // Galerie/Studio-Anzeige: 3-Stunden-Runde aus
 const char *hangValue();   // "portrait" | "landscape" — System, gilt für neue Bilder
 bool hangSet(const char *v);
-/** Remember which file(s) are on the panel (comma-separated if composite). */
+/** Remember which file is on the panel. */
 void slideshowNoteShown(const String &files);
 /** Forget that note when the file is deleted. */
 void slideshowForgetShown(const String &file);

@@ -34,7 +34,7 @@ static const int I2C_SCL = 48;
 static const int PIN_LED_GREEN = 42;
 static const int PIN_LED_RED = 45;
 static const int PIN_BOOT = 0;  // BOOT — deep-sleep wake, Web an, kein Bildwechsel
-static const int PIN_KEY = 4;   // KEY — nächstes Zufallsbild (wach) / wecken+wechseln (Schlaf)
+static const int PIN_KEY = 4;   // KEY — nächstes Bild (Zufall, oder nächste fällige Erinnerung)
 
 static const int EPD_WIDTH = 800;
 static const int EPD_HEIGHT = 480;

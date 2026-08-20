@@ -3,7 +3,7 @@
 [Deutsch](README.md) · English
 
 Firmware for the **Waveshare ESP32-S3 PhotoPainter** (7.3″ Spectra-6 / E6, 480×800).
-The frame exists so **special days are not forgotten**: birthdays, death days and other anniversaries (wedding, first meeting …). Two pots: **Zufall** (random) and **Erinnerungen** (memories). Memories come up on their own when the day is tomorrow or the day after — up to three pictures stacked. Crop, rendering and captions run in the browser on the frame. The gallery lives on the SD card. No ESP-IDF — Arduino IDE only.
+The frame exists so **special days are not forgotten**: birthdays, death days and other anniversaries (wedding, first meeting …). Two pots: **Zufall** (random) and **Erinnerungen** (memories). Memories come up on their own when the day is **today, tomorrow or the day after** — one full picture; if several are due, a hint at the bottom right. Crop, rendering and captions run in the browser on the frame. The gallery lives on the SD card. No ESP-IDF — Arduino IDE only.
 
 © 2026 Ingo Lissors · Origin and licenses: [CREDITS.txt](CREDITS.txt) · [LICENSE](LICENSE)
 
@@ -16,9 +16,9 @@ The web UI is German. Button and field names below match the screen.
 
 ## Reminders — birth, death, special date, captions
 
-In Studio under **Bildart** choose **Normal** or **Erinnerung**. Normal stays in the random pot. Erinnerung leaves the random pot — whether or not a date is filled in yet. With **Geburtsdatum**, **Sterbedatum** or **Besonderes Datum** (`TT.MM.JJJJ`) it is tied to that anniversary: the timer shows it **tomorrow or the day after**, up to **three** stacked. A special date has an **Anlass** (e.g. Hochzeitstag, Kennenlerntag). The chip clock must be valid, and under Rahmen a change mode (**Im Intervall** or **1× pro Tag**) must be on.
+In Studio under **Bildart** choose **Normal** or **Erinnerung**. Normal stays in the random pot. Erinnerung leaves the random pot — whether or not a date is filled in yet. With **Geburtsdatum**, **Sterbedatum** or **Besonderes Datum** (`TT.MM.JJJJ`) it is tied to that anniversary: the timer shows it **on the day, tomorrow or the day after**, **one** full picture at a time. If several are due: one at random, hint bottom right e.g. **2 weitere Erinnerungen**, **KEY** and every **3 hours** the next. A special date has an **Anlass** (e.g. Hochzeitstag, Kennenlerntag). The chip clock must be valid, and under Rahmen a change mode (**Im Intervall** or **1× pro Tag**) must be on.
 
-**KEY** and **Jetzt wechseln** take only Zufall, never Erinnerungen. Old JSON without a `kind` field: a date present means Erinnerung, otherwise Zufall.
+**KEY** and **Jetzt wechseln** otherwise take only Zufall. Only when several memories are due does KEY step through those not yet shown; after the last, Zufall again. Old JSON without a `kind` field: a date present means Erinnerung, otherwise Zufall.
 
 On the picture itself: name, `*` birth, `†` death, occasion plus date, plus free notes (e.g. “In Erinnerung”). The **Bildbeschreibung** appears only in Live-Anzeige, not on the panel.
 
@@ -155,7 +155,7 @@ Right: **Akku … %**, while charging **· lädt**, or **USB-Betrieb**. Next to 
 
 | Button | Awake | From deep sleep |
 | --- | --- | --- |
-| **KEY** | next random picture (same as „Jetzt wechseln“), no memories | wake, random picture, sleep again |
+| **KEY** | next picture (Zufall; if several memories are due, the next of those) | wake, switch, sleep again |
 | **BOOT** | — | web on, **no** picture change |
 
 ### USB and battery
@@ -211,7 +211,7 @@ E-Paper / Dither (Lab only): Helligkeit, Kontrast, Wärme, Dither %, algorithm A
 
 **Art:** **Normal** (random pot) or **Erinnerung** (out of the random pot). Date fields only for Erinnerung: birth date, death date, special date (`TT.MM.JJJJ`) and occasion (Hochzeitstag, Kennenlerntag …). Checkboxes **Name auf Bild**, **Geburt auf Bild**, **Tod auf Bild**, **Besonderes auf Bild** and sliders **Größe Name** / **Größe Daten**. Name and dates can be dragged on the crop.
 
-Without a matching anniversary (tomorrow / day after) a memory stays off the panel — the timer then falls back to Zufall. KEY and **Jetzt wechseln** always do that.
+Without a matching anniversary (today / tomorrow / day after) a memory stays off the panel — the timer then falls back to Zufall. KEY and **Jetzt wechseln** do that too, except when several memories are due: those not yet shown, then Zufall again.
 
 #### Bildbeschreibung (picture description)
 
@@ -260,7 +260,7 @@ Clock first. **Suchen** filters the city list. Pick a city, **Standort speichern
 
 **Wechsel:** mode **Aus**, **Im Intervall** (5 / 10 / 30 / 60 minutes) or **1× pro Tag** (time of day, default 08:00). **Speichern** keeps the mode. **Jetzt wechseln** immediately — Zufall only, no memories. **Aus** = no timer.
 
-**Timer (interval / clock / wake for a change):** if a memory’s birth, death or special date is **tomorrow or the day after**, those pictures come first — up to three stacked. Otherwise only Zufall, without replacement, until the pot is empty, then reshuffle. If there is no due memory and no Zufall picture, the panel stays. USB stays awake. Battery sleeps as under “USB and battery”.
+**Timer (interval / clock / wake for a change):** if a memory’s birth, death or special date is **today, tomorrow or the day after**, **one** such picture comes first (full size, type as in Studio). Several due: hint bottom right, next one every 3 hours (KEY likewise). Otherwise only Zufall, without replacement, until the pot is empty, then reshuffle. If there is no due memory and no Zufall picture, the panel stays. USB stays awake. Battery sleeps as under “USB and battery”.
 
 ### System
 

@@ -38,7 +38,7 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
 </div>
 <main>
 <h1>Rahmeneinstellung</h1>
-<p class="lead">Automatischer Wechsel. Erinnerungen (Datum morgen oder übermorgen): bis zu 3 übereinander. KEY und Jetzt wechseln: nur Zufall, keine Erinnerungen. Sonst Zufall ohne Datum, ohne Zurücklegen. USB: bleibt wach. Akku, ab 10&nbsp;Min Intervall oder 1×/Tag: ohne Client direkt nach Bildwechsel, mit Client nach 60&nbsp;s Inaktivität Deep Sleep — Aufwachen beim nächsten Wechsel, per KEY (Zufall, wieder schlafen) oder per BOOT (Web, kein Wechsel). 5&nbsp;Min: bleibt wach.</p>
+<p class="lead">Automatischer Wechsel. Erinnerungen (am Tag selbst, morgen oder übermorgen): ein Bild voll. Mehrere am selben Tag: eine zufällig, Hinweis unten rechts, KEY und alle 3&nbsp;Stunden die nächste — KEY nach der Runde Zufall. KEY und Jetzt wechseln sonst nur Zufall. Sonst Zufall ohne Datum, ohne Zurücklegen. USB: bleibt wach. Akku, ab 10&nbsp;Min Intervall oder 1×/Tag: ohne Client direkt nach Bildwechsel, mit Client nach 60&nbsp;s Inaktivität Deep Sleep — Aufwachen beim nächsten Wechsel, per KEY (wechseln, wieder schlafen) oder per BOOT (Web, kein Wechsel). 5&nbsp;Min: bleibt wach.</p>
 <div class="panel">
 <h2>Uhrzeit (Chip-RTC)</h2>
 <label class="field">Datum &amp; Zeit
@@ -47,9 +47,10 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
 <label class="field">Suchen
   <input id="tzFilter" type="search" placeholder="Stadt…" autocomplete="off"/>
 </label>
-<label class="field">Stadt (Sommerzeit)
+<label class="field">Stadt
   <select id="tzCity" size="8"></select>
 </label>
+<p class="hint">Die Stadt setzt die Zeitzone, inklusive Sommer- und Winterzeit.</p>
 <button id="btnTz" type="button">Standort speichern</button>
 <button id="btnTime" type="button">Uhr setzen</button>
 <button id="btnPhone" type="button">Von diesem Gerät übernehmen</button>
@@ -142,12 +143,18 @@ async function loadTz(){
       if(c.n===cur.city) o.selected=true;
       sel.appendChild(o);
     });
+    if(cur.city) document.getElementById('tzFilter').value=cur.city;
   }catch(e){}
 }
 document.getElementById('tzFilter').oninput=()=>{
   const q=document.getElementById('tzFilter').value.trim().toLowerCase();
   const sel=document.getElementById('tzCity');
   for(const o of sel.options){ o.hidden=q && o.textContent.toLowerCase().indexOf(q)<0; }
+};
+document.getElementById('tzCity').onchange=()=>{
+  const sel=document.getElementById('tzCity');
+  const o=sel.options[sel.selectedIndex];
+  if(o) document.getElementById('tzFilter').value=o.textContent;
 };
 document.getElementById('btnTz').onclick=async()=>{
   const sel=document.getElementById('tzCity');

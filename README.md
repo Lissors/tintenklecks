@@ -3,7 +3,7 @@
 Deutsch · [English](README.en.md)
 
 Firmware für den **Waveshare ESP32-S3 PhotoPainter** (7,3″ Spectra-6 / E6, 480×800).
-Der Rahmen ist dafür da, **besondere Tage nicht zu vergessen**: Geburtstage, Sterbetage und andere Jahrestage (Hochzeit, Kennenlernen …). Zwei Töpfe: **Zufall** und **Erinnerungen**. Erinnerungen kommen von selbst, sobald der Tag morgen oder übermorgen ist — bis zu drei Bilder übereinander. Zuschnitt, Verfahren und Beschriftung laufen im Browser auf dem Rahmen. Die Galerie liegt auf der SD-Karte. Kein ESP-IDF, nur Arduino IDE.
+Der Rahmen ist dafür da, **besondere Tage nicht zu vergessen**: Geburtstage, Sterbetage und andere Jahrestage (Hochzeit, Kennenlernen …). Zwei Töpfe: **Zufall** und **Erinnerungen**. Erinnerungen kommen von selbst, sobald der Tag **heute, morgen oder übermorgen** ist — ein Bild voll, bei mehreren Hinweis unten rechts. Zuschnitt, Verfahren und Beschriftung laufen im Browser auf dem Rahmen. Die Galerie liegt auf der SD-Karte. Kein ESP-IDF, nur Arduino IDE.
 
 © 2026 Ingo Lissors · Herkunft und Lizenzen: [CREDITS.txt](CREDITS.txt) · [LICENSE](LICENSE)
 
@@ -14,9 +14,9 @@ Sketch-Datei: `Bilderrahmen.ino` (Ordnername bleibt, sonst findet die Arduino ID
 
 ## Erinnerungen — Geburt, Tod, Besonderes, Texte
 
-Im Studio unter **Bildart** **Normal** oder **Erinnerung**. Normal bleibt im Zufallstopf. Erinnerung fliegt raus aus dem Zufall — unabhängig davon, ob schon ein Datum steht. Mit **Geburtsdatum**, **Sterbedatum** oder **Besonderes Datum** (`TT.MM.JJJJ`) hängt sie am Jahrestag: der Timer zeigt sie **morgen oder übermorgen**, bis zu **drei** übereinander. Beim besonderen Datum gehört ein **Anlass** dazu (z. B. Hochzeitstag, Kennenlerntag). Dafür muss die Chip-Uhr stimmen und unter Rahmen ein Wechsel (**Im Intervall** oder **1× pro Tag**) an sein.
+Im Studio unter **Bildart** **Normal** oder **Erinnerung**. Normal bleibt im Zufallstopf. Erinnerung fliegt raus aus dem Zufall — unabhängig davon, ob schon ein Datum steht. Mit **Geburtsdatum**, **Sterbedatum** oder **Besonderes Datum** (`TT.MM.JJJJ`) hängt sie am Jahrestag: der Timer zeigt sie **am Tag selbst, morgen oder übermorgen**, jeweils **ein** Bild voll. Sind mehrere fällig: eines zufällig, unten rechts z. B. **2 weitere Erinnerungen**, **KEY** und alle **3 Stunden** das nächste. Beim besonderen Datum gehört ein **Anlass** dazu (z. B. Hochzeitstag, Kennenlerntag). Dafür muss die Chip-Uhr stimmen und unter Rahmen ein Wechsel (**Im Intervall** oder **1× pro Tag**) an sein.
 
-**KEY** und **Jetzt wechseln** nehmen nur Zufall, keine Erinnerungen. Alte JSON ohne Feld `kind`: Datum da = Erinnerung, sonst Zufall.
+**KEY** und **Jetzt wechseln** nehmen sonst nur Zufall. Nur wenn mehrere Erinnerungen fällig sind, blättert KEY durch die noch nicht gezeigten; sind alle durch, wieder Zufall. Alte JSON ohne Feld `kind`: Datum da = Erinnerung, sonst Zufall.
 
 Auf dem Bild selbst: Name, `*` Geburt, `†` Tod, Anlass plus Datum, plus freie Hinweise (z. B. „In Erinnerung“). Die **Bildbeschreibung** steht nur in der Live-Anzeige, nicht auf dem Panel.
 
@@ -153,7 +153,7 @@ Rechts **Akku … %**, bei Ladung **· lädt**, oder **USB-Betrieb**. Daneben **
 
 | Taste | Wach | Aus dem Deep Sleep |
 | --- | --- | --- |
-| **KEY** | nächstes Zufallsbild (wie „Jetzt wechseln“), keine Erinnerungen | wecken, Zufallsbild, wieder schlafen |
+| **KEY** | nächstes Bild (Zufall; bei mehreren fälligen Erinnerungen die nächste) | wecken, wechseln, wieder schlafen |
 | **BOOT** | — | Web an, **kein** Bildwechsel |
 
 ### USB und Akku
@@ -209,7 +209,7 @@ E-Paper / Dither (nur Lab): Helligkeit, Kontrast, Wärme, Dither %, Algorithmus 
 
 **Art:** **Normal** (Zufallstopf) oder **Erinnerung** (raus aus dem Zufall). Datumsfelder nur bei Erinnerung: Geburtsdatum, Sterbedatum, Besonderes Datum (`TT.MM.JJJJ`) und Anlass (Hochzeitstag, Kennenlerntag …). Häkchen **Name auf Bild**, **Geburt auf Bild**, **Tod auf Bild**, **Besonderes auf Bild** und Schieber **Größe Name** / **Größe Daten**. Name und Daten lassen sich auf dem Zuschnitt verschieben.
 
-Ohne passenden Jahrestag (morgen/übermorgen) bleibt eine Erinnerung weg — der Timer greift dann auf Zufall zurück. KEY und **Jetzt wechseln** tun das immer.
+Ohne passenden Jahrestag (heute/morgen/übermorgen) bleibt eine Erinnerung weg — der Timer greift dann auf Zufall zurück. KEY und **Jetzt wechseln** tun das auch, außer mehrere Erinnerungen sind gerade fällig: dann die noch nicht gezeigten, danach wieder Zufall.
 
 #### Bildbeschreibung
 
@@ -258,7 +258,7 @@ Zuerst die Uhr. **Suchen** filtert die Stadtliste. Stadt wählen, **Standort spe
 
 **Wechsel:** Modus **Aus**, **Im Intervall** (5 / 10 / 30 / 60 Minuten) oder **1× pro Tag** (Uhrzeit, Vorgabe 08:00). **Speichern** merkt den Modus. **Jetzt wechseln** sofort — nur Zufall, keine Erinnerungen. **Aus** = kein Timer.
 
-**Timer (Intervall / Uhr / Aufwachen zum Wechsel):** Ist bei einer Erinnerung Geburt, Tod oder ein besonderes Datum **morgen oder übermorgen**, kommen diese Bilder zuerst — bis zu drei übereinander. Sonst nur Zufall, ohne Zurücklegen, bis der Topf leer ist, dann neu mischen. Gibt es gerade keine fällige Erinnerung und keinen Zufall, bleibt das Panel. USB bleibt wach. Akku schläft wie unter „USB und Akku“.
+**Timer (Intervall / Uhr / Aufwachen zum Wechsel):** Ist bei einer Erinnerung Geburt, Tod oder ein besonderes Datum **heute, morgen oder übermorgen**, kommt zuerst **ein** solches Bild (voll, Schrift wie im Studio). Mehrere fällig: Hinweis unten rechts, alle 3 Stunden das nächste (KEY ebenso). Sonst nur Zufall, ohne Zurücklegen, bis der Topf leer ist, dann neu mischen. Gibt es gerade keine fällige Erinnerung und keinen Zufall, bleibt das Panel. USB bleibt wach. Akku schläft wie unter „USB und Akku“.
 
 ### System
 

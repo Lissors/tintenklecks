@@ -4,6 +4,7 @@
 #include "board.h"
 #include <SPI.h>
 #include <string.h>
+#include <stdio.h>
 #include <pgmspace.h>
 
 static SPIClass epdSpi(FSPI);
@@ -234,8 +235,16 @@ static const uint8_t FONT5X7[][5] PROGMEM = {
     {0x36, 0x49, 0x49, 0x49, 0x36},  // 8
     {0x06, 0x49, 0x49, 0x29, 0x1E},  // 9
     {0x7E, 0x11, 0x11, 0x11, 0x7E},  // A
-    {0x00, 0x00, 0x00, 0x00, 0x00},
-    {0x7F, 0x49, 0x49, 0x49, 0x36},  // unused
+    {0x00, 0x00, 0x00, 0x00, 0x00},  // 15 k → FONT_K
+    {0x00, 0x00, 0x00, 0x00, 0x00},  // 16 u → FONT_U
+    {0x7F, 0x49, 0x49, 0x49, 0x41},  // E
+    {0x38, 0x54, 0x54, 0x54, 0x18},  // e
+    {0x08, 0x54, 0x54, 0x54, 0x3C},  // g
+    {0x00, 0x44, 0x7D, 0x40, 0x00},  // i
+    {0x7C, 0x08, 0x04, 0x04, 0x78},  // n
+    {0x7C, 0x08, 0x04, 0x04, 0x08},  // r
+    {0x04, 0x3F, 0x44, 0x40, 0x20},  // t
+    {0x3C, 0x40, 0x30, 0x40, 0x3C},  // w
 };
 
 static int epdFontIndex(char c) {
@@ -257,20 +266,59 @@ static int epdFontIndex(char c) {
   if (c == 'A') {
     return 14;
   }
-  if (c == 'k') {
-    return 15;
+  if (c == 'E') {
+    return 17;
   }
-  if (c == 'u') {
-    return 16;
+  if (c == 'e') {
+    return 18;
+  }
+  if (c == 'g') {
+    return 19;
+  }
+  if (c == 'i') {
+    return 20;
+  }
+  if (c == 'n') {
+    return 21;
+  }
+  if (c == 'r') {
+    return 22;
+  }
+  if (c == 't') {
+    return 23;
+  }
+  if (c == 'w') {
+    return 24;
   }
   return 0;
 }
 
 // k and u as 5×7
 static const uint8_t FONT_K[5] PROGMEM = {0x7F, 0x08, 0x14, 0x22, 0x41};
-static const uint8_t FONT_U[5] PROGMEM = {0x3F, 0x40, 0x40, 0x40, 0x3F};
+static const uint8_t FONT_U[5] PROGMEM = {0x3C, 0x40, 0x40, 0x40, 0x7C};
+
+static bool epdHangLandscape() {
+  const char *h = hangValue();
+  return h && h[0] == 'l';
+}
+
+static void epdVisSize(int &w, int &h) {
+  if (epdHangLandscape()) {
+    w = EPD_WIDTH;
+    h = EPD_HEIGHT;
+  } else {
+    w = EPD_HEIGHT;
+    h = EPD_WIDTH;
+  }
+}
+
+static bool g_hintCoords = false;
 
 static void epdSetPixelVis(int vx, int vy, uint8_t color) {
+  if (g_hintCoords && epdHangLandscape()) {
+    epdSetPixel(vx, vy, color);
+    return;
+  }
   // Portrait as hung: 480×800. Same map as bmp 90° CW (dx=sy, dy=479-sx).
   epdSetPixel(vy, EPD_HEIGHT - 1 - vx, color);
 }
@@ -342,8 +390,58 @@ static void epdDrawBatteryWarn() {
 }
 
 static bool g_forceBattWarn = false;
+static int g_moreMemoriesHint = 0;
 
 void epdForceBatteryWarn(bool on) { g_forceBattWarn = on; }
+
+void epdSetMoreMemoriesHint(int extra) {
+  g_moreMemoriesHint = extra < 0 ? 0 : extra;
+}
+
+static void epdDrawMoreMemoriesHint(int extra, int lift) {
+  if (extra < 1) {
+    return;
+  }
+  char msg[36];
+  if (extra == 1) {
+    snprintf(msg, sizeof(msg), "1 weitere Erinnerung");
+  } else if (extra < 100) {
+    snprintf(msg, sizeof(msg), "%d weitere Erinnerungen", extra);
+  } else {
+    snprintf(msg, sizeof(msg), "weitere Erinnerungen");
+  }
+  const int scale = 3;
+  const int gw = 6 * scale;
+  const int gh = 7 * scale;
+  int visW = 0, visH = 0;
+  epdVisSize(visW, visH);
+  int n = 0;
+  for (const char *p = msg; *p; p++) {
+    n++;
+  }
+  int tw = n * gw + 1;
+  int th = gh + 2;
+  int x0 = visW - tw - 18;
+  int y0 = visH - th - 14 - lift;
+  if (x0 < 8) {
+    x0 = 8;
+  }
+  if (y0 < 8) {
+    y0 = 8;
+  }
+  g_hintCoords = true;
+  for (int y = y0 - 4; y < y0 + th + 4; y++) {
+    for (int x = x0 - 4; x < x0 + tw + 4; x++) {
+      epdSetPixelVis(x, y, EPD_WHITE);
+    }
+  }
+  int x = x0;
+  for (const char *p = msg; *p; p++) {
+    epdDrawChar(x, y0, *p, EPD_BLACK, scale);
+    x += gw;
+  }
+  g_hintCoords = false;
+}
 
 void epdDisplayCurrentBuffer() {
   if (!epdBuffer) {
@@ -355,6 +453,9 @@ void epdDisplayCurrentBuffer() {
     if (pct >= 0 && pct < 10) {
       warn = true;
     }
+  }
+  if (g_moreMemoriesHint > 0) {
+    epdDrawMoreMemoriesHint(g_moreMemoriesHint, warn ? (7 * 3 + 18) : 0);
   }
   if (warn) {
     epdDrawBatteryWarn();

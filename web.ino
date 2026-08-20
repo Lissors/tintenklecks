@@ -411,6 +411,7 @@ static void handleUploadDone() {
     server.send(200, "text/plain", msg);
     delay(50);
     powerNoteBusy(true);
+    slideshowForgetMemoryCycle();
     if (bmpShowFromSd(uploadPath.c_str())) {
       String base = uploadPath;
       int slash = base.lastIndexOf('/');
@@ -1956,6 +1957,7 @@ static void handleShow() {
   server.send(200, "text/plain", "OK");
   delay(50);
   powerNoteBusy(true);
+  slideshowForgetMemoryCycle();
   if (bmpShowFromSd(path.c_str())) {
     slideshowNoteShown(shown);
   }
@@ -2002,6 +2004,7 @@ static void handleShowBmpDone() {
   }
   server.send(200, "text/plain", "OK shown");
   delay(50);
+  slideshowForgetMemoryCycle();
   bmpShowFromSd(SHOW_BMP_PATH);
   powerNoteBusy(false);
 }

@@ -156,6 +156,7 @@ static void cmdPut(const String &args) {
   snprintf(buf, sizeof(buf), "OK %s %u", name.c_str(), (unsigned)size);
   reply(buf);
   reply("SHOWING");
+  slideshowForgetMemoryCycle();
   bool ok = bmpShowFromMemory(ram, size);
   free(ram);
   reply(ok ? "DONE" : "ERR show");
@@ -189,6 +190,7 @@ static void handleLine(String line) {
     }
     String path = String(PIC_DIR) + "/" + name;
     reply("SHOWING");
+    slideshowForgetMemoryCycle();
     reply(bmpShowFromSd(path.c_str()) ? "DONE" : "ERR show");
     return;
   }

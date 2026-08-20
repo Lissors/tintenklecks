@@ -21,9 +21,14 @@ static int g_dailyMin = 0;
 static int g_hang = 0;  // 0=Hochkant 480×800, 1=Quer 800×480
 static uint32_t g_lastSwitchMs = 0;
 static time_t g_lastSwitchEpoch = 0;  // wall clock; survives deep sleep via NVS
-static int g_lastDailyYday = -1;
+static int g_lastDailyYmd = 0;  // YYYYMMDD, 0 = noch kein Tageswechsel
 static String g_lastFile;
 static bool g_timeOk = false;
+static int g_memMore = 0;  // weitere fällige Erinnerungen (0 = keine Runde)
+static String g_memSeen;   // per KEY schon gezeigte fällige Dateien, kommagetrennt
+static int g_memSeenDay = 0;
+static const int64_t MEM_CYCLE_SEC = 3 * 3600;
+static const int SLIDE_MAX = 256;
 
 static bool intervalOk(int m) {
   return m == 5 || m == 10 || m == 30 || m == 60;
@@ -38,6 +43,172 @@ static void noteSwitchTime() {
     framePrefs.putULong("lsepoch", (uint32_t)g_lastSwitchEpoch);
     framePrefs.end();
   }
+}
+
+static void persistMemMore() {
+  framePrefs.begin("frame", false);
+  framePrefs.putInt("memmore", g_memMore);
+  framePrefs.putString("memseen", g_memSeen);
+  framePrefs.putInt("memday", g_memSeenDay);
+  framePrefs.end();
+}
+
+static int todayYmd() {
+  time_t now = time(nullptr);
+  struct tm ti;
+  if (now < 1700000000 || !localtime_r(&now, &ti)) {
+    return 0;
+  }
+  return (ti.tm_year + 1900) * 10000 + (ti.tm_mon + 1) * 100 + ti.tm_mday;
+}
+
+static bool memSeenHas(const String &file) {
+  if (!file.length() || !g_memSeen.length()) {
+    return false;
+  }
+  return (String(",") + g_memSeen + ",").indexOf(String(",") + file + ",") >= 0;
+}
+
+static void memSeenAdd(const String &file) {
+  if (!file.length() || memSeenHas(file)) {
+    return;
+  }
+  if (g_memSeen.length()) {
+    g_memSeen += ",";
+  }
+  g_memSeen += file;
+}
+
+static void memSeenRollDay() {
+  int d = todayYmd();
+  if (!d) {
+    return;
+  }
+  if (d != g_memSeenDay) {
+    g_memSeen = "";
+    g_memSeenDay = d;
+  }
+}
+
+void slideshowForgetMemoryCycle() {
+  g_memMore = 0;
+  persistMemMore();
+  epdSetMoreMemoriesHint(0);
+}
+
+static String lastShownOne() {
+  String last = g_lastFile;
+  int comma = last.indexOf(',');
+  if (comma >= 0) {
+    last = last.substring(0, comma);
+  }
+  last.trim();
+  return last;
+}
+
+static bool pickDueMemory(PicCand *cands, int n, String *paths, int &outCount, bool fromKey) {
+  String due[SLIDE_MAX];
+  int dueN = 0;
+  for (int i = 0; i < n; i++) {
+    if (cands[i].anniversarySoon) {
+      due[dueN++] = cands[i].file;
+    }
+  }
+  if (dueN < 1) {
+    return false;
+  }
+  memSeenRollDay();
+
+  if (fromKey) {
+    String last = lastShownOne();
+    int lastDue = -1;
+    for (int i = 0; i < dueN; i++) {
+      if (due[i] == last) {
+        lastDue = i;
+        break;
+      }
+    }
+    String chosen;
+    bool found = false;
+    if (lastDue >= 0) {
+      for (int i = lastDue + 1; i < dueN; i++) {
+        if (!memSeenHas(due[i])) {
+          chosen = due[i];
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        for (int i = 0; i < lastDue; i++) {
+          if (!memSeenHas(due[i])) {
+            chosen = due[i];
+            found = true;
+            break;
+          }
+        }
+      }
+    } else {
+      int restN = 0;
+      for (int i = 0; i < dueN; i++) {
+        if (!memSeenHas(due[i])) {
+          restN++;
+        }
+      }
+      if (restN < 1) {
+        return false;
+      }
+      int skip = random(restN);
+      for (int i = 0; i < dueN; i++) {
+        if (memSeenHas(due[i])) {
+          continue;
+        }
+        if (skip == 0) {
+          chosen = due[i];
+          found = true;
+          break;
+        }
+        skip--;
+      }
+    }
+    if (!found) {
+      return false;
+    }
+    paths[0] = chosen;
+    outCount = 1;
+    memSeenAdd(chosen);
+    int left = 0;
+    for (int i = 0; i < dueN; i++) {
+      if (!memSeenHas(due[i])) {
+        left++;
+      }
+    }
+    g_memMore = left;
+    persistMemMore();
+    return true;
+  }
+
+  int start = 0;
+  if (dueN >= 2) {
+    String last = lastShownOne();
+    int at = -1;
+    for (int i = 0; i < dueN; i++) {
+      if (due[i] == last) {
+        at = i;
+        break;
+      }
+    }
+    if (at >= 0) {
+      start = (at + 1) % dueN;
+    } else {
+      start = random(dueN);
+    }
+  }
+  paths[0] = due[start];
+  outCount = 1;
+  memSeenAdd(due[start]);
+  g_memMore = dueN >= 2 ? (dueN - 1) : 0;
+  persistMemMore();
+  return true;
 }
 
 static String jsonField(const String &json, const char *key) {
@@ -103,7 +274,7 @@ static bool matchAnniversarySoon(const String &date, int ty, int tm, int td) {
   addDays(y2, m2, d2, 2);
   (void)y1;
   (void)y2;
-  return (bm == m1 && bd == d1) || (bm == m2 && bd == d2);
+  return (bm == tm && bd == td) || (bm == m1 && bd == d1) || (bm == m2 && bd == d2);
 }
 
 static String readMetaFile(const String &bmpName) {
@@ -129,7 +300,6 @@ static String readMetaFile(const String &bmpName) {
   return s;
 }
 
-static const int SLIDE_MAX = 256;
 static const char *DECK_PATH = "/pic/_deck.txt";
 
 static void shuffleStrings(String *a, int n) {
@@ -342,30 +512,21 @@ static bool pickNextFiles(String *paths, int &outCount, bool allowMemory) {
     return false;
   }
 
-  // Timer: Erinnerung morgen/übermorgen, bis zu 3. KEY: diesen Block nicht.
-  if (allowMemory) {
-    int specialIdx[SLIDE_MAX];
-    int specialN = 0;
-    for (int i = 0; i < n; i++) {
-      if (cands[i].anniversarySoon) {
-        specialIdx[specialN++] = i;
-      }
-    }
-    if (specialN > 0) {
-      for (int i = specialN - 1; i > 0; i--) {
-        int j = random(i + 1);
-        int tmp = specialIdx[i];
-        specialIdx[i] = specialIdx[j];
-        specialIdx[j] = tmp;
-      }
-      outCount = specialN > 3 ? 3 : specialN;
-      for (int i = 0; i < outCount; i++) {
-        paths[i] = cands[specialIdx[i]].file;
-      }
-      delete[] cands;
-      return true;
+  // Timer: fällige Erinnerung (eine). KEY: nur wenn mindestens zwei fällig, die nächste.
+  int dueN = 0;
+  for (int i = 0; i < n; i++) {
+    if (cands[i].anniversarySoon) {
+      dueN++;
     }
   }
+  bool takeMemory = (allowMemory && dueN >= 1) || (!allowMemory && dueN >= 2);
+  if (takeMemory && pickDueMemory(cands, n, paths, outCount, !allowMemory)) {
+    delete[] cands;
+    return true;
+  }
+
+  g_memMore = 0;
+  persistMemMore();
 
   // Nur Zufall (keine Erinnerungen). Ohne solche Bilder: nichts.
   String *pool = new String[SLIDE_MAX];
@@ -408,27 +569,16 @@ static void doSwitch(bool allowMemory) {
     return;
   }
 
+  epdSetMoreMemoriesHint(g_memMore);
   const char *paths[3];
   String full[3];
-  for (int i = 0; i < count; i++) {
-    full[i] = String(PIC_DIR) + "/" + files[i];
-    paths[i] = full[i].c_str();
-    Serial.printf("Slideshow[%d] → %s\n", i, paths[i]);
-  }
+  full[0] = String(PIC_DIR) + "/" + files[0];
+  paths[0] = full[0].c_str();
+  Serial.printf("Slideshow → %s (weitere=%d)\n", paths[0], g_memMore);
 
-  bool ok = false;
-  if (count == 1) {
-    ok = bmpShowFromSd(paths[0]);
-  } else {
-    ok = bmpShowCompositeFromSd(paths, count);
-  }
+  bool ok = bmpShowFromSd(paths[0]);
   if (ok) {
-    String joined = files[0];
-    for (int i = 1; i < count; i++) {
-      joined += ",";
-      joined += files[i];
-    }
-    slideshowNoteShown(joined);
+    slideshowNoteShown(files[0]);
   }
   noteSwitchTime();
 }
@@ -474,16 +624,9 @@ bool slideshowReshowLast() {
   if (count < 1) {
     return false;
   }
-  const char *paths[3];
-  String full[3];
-  for (int i = 0; i < count; i++) {
-    full[i] = String(PIC_DIR) + "/" + files[i];
-    paths[i] = full[i].c_str();
-  }
-  if (count == 1) {
-    return bmpShowFromSd(paths[0]);
-  }
-  return bmpShowCompositeFromSd(paths, count);
+  epdSetMoreMemoriesHint(g_memMore);
+  String full = String(PIC_DIR) + "/" + files[0];
+  return bmpShowFromSd(full.c_str());
 }
 
 void slideshowBegin() {
@@ -493,12 +636,18 @@ void slideshowBegin() {
   g_dailyHour = framePrefs.getInt("dh", 8);
   g_dailyMin = framePrefs.getInt("dm", 0);
   g_lastFile = framePrefs.getString("last", "");
-  g_lastDailyYday = framePrefs.getInt("yday", -1);
+  g_lastDailyYmd = framePrefs.getInt("dymd", 0);
   g_lastSwitchEpoch = (time_t)framePrefs.getULong("lsepoch", 0);
   g_hang = framePrefs.getInt("hang", 0);
   if (g_hang != 0 && g_hang != 1) {
     g_hang = 0;
   }
+  g_memMore = framePrefs.getInt("memmore", 0);
+  if (g_memMore < 0) {
+    g_memMore = 0;
+  }
+  g_memSeen = framePrefs.getString("memseen", "");
+  g_memSeenDay = framePrefs.getInt("memday", 0);
   framePrefs.end();
 
   if (!intervalOk(g_intervalMin)) {
@@ -596,48 +745,91 @@ bool slideshowSleepAllowed() {
   return false;
 }
 
-int64_t slideshowSecondsUntilNext() {
-  if (g_mode == 1) {
-    const int64_t need = (int64_t)g_intervalMin * 60;
-    time_t now = time(nullptr);
-    if (g_lastSwitchEpoch > 1700000000 && now > 1700000000) {
-      int64_t elapsed = (int64_t)now - (int64_t)g_lastSwitchEpoch;
-      int64_t left = need - elapsed;
-      return left > 0 ? left : 0;
-    }
-    uint32_t elapsedMs = millis() - g_lastSwitchMs;
-    int64_t left = need - (int64_t)(elapsedMs / 1000UL);
-    return left > 0 ? left : 0;
-  }
+static int dateYmd(const struct tm &ti) {
+  return (ti.tm_year + 1900) * 10000 + (ti.tm_mon + 1) * 100 + ti.tm_mday;
+}
 
-  if (g_mode == 2) {
-    if (!g_timeOk) {
-      return -1;
-    }
-    time_t now = time(nullptr);
-    if (now < 1700000000) {
-      return -1;
-    }
-    struct tm ti;
-    if (!localtime_r(&now, &ti)) {
-      return -1;
-    }
+static void markDailyDone() {
+  time_t now = time(nullptr);
+  struct tm ti;
+  if (!g_timeOk || now < 1700000000 || !localtime_r(&now, &ti)) {
+    return;
+  }
+  g_lastDailyYmd = dateYmd(ti);
+  framePrefs.begin("frame", false);
+  framePrefs.putInt("dymd", g_lastDailyYmd);
+  framePrefs.end();
+}
+
+static int64_t secondsUntilDaily() {
+  if (g_mode != 2 || !g_timeOk) {
+    return -1;
+  }
+  time_t now = time(nullptr);
+  if (now < 1700000000) {
+    return -1;
+  }
+  struct tm ti;
+  if (!localtime_r(&now, &ti)) {
+    return -1;
+  }
+  if (dateYmd(ti) == g_lastDailyYmd) {
     struct tm target = ti;
+    target.tm_mday += 1;
     target.tm_hour = g_dailyHour;
     target.tm_min = g_dailyMin;
     target.tm_sec = 0;
     time_t tNext = mktime(&target);
-    if (g_lastDailyYday == ti.tm_yday) {
-      target.tm_mday += 1;
-      tNext = mktime(&target);
-    } else if (tNext <= now) {
-      return 0;
-    }
     int64_t left = (int64_t)tNext - (int64_t)now;
     return left > 0 ? left : 0;
   }
+  struct tm target = ti;
+  target.tm_hour = g_dailyHour;
+  target.tm_min = g_dailyMin;
+  target.tm_sec = 0;
+  time_t tAt = mktime(&target);
+  if (tAt <= now) {
+    return 0;
+  }
+  return (int64_t)tAt - (int64_t)now;
+}
 
-  return -1;
+static bool dailyDueNow() { return secondsUntilDaily() == 0; }
+
+int64_t slideshowSecondsUntilNext() {
+  time_t now = time(nullptr);
+  int64_t memLeft = -1;
+  if (g_memMore > 0 && g_timeOk && g_lastSwitchEpoch > 1700000000 && now > 1700000000) {
+    memLeft = MEM_CYCLE_SEC - ((int64_t)now - (int64_t)g_lastSwitchEpoch);
+    if (memLeft < 0) {
+      memLeft = 0;
+    }
+  }
+
+  int64_t sched = -1;
+  if (g_mode == 1) {
+    const int64_t need = (int64_t)g_intervalMin * 60;
+    if (g_lastSwitchEpoch > 1700000000 && now > 1700000000) {
+      int64_t elapsed = (int64_t)now - (int64_t)g_lastSwitchEpoch;
+      sched = need - elapsed;
+    } else {
+      uint32_t elapsedMs = millis() - g_lastSwitchMs;
+      sched = need - (int64_t)(elapsedMs / 1000UL);
+    }
+    if (sched < 0) {
+      sched = 0;
+    }
+  } else if (g_mode == 2) {
+    sched = secondsUntilDaily();
+  }
+
+  if (memLeft >= 0 && sched >= 0) {
+    return memLeft < sched ? memLeft : sched;
+  }
+  if (memLeft >= 0) {
+    return memLeft;
+  }
+  return sched;
 }
 
 const char *hangValue() {
@@ -663,37 +855,43 @@ bool hangSet(const char *v) {
 
 void slideshowForceNow() {
   doSwitch(false);
-  if (g_mode == 2) {
-    time_t now = time(nullptr);
-    struct tm ti;
-    if (g_timeOk && now > 1700000000 && localtime_r(&now, &ti)) {
-      g_lastDailyYday = ti.tm_yday;
-      framePrefs.begin("frame", false);
-      framePrefs.putInt("yday", g_lastDailyYday);
-      framePrefs.end();
-    }
-  }
 }
 
 void slideshowOnTimer() {
   doSwitch(true);
   if (g_mode == 2) {
-    time_t now = time(nullptr);
-    struct tm ti;
-    if (g_timeOk && now > 1700000000 && localtime_r(&now, &ti)) {
-      g_lastDailyYday = ti.tm_yday;
-      framePrefs.begin("frame", false);
-      framePrefs.putInt("yday", g_lastDailyYday);
-      framePrefs.end();
-    }
+    markDailyDone();
   }
 }
 
 void slideshowLoop() {
-  if (g_mode == 0) {
+  if (!sdOk()) {
     return;
   }
-  if (!sdOk()) {
+
+  if (dailyDueNow()) {
+    powerNoteBusy(true);
+    doSwitch(true);
+    powerNoteBusy(false);
+    markDailyDone();
+    return;
+  }
+
+  if (g_mode != 0 && g_memMore > 0 && g_timeOk) {
+    time_t now = time(nullptr);
+    if (now > 1700000000 && g_lastSwitchEpoch > 1700000000 &&
+        ((int64_t)now - (int64_t)g_lastSwitchEpoch) >= MEM_CYCLE_SEC) {
+      powerNoteBusy(true);
+      doSwitch(true);
+      powerNoteBusy(false);
+      return;
+    }
+    if (g_mode == 1) {
+      return;
+    }
+  }
+
+  if (g_mode == 0) {
     return;
   }
 
@@ -703,30 +901,6 @@ void slideshowLoop() {
       powerNoteBusy(true);
       doSwitch(true);
       powerNoteBusy(false);
-    }
-    return;
-  }
-
-  if (!g_timeOk) {
-    return;
-  }
-  time_t now = time(nullptr);
-  if (now < 1700000000) {
-    return;
-  }
-  struct tm ti;
-  if (!localtime_r(&now, &ti)) {
-    return;
-  }
-  if (ti.tm_hour == g_dailyHour && ti.tm_min == g_dailyMin) {
-    if (g_lastDailyYday != ti.tm_yday) {
-      powerNoteBusy(true);
-      doSwitch(true);
-      powerNoteBusy(false);
-      g_lastDailyYday = ti.tm_yday;
-      framePrefs.begin("frame", false);
-      framePrefs.putInt("yday", g_lastDailyYday);
-      framePrefs.end();
     }
   }
 }
