@@ -3,7 +3,7 @@
 [Deutsch](README.md) · English
 
 Firmware for the **Waveshare ESP32-S3 PhotoPainter** (7.3″ Spectra-6 / E6, 480×800).
-The frame exists so **special days are not forgotten**: birthdays, death days and other anniversaries (wedding, first meeting …). Pictures with a date come up on their own when the day is tomorrow or the day after — up to three pictures stacked. Crop, rendering and captions run in the browser on the frame. The gallery lives on the SD card. No ESP-IDF — Arduino IDE only.
+The frame exists so **special days are not forgotten**: birthdays, death days and other anniversaries (wedding, first meeting …). Two pots: **Zufall** (random) and **Erinnerungen** (memories). Memories come up on their own when the day is tomorrow or the day after — up to three pictures stacked. Crop, rendering and captions run in the browser on the frame. The gallery lives on the SD card. No ESP-IDF — Arduino IDE only.
 
 © 2026 Ingo Lissors · Origin and licenses: [CREDITS.txt](CREDITS.txt) · [LICENSE](LICENSE)
 
@@ -16,13 +16,15 @@ The web UI is German. Button and field names below match the screen.
 
 ## Reminders — birth, death, special date, captions
 
-Without a date in Studio, a picture stays in the normal random rotation. With **Geburtsdatum**, **Sterbedatum** or **Besonderes Datum** (`TT.MM.JJJJ`) it is tied to that anniversary: the frame shows it **tomorrow or the day after**, up to **three** such pictures stacked. A special date has an **Anlass** (e.g. Hochzeitstag, Kennenlerntag). The chip clock must be valid, and under Rahmen a change mode (**Im Intervall** or **1× pro Tag**) must be on.
+In Studio under **Bildart** choose **Normal** or **Erinnerung**. Normal stays in the random pot. Erinnerung leaves the random pot — whether or not a date is filled in yet. With **Geburtsdatum**, **Sterbedatum** or **Besonderes Datum** (`TT.MM.JJJJ`) it is tied to that anniversary: the timer shows it **tomorrow or the day after**, up to **three** stacked. A special date has an **Anlass** (e.g. Hochzeitstag, Kennenlerntag). The chip clock must be valid, and under Rahmen a change mode (**Im Intervall** or **1× pro Tag**) must be on.
+
+**KEY** and **Jetzt wechseln** take only Zufall, never Erinnerungen. Old JSON without a `kind` field: a date present means Erinnerung, otherwise Zufall.
 
 On the picture itself: name, `*` birth, `†` death, occasion plus date, plus free notes (e.g. “In Erinnerung”). The **Bildbeschreibung** appears only in Live-Anzeige, not on the panel.
 
 ![Captions in Studio](docs/beschriftung.png)
 
-Name, dates, checkboxes **Name auf Bild** / **Geburt auf Bild** / **Tod auf Bild** / **Besonderes auf Bild**. The dates drive the reminder, whether or not the text is drawn on the panel.
+Name, dates, checkboxes **Name auf Bild** / **Geburt auf Bild** / **Tod auf Bild** / **Besonderes auf Bild**. The dates control *when* a memory appears, not whether it is random. Whether the text is drawn on the panel does not change that.
 
 ![Free text and notes](docs/hinweistexte.png)
 
@@ -153,7 +155,7 @@ Right: **Akku … %**, while charging **· lädt**, or **USB-Betrieb**. Next to 
 
 | Button | Awake | From deep sleep |
 | --- | --- | --- |
-| **KEY** | next random picture (same as „Jetzt wechseln“) | wake, switch picture, sleep again |
+| **KEY** | next random picture (same as „Jetzt wechseln“), no memories | wake, random picture, sleep again |
 | **BOOT** | — | web on, **no** picture change |
 
 ### USB and battery
@@ -170,11 +172,11 @@ Six tiles:
 
 | Tile | Page |
 | --- | --- |
-| Live-Anzeige | current picture in the wooden frame, text, browse |
+| Live-Anzeige | current picture in the wooden frame, text, browse (Zufall / Erinnerungen) |
 | Neues Bild | Studio: photo, crop, method, captions |
-| Bilder | gallery: show, edit, rename, delete |
-| Rahmen | clock, interval or daily, birth/death/special reminders |
-| System | status, ntfy, panel, restart, forget Wi-Fi |
+| Bilder | gallery: Zufall and Erinnerungen, show, edit, rename, delete |
+| Rahmen | clock, interval or daily; timer takes memories first |
+| System | status, ntfy, hang, panel, restart, forget Wi-Fi |
 | WLAN-Setup | home network and AP password |
 
 ### Neues Bild (Studio)
@@ -199,17 +201,17 @@ E-Paper / Dither (Lab only): Helligkeit, Kontrast, Wärme, Dither %, algorithm A
 
 #### Format and output
 
-**Ausrichtung:** Portrait 480×800 or Landscape 800×480. **Zoom** 10–400.
+**Lage (System):** Hochkant 480×800 or Quer 800×480 — under System → Anzeige (**Rahmenlage**); Studio only displays it. New photos follow that hang, loaded gallery pictures keep theirs. Existing BMPs are not converted. **Zoom** 10–400.
 
 **Anzeigen am Rahmen** writes to the panel only, not the gallery. **Speichern in Galerie** stores BMP, crop and thumbnail on the SD card. If you change only text or person data on a saved picture, the frame stores the metadata without dithering again.
 
-#### Person
+#### Bildart and person
 
 ![Captions in Studio](docs/beschriftung.png)
 
-Name, birth date, death date, special date (`TT.MM.JJJJ`) and occasion (Hochzeitstag, Kennenlerntag …). Checkboxes **Name auf Bild**, **Geburt auf Bild**, **Tod auf Bild**, **Besonderes auf Bild** and sliders **Größe Name** / **Größe Daten**. Name and dates can be dragged on the crop.
+**Art:** **Normal** (random pot) or **Erinnerung** (out of the random pot). Date fields only for Erinnerung: birth date, death date, special date (`TT.MM.JJJJ`) and occasion (Hochzeitstag, Kennenlerntag …). Checkboxes **Name auf Bild**, **Geburt auf Bild**, **Tod auf Bild**, **Besonderes auf Bild** and sliders **Größe Name** / **Größe Daten**. Name and dates can be dragged on the crop.
 
-**The dates are the reminder:** if birth, death or a special date is set, the frame takes this picture out of the random pot. It appears when the anniversary is **tomorrow or the day after** (Rahmen mode not **Aus**, clock valid). Whether the text is visible on the picture does not change that — only the date fields do.
+Without a matching anniversary (tomorrow / day after) a memory stays off the panel — the timer then falls back to Zufall. KEY and **Jetzt wechseln** always do that.
 
 #### Bildbeschreibung (picture description)
 
@@ -227,7 +229,7 @@ Checkbox **Beschriftung anzeigen** (off: name, dates and free texts hidden). Fie
 
 ![Gallery](docs/galerie.png)
 
-Cards sorted by person name. Preview with captions as in Studio, then name, `*` birth, `†` death, occasion plus special date, description (tap to expand), filename.
+Two tabs: **Zufall** and **Erinnerungen**. Cards sorted by person name. Preview with captions as in Studio, then name, `*` birth, `†` death, occasion plus special date, description (tap to expand), filename.
 
 | Button | Effect |
 | --- | --- |
@@ -242,13 +244,13 @@ Missing preview: **Kein Vorschaubild · neu speichern**. Without a crop file: re
 
 ![Live display](docs/live.png)
 
-Wooden-frame preview of the chosen picture, including text on the image. Below: name, dates, description, free texts. **‹** / **›** browse, counter in the middle.
+Wooden-frame preview of the chosen picture, including text on the image (thumbnail; the crop is already in it). Below: name, dates, description, free texts. Tabs **Zufall** / **Erinnerungen**, **‹** / **›** browse, counter in the middle. The mock-up follows the picture’s hang (Hochkant or Quer).
 
 ![Live with person](docs/live_person.png)
 
 **Am Rahmen anzeigen** sends exactly this picture to the panel. If it is already showing, the button reads **Am Rahmen (aktuell)** and is disabled.
 
-Empty gallery: **Kein Bild**. Thumbnail instead of crop: **Kleine Vorschau · Zuschnitt nicht geladen**.
+Empty list: **Kein Bild**.
 
 ### Rahmen (frame)
 
@@ -256,9 +258,9 @@ Empty gallery: **Kein Bild**. Thumbnail instead of crop: **Kleine Vorschau · Zu
 
 Clock first. **Suchen** filters the city list. Pick a city, **Standort speichern** (daylight saving, then NTP). Time: **Datum & Zeit** and **Uhr setzen**, or **Von diesem Gerät übernehmen**. Without a valid chip time, there is no daily switch.
 
-**Wechsel:** mode **Aus**, **Im Intervall** (5 / 10 / 30 / 60 minutes) or **1× pro Tag** (time of day, default 08:00). **Speichern** keeps the mode. **Jetzt wechseln** immediately. **Aus** = no automatic reminders.
+**Wechsel:** mode **Aus**, **Im Intervall** (5 / 10 / 30 / 60 minutes) or **1× pro Tag** (time of day, default 08:00). **Speichern** keeps the mode. **Jetzt wechseln** immediately — Zufall only, no memories. **Aus** = no timer.
 
-**Order (the point of the frame):** if birth, death or a special date is **tomorrow or the day after**, those pictures come first — up to three stacked. Pictures **with** a date are not in the normal random pot. Without such an anniversary: only pictures **without** dates, without replacement, until the pot is empty, then reshuffle. If every picture has a date and there is no anniversary, the frame still picks one. USB stays awake. Battery sleeps as under “USB and battery”.
+**Timer (interval / clock / wake for a change):** if a memory’s birth, death or special date is **tomorrow or the day after**, those pictures come first — up to three stacked. Otherwise only Zufall, without replacement, until the pot is empty, then reshuffle. If there is no due memory and no Zufall picture, the panel stays. USB stays awake. Battery sleeps as under “USB and battery”.
 
 ### System
 
@@ -268,7 +270,7 @@ Clock first. **Suchen** filters the city list. Pick a city, **Standort speichern
 
 **ntfy:** topic or full URL (empty = off), priority Min / Niedrig / Normal / Hoch / Dringend. **Speichern**, **Probe senden**. One message per calendar day when battery is under 10 %, no wake-up message. App [ntfy](https://ntfy.sh/), subscribe to the same topic.
 
-**Anzeige:** **Panel leeren (weiß)** — show pictures again from the gallery with **Anzeigen**. **Akkuwarnung testen** puts “Akku < 10 %” at the bottom right of the current picture, regardless of the real level (and sends the ntfy probe if a topic is set).
+**Anzeige:** **Rahmenlage** Hochkant or Quer, **Lage speichern**. Applies to new pictures in Studio, Live and on the panel; existing pictures stay as they are. Hang the device to match. **Panel leeren (weiß)** — show pictures again from the gallery with **Anzeigen**. **Akkuwarnung testen** puts “Akku < 10 %” at the bottom right of the current picture, regardless of the real level (and sends the ntfy probe if a topic is set).
 
 **Wartung:** **Neustart** (plays `neustart.wav`). **Jetzt aufräumen** removes leftovers of deleted pictures (otherwise automatic at start and after each delete). **WLAN-Daten löschen & Neustart** forgets the home network (asks first), then access point again.
 
