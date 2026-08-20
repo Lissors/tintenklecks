@@ -18,6 +18,7 @@ static int g_mode = 0;
 static int g_intervalMin = 5;
 static int g_dailyHour = 8;
 static int g_dailyMin = 0;
+static int g_hang = 0;  // 0=Hochkant 480×800, 1=Quer 800×480
 static uint32_t g_lastSwitchMs = 0;
 static time_t g_lastSwitchEpoch = 0;  // wall clock; survives deep sleep via NVS
 static int g_lastDailyYday = -1;
@@ -306,12 +307,20 @@ static bool collectCandidates(PicCand *out, int maxN, int &count) {
     String birth = jsonField(meta, "birth");
     String death = jsonField(meta, "death");
     String special = jsonField(meta, "special");
+    String kind = jsonField(meta, "kind");
     PicCand &c = out[count];
     c.file = base;
+    if (kind == "memory") {
+      c.noDates = false;
+    } else if (kind == "normal") {
+      c.noDates = true;
+    } else {
+      c.noDates = (birth.length() == 0 && death.length() == 0 && special.length() == 0);
+    }
     c.anniversarySoon =
-        haveTime && (matchAnniversarySoon(birth, ty, tm, td) || matchAnniversarySoon(death, ty, tm, td) ||
-                     matchAnniversarySoon(special, ty, tm, td));
-    c.noDates = (birth.length() == 0 && death.length() == 0 && special.length() == 0);
+        !c.noDates && haveTime &&
+        (matchAnniversarySoon(birth, ty, tm, td) || matchAnniversarySoon(death, ty, tm, td) ||
+         matchAnniversarySoon(special, ty, tm, td));
     count++;
     if ((++tick & 15) == 0) {
       yield();
@@ -321,7 +330,7 @@ static bool collectCandidates(PicCand *out, int maxN, int &count) {
   return count > 0;
 }
 
-static bool pickNextFiles(String *paths, int &outCount) {
+static bool pickNextFiles(String *paths, int &outCount, bool allowMemory) {
   outCount = 0;
   PicCand *cands = new PicCand[SLIDE_MAX];
   if (!cands) {
@@ -333,30 +342,32 @@ static bool pickNextFiles(String *paths, int &outCount) {
     return false;
   }
 
-  // 1) birth/death/special anniversary tomorrow / day after — up to 3, stacked
-  int specialIdx[SLIDE_MAX];
-  int specialN = 0;
-  for (int i = 0; i < n; i++) {
-    if (cands[i].anniversarySoon) {
-      specialIdx[specialN++] = i;
+  // Timer: Erinnerung morgen/übermorgen, bis zu 3. KEY: diesen Block nicht.
+  if (allowMemory) {
+    int specialIdx[SLIDE_MAX];
+    int specialN = 0;
+    for (int i = 0; i < n; i++) {
+      if (cands[i].anniversarySoon) {
+        specialIdx[specialN++] = i;
+      }
     }
-  }
-  if (specialN > 0) {
-    for (int i = specialN - 1; i > 0; i--) {
-      int j = random(i + 1);
-      int tmp = specialIdx[i];
-      specialIdx[i] = specialIdx[j];
-      specialIdx[j] = tmp;
+    if (specialN > 0) {
+      for (int i = specialN - 1; i > 0; i--) {
+        int j = random(i + 1);
+        int tmp = specialIdx[i];
+        specialIdx[i] = specialIdx[j];
+        specialIdx[j] = tmp;
+      }
+      outCount = specialN > 3 ? 3 : specialN;
+      for (int i = 0; i < outCount; i++) {
+        paths[i] = cands[specialIdx[i]].file;
+      }
+      delete[] cands;
+      return true;
     }
-    outCount = specialN > 3 ? 3 : specialN;
-    for (int i = 0; i < outCount; i++) {
-      paths[i] = cands[specialIdx[i]].file;
-    }
-    delete[] cands;
-    return true;
   }
 
-  // 2) pictures without dates; 3) else all — draw without replacement until empty
+  // Nur Zufall (keine Erinnerungen). Ohne solche Bilder: nichts.
   String *pool = new String[SLIDE_MAX];
   if (!pool) {
     delete[] cands;
@@ -368,12 +379,11 @@ static bool pickNextFiles(String *paths, int &outCount) {
       pool[poolN++] = cands[i].file;
     }
   }
-  if (poolN < 1) {
-    for (int i = 0; i < n; i++) {
-      pool[poolN++] = cands[i].file;
-    }
-  }
   delete[] cands;
+  if (poolN < 1) {
+    delete[] pool;
+    return false;
+  }
 
   String avoid = g_lastFile;
   if (avoid.indexOf(',') >= 0) {
@@ -390,10 +400,10 @@ static bool pickNextFiles(String *paths, int &outCount) {
   return true;
 }
 
-static void doSwitch() {
+static void doSwitch(bool allowMemory) {
   String files[3];
   int count = 0;
-  if (!pickNextFiles(files, count) || count < 1) {
+  if (!pickNextFiles(files, count, allowMemory) || count < 1) {
     Serial.println(F("Slideshow: no pictures"));
     return;
   }
@@ -485,6 +495,10 @@ void slideshowBegin() {
   g_lastFile = framePrefs.getString("last", "");
   g_lastDailyYday = framePrefs.getInt("yday", -1);
   g_lastSwitchEpoch = (time_t)framePrefs.getULong("lsepoch", 0);
+  g_hang = framePrefs.getInt("hang", 0);
+  if (g_hang != 0 && g_hang != 1) {
+    g_hang = 0;
+  }
   framePrefs.end();
 
   if (!intervalOk(g_intervalMin)) {
@@ -626,8 +640,43 @@ int64_t slideshowSecondsUntilNext() {
   return -1;
 }
 
+const char *hangValue() {
+  return g_hang ? "landscape" : "portrait";
+}
+
+bool hangSet(const char *v) {
+  int n = -1;
+  if (v && (!strcmp(v, "landscape") || !strcmp(v, "quer"))) {
+    n = 1;
+  } else if (v && (!strcmp(v, "portrait") || !strcmp(v, "hoch"))) {
+    n = 0;
+  }
+  if (n < 0) {
+    return false;
+  }
+  g_hang = n;
+  framePrefs.begin("frame", false);
+  framePrefs.putInt("hang", g_hang);
+  framePrefs.end();
+  return true;
+}
+
 void slideshowForceNow() {
-  doSwitch();
+  doSwitch(false);
+  if (g_mode == 2) {
+    time_t now = time(nullptr);
+    struct tm ti;
+    if (g_timeOk && now > 1700000000 && localtime_r(&now, &ti)) {
+      g_lastDailyYday = ti.tm_yday;
+      framePrefs.begin("frame", false);
+      framePrefs.putInt("yday", g_lastDailyYday);
+      framePrefs.end();
+    }
+  }
+}
+
+void slideshowOnTimer() {
+  doSwitch(true);
   if (g_mode == 2) {
     time_t now = time(nullptr);
     struct tm ti;
@@ -652,7 +701,7 @@ void slideshowLoop() {
     uint32_t need = (uint32_t)g_intervalMin * 60UL * 1000UL;
     if (millis() - g_lastSwitchMs >= need) {
       powerNoteBusy(true);
-      doSwitch();
+      doSwitch(true);
       powerNoteBusy(false);
     }
     return;
@@ -672,7 +721,7 @@ void slideshowLoop() {
   if (ti.tm_hour == g_dailyHour && ti.tm_min == g_dailyMin) {
     if (g_lastDailyYday != ti.tm_yday) {
       powerNoteBusy(true);
-      doSwitch();
+      doSwitch(true);
       powerNoteBusy(false);
       g_lastDailyYday = ti.tm_yday;
       framePrefs.begin("frame", false);

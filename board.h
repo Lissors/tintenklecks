@@ -58,7 +58,10 @@ void slideshowLoop();
 void slideshowSetTimeOk(bool ok);
 void slideshowGetJson(String &out);
 bool slideshowSet(int mode, int intervalMin, int dailyHour, int dailyMin);
-void slideshowForceNow();
+void slideshowForceNow();  // KEY / Jetzt wechseln: nur Zufall
+void slideshowOnTimer();   // Intervall / Uhr: Erinnerungen zuerst, sonst Zufall
+const char *hangValue();   // "portrait" | "landscape" — System, gilt für neue Bilder
+bool hangSet(const char *v);
 /** Remember which file(s) are on the panel (comma-separated if composite). */
 void slideshowNoteShown(const String &files);
 /** Forget that note when the file is deleted. */

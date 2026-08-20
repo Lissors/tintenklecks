@@ -154,7 +154,11 @@ body.busy button{pointer-events:none;opacity:.55}
 .head-right{display:flex;align-items:center;gap:.5rem}
 button.zzz{width:auto;margin:0;padding:.2rem .5rem;font-size:.78rem;letter-spacing:.08em;font-weight:700;flex:none}
 main{max-width:960px;margin:0 auto;padding:1rem}
-h1{font-size:1.2rem;margin:0 0 1rem}
+h1{font-size:1.2rem;margin:0 0 .5rem}
+h2.sec{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin:.35rem 0 .6rem}
+.tabs{display:flex;gap:.45rem;margin:0 0 1rem}
+.tabs button{flex:1;padding:.55rem;border-radius:8px;border:1px solid var(--line);background:#1a1612;color:var(--txt);font:inherit;font-weight:700;cursor:pointer}
+.tabs button.on{background:var(--acc);color:#1a1612;border:0}
 .list{display:grid;grid-template-columns:repeat(auto-fill,144px);justify-content:center;gap:1rem}
 .card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
 .card.e6raw{border-color:#c45}
@@ -191,7 +195,18 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
 <main>
 <h1>Bilder</h1>
 <p class="status" id="status">Lade…</p>
-<div class="list" id="list"></div>
+<div class="tabs">
+  <button type="button" id="tabNormal" class="on">Zufall</button>
+  <button type="button" id="tabMemory">Erinnerungen</button>
+</div>
+<div id="secNormal">
+<h2 class="sec">Zufall</h2>
+<div class="list" id="listNormal"></div>
+</div>
+<div id="secMemory" hidden>
+<h2 class="sec">Erinnerungen</h2>
+<div class="list" id="listMemory"></div>
+</div>
 </main>
 <footer id="foot">© 2026 Ingo Lissors</footer>
 <script>
@@ -207,6 +222,12 @@ function setBusy(on,msg){
   return true;
 }
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function isMemoryMeta(m){
+  if(!m) return false;
+  if(m.kind==='memory') return true;
+  if(m.kind==='normal') return false;
+  return !!(String(m.birth||'').trim()||String(m.death||'').trim()||String(m.special||'').trim());
+}
 async function refreshStatus(){
   try{
     const s=await (await fetch('/api/status')).json();
@@ -450,8 +471,58 @@ function bindThumbFallback(root){
     });
   });
 }
+function cardHtml(it){
+  const f=esc(it.file);
+  const land=(it.meta&&it.meta.orient==='landscape')?' land':'';
+  return '<article class="card'+land+'" data-file="'+f+'" data-src="'+(it.src?1:0)+'">'+
+    thumbHtml(it)+
+    '<div class="info">'+metaLines(it.meta||(it.name?{name:it.name}:null), it.file.replace(/\.bmp$/i,''))+'<p class="file">'+f+'</p></div>'+
+    '<div class="actions">'+
+    '<button class="pri" data-act="edit">Bearbeiten</button>'+
+    '<button class="pri" data-act="show">Anzeigen</button>'+
+    '<button data-act="rename">Umbenennen</button>'+
+    '<button class="danger" data-act="del">Löschen</button>'+
+    '</div></article>';
+}
+function placeCard(card, m){
+  const mem=document.getElementById('listMemory');
+  const nor=document.getElementById('listNormal');
+  if(!card||!mem||!nor) return;
+  const dest=isMemoryMeta(m)?mem:nor;
+  if(card.parentNode!==dest) dest.appendChild(card);
+}
+function refreshCounts(){
+  const status=document.getElementById('status');
+  const nN=document.getElementById('listNormal').querySelectorAll('.card').length;
+  const nM=document.getElementById('listMemory').querySelectorAll('.card').length;
+  if(status) status.textContent=nN+' Zufall · '+nM+' Erinnerung';
+}
+async function loadMetaCard(card){
+  if(!card || card.dataset.metaLoaded) return;
+  card.dataset.metaLoaded='1';
+  const name=card.getAttribute('data-file');
+  try{
+    const m=await (await fetch('/api/meta?name='+encodeURIComponent(name))).json();
+    const info=card.querySelector('.info');
+    if(info){
+      const fileEl=info.querySelector('.file');
+      info.innerHTML=metaLines(m, name.replace(/\.bmp$/i,''))+(fileEl?fileEl.outerHTML:'');
+    }
+    setOnPic(card, m);
+    placeCard(card, m);
+  }catch(e){}
+}
+async function showGalleryPile(p){
+  document.getElementById('tabNormal').classList.toggle('on', p==='normal');
+  document.getElementById('tabMemory').classList.toggle('on', p==='memory');
+  document.getElementById('secNormal').hidden=p!=='normal';
+  document.getElementById('secMemory').hidden=p!=='memory';
+  refreshCounts();
+}
 async function loadList(){
-  const status=document.getElementById('status'), list=document.getElementById('list');
+  const status=document.getElementById('status');
+  const nor=document.getElementById('listNormal');
+  const mem=document.getElementById('listMemory');
   try{
     let items=[];
     galleryCount=0;
@@ -463,45 +534,35 @@ async function loadList(){
       status.textContent='Galerie-Index wird gebaut… ('+(i+1)+'/90)';
       await new Promise(r=>setTimeout(r,2000));
     }
-    if(!items.length){ status.textContent='Keine Bilder (oder Index noch leer)'; list.innerHTML=''; return; }
+    if(!items.length){ status.textContent='Keine Bilder (oder Index noch leer)'; nor.innerHTML=''; mem.innerHTML=''; return; }
     galleryCount=items.length;
+    nor.innerHTML=''; mem.innerHTML='';
+    items.forEach(function(it){
+      const html=cardHtml(it);
+      const wrap=document.createElement('div');
+      wrap.innerHTML=html;
+      const card=wrap.firstChild;
+      placeCard(card, it.meta||{name:it.name, kind:it.kind});
+    });
     status.textContent=items.length+' Bild(er)';
-    list.innerHTML=items.map(it=>{
-      const f=esc(it.file);
-      const land=(it.meta&&it.meta.orient==='landscape')?' land':'';
-      return '<article class="card'+land+'" data-file="'+f+'" data-src="'+(it.src?1:0)+'">'+
-        thumbHtml(it)+
-        '<div class="info">'+metaLines(it.meta||(it.name?{name:it.name}:null), it.file.replace(/\.bmp$/i,''))+'<p class="file">'+f+'</p></div>'+
-        '<div class="actions">'+
-        '<button class="pri" data-act="edit">Bearbeiten</button>'+
-        '<button class="pri" data-act="show">Anzeigen</button>'+
-        '<button data-act="rename">Umbenennen</button>'+
-        '<button class="danger" data-act="del">Löschen</button>'+
-        '</div></article>';
-    }).join('');
-    bindThumbFallback(list);
+    bindThumbFallback(nor);
+    bindThumbFallback(mem);
     const io=new IntersectionObserver((entries)=>{
-      entries.forEach(async ent=>{
+      entries.forEach(function(ent){
         if(!ent.isIntersecting) return;
         const card=ent.target;
         io.unobserve(card);
-        if(card.dataset.metaLoaded) return;
-        card.dataset.metaLoaded='1';
-        const name=card.getAttribute('data-file');
-        try{
-          const m=await (await fetch('/api/meta?name='+encodeURIComponent(name))).json();
-          const info=card.querySelector('.info');
-          if(!info) return;
-          const fileEl=info.querySelector('.file');
-          info.innerHTML=metaLines(m, name.replace(/\.bmp$/i,''))+(fileEl?fileEl.outerHTML:'');
-          setOnPic(card, m);
-        }catch(e){}
+        loadMetaCard(card).then(refreshCounts);
       });
     },{rootMargin:'100px'});
-    list.querySelectorAll('.card').forEach(c=>io.observe(c));
+    nor.querySelectorAll('.card').forEach(c=>io.observe(c));
+    mem.querySelectorAll('.card').forEach(c=>io.observe(c));
+    refreshCounts();
   }catch(e){ status.textContent='Fehler: '+e; }
 }
-document.getElementById('list').addEventListener('click', async e=>{
+document.getElementById('tabNormal').onclick=function(){ showGalleryPile('normal'); };
+document.getElementById('tabMemory').onclick=function(){ showGalleryPile('memory'); };
+document.querySelector('main').addEventListener('click', async e=>{
   const desc=e.target.closest('.desc');
   if(desc){
     desc.classList.toggle('open');
@@ -623,6 +684,15 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
 </div>
 <div class="panel">
 <h2>Anzeige</h2>
+<label class="field">Rahmenlage
+  <select id="hang">
+    <option value="portrait" selected>Hochkant</option>
+    <option value="landscape">Quer</option>
+  </select>
+</label>
+<button class="pri" id="btnHangSave">Lage speichern</button>
+<p class="hint">Gilt für neue Bilder in Studio, Live und am Panel. Vorhandene Bilder bleiben unverändert.</p>
+<p class="status" id="hangStatus"></p>
 <button class="pri" id="btnBlank">Panel leeren (weiß)</button>
 <button id="btnBattWarn">Akkuwarnung testen</button>
 <p class="status">Leert das E-Paper. Bilder erneut über Galerie „Anzeigen“. Test: „Akku &lt; 10 %“ unten rechts auf dem aktuellen Bild, unabhängig vom echten Stand.</p>
@@ -668,6 +738,8 @@ async function refreshStatus(){
     const z=document.getElementById('btnZzz');
     if(z) z.hidden=!!s.usb;
     document.getElementById('foot').textContent=s.copyright||'© 2026 Ingo Lissors';
+    const hang=document.getElementById('hang');
+    if(hang && (s.hang==='portrait'||s.hang==='landscape') && document.activeElement!==hang) hang.value=s.hang;
   }catch(e){ document.getElementById('status').textContent=String(e); }
   try{
     const n=await (await fetch('/api/ntfy')).json();
@@ -678,6 +750,15 @@ async function refreshStatus(){
   }catch(e){}
 }
 document.getElementById('btnZzz').onclick=()=>{ fetch('/api/sleep',{method:'POST'}).catch(()=>{}); };
+document.getElementById('btnHangSave').onclick=async()=>{
+  if(!setBusy(true,'Lage…')) return;
+  try{
+    const hang=document.getElementById('hang').value;
+    const r=await fetch('/api/hang',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'hang='+encodeURIComponent(hang)});
+    document.getElementById('hangStatus').textContent=r.ok?'gespeichert':await r.text();
+  }catch(e){ document.getElementById('hangStatus').textContent=String(e); }
+  finally{ setBusy(false); }
+};
 document.getElementById('btnNtfySave').onclick=async()=>{
   if(!setBusy(true,'ntfy…')) return;
   try{

@@ -73,7 +73,7 @@ void powerOnBoot() {
       Serial.println(F("Wake: timer → Bildwechsel"));
       if (sdOk()) {
         powerNoteBusy(true);
-        slideshowForceNow();
+        slideshowOnTimer();
         powerNoteBusy(false);
       }
       break;

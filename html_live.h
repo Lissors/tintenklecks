@@ -31,6 +31,7 @@ h1{font-size:1.2rem;margin:0 0 1rem}
   background:#5a3518;
   overflow:hidden;
 }
+.device.land{width:min(92vw,440px);aspect-ratio:214/154}
 .rail{
   position:absolute;z-index:1;pointer-events:none;
   background-color:#7a4a24;
@@ -108,9 +109,9 @@ h1{font-size:1.2rem;margin:0 0 1rem}
   background:transparent;overflow:hidden;position:relative;
   container-type:size;
 }
-.screen img{width:100%;height:100%;object-fit:cover;display:block;background:transparent}
+.screen.land{width:100%;height:auto;aspect-ratio:800/480;max-height:100%}
+.screen img{width:100%;height:100%;object-fit:fill;display:block;background:transparent}
 .screen .empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#888;font-size:.78rem;text-align:center;padding:1rem;line-height:1.4;background:#0c0a09}
-.screen .fbnote{position:absolute;left:0;right:0;bottom:0;z-index:3;background:rgba(10,8,6,.72);color:#f3ebe3;font-size:.66rem;text-align:center;padding:.3rem .4rem;line-height:1.25}
 .lab-layer{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .lab-layer .lab{
   position:absolute;white-space:nowrap;line-height:1.15;
@@ -127,6 +128,9 @@ h1{font-size:1.2rem;margin:0 0 1rem}
 .caps .file{margin:.75rem 0 0;font-size:.7rem;color:var(--dim);word-break:break-all}
 .caps .muted{color:var(--dim);font-size:.88rem;margin:0}
 .navrow{display:flex;align-items:center;justify-content:center;gap:1rem;margin-bottom:.75rem}
+.tabs{display:flex;gap:.45rem;margin:0 0 1rem}
+.tabs button{flex:1;padding:.55rem;border-radius:8px;border:1px solid var(--line);background:#1a1612;color:var(--txt);font:inherit;font-weight:700;cursor:pointer}
+.tabs button.on{background:var(--acc);color:#1a1612;border:0}
 .navrow button{
   width:64px;height:64px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--txt);
   font-size:1.6rem;line-height:1;cursor:pointer;font-weight:700;
@@ -160,6 +164,10 @@ footer{text-align:center;padding:1rem;font-size:.75rem;color:var(--dim)}
 <section class="caps" id="caps" aria-live="polite">
   <p class="muted">Lade…</p>
 </section>
+<div class="tabs">
+  <button type="button" id="tabNormal" class="on">Zufall</button>
+  <button type="button" id="tabMemory">Erinnerungen</button>
+</div>
 <div class="navrow">
   <button type="button" id="btnPrev" aria-label="Vorheriges Bild">‹</button>
   <div class="pos" id="pos">—</div>
@@ -170,7 +178,56 @@ footer{text-align:center;padding:1rem;font-size:.75rem;color:var(--dim)}
 </main>
 <footer id="foot">© 2026 Ingo Lissors</footer>
 <script>
-let items=[], idx=0, uiBusy=false, panelFile='';
+let items=[], allItems=[], memItems=[], pile='normal', idx=0, uiBusy=false, panelFile='', hang='portrait';
+let shownFile='';
+function viewOrient(m){
+  if(m && m.orient==='landscape') return 'landscape';
+  if(m && m.orient==='portrait') return 'portrait';
+  return hang||'portrait';
+}
+function setFrameHang(o){
+  const land=o==='landscape';
+  const device=document.querySelector('.device');
+  const screen=document.getElementById('screen');
+  if(device) device.classList.toggle('land', land);
+  if(screen) screen.classList.toggle('land', land);
+}
+function applyLiveView(it){
+  const screen=document.getElementById('screen');
+  const m=it&&it.meta||{};
+  setFrameHang(viewOrient(m));
+  renderLabelOverlay(screen, m);
+}
+function isMemoryMeta(m){
+  if(!m) return false;
+  if(m.kind==='memory') return true;
+  if(m.kind==='normal') return false;
+  return !!(String(m.birth||'').trim()||String(m.death||'').trim()||String(m.special||'').trim());
+}
+function isMemoryItem(it){
+  if(!it) return false;
+  if(it.meta) return isMemoryMeta(it.meta);
+  if(it.kind==='memory') return true;
+  if(it.kind==='normal') return false;
+  return isMemoryMeta(it);
+}
+function memFileSet(){
+  const s={};
+  for(let i=0;i<memItems.length;i++) s[memItems[i].file]=true;
+  return s;
+}
+function visibleItems(){
+  if(pile==='memory'){
+    if(memItems.length) return memItems;
+    return allItems.filter(isMemoryItem);
+  }
+  const mem=memFileSet();
+  return allItems.filter(function(it){ return !mem[it.file] && !isMemoryItem(it); });
+}
+function syncPile(){
+  items=visibleItems();
+  if(idx>=items.length) idx=0;
+}
 function setBusy(on,msg){
   if(on && uiBusy) return false;
   uiBusy=!!on;
@@ -194,7 +251,7 @@ function findIndex(file){
 function renderCaps(it){
   const caps=document.getElementById('caps');
   if(!it){
-    caps.innerHTML='<p class="muted">Keine Bilder in /pic/</p>';
+    caps.innerHTML='<p class="muted">'+(pile==='memory'?'Keine Erinnerungen':'Keine Zufallsbilder')+'</p>';
     return;
   }
   const m=it.meta||{};
@@ -234,6 +291,8 @@ function fontCss(font){
   return 'Georgia,"Times New Roman",serif';
 }
 function renderLabelOverlay(screen, m){
+  const old=screen.querySelector('.lab-layer');
+  if(old) old.remove();
   const show=m && m.captionVisible!==false;
   const labs=Array.isArray(m&&m.labels)?m.labels:[];
   if(!show || !labs.length) return;
@@ -257,42 +316,38 @@ function renderLabelOverlay(screen, m){
     el.style.color=L.color||'#fff';
     el.style.fontFamily=fontCss(L.font);
     el.style.fontWeight=L.bold?'700':'400';
-    el.style.fontSize='calc(100cqh * '+size+' / 800)';
+    el.style.fontSize='calc(100cqh * '+size+' / '+(viewOrient(m)==='landscape'?480:800)+')';
     el.style.transform='translate('+tx+', -50%) rotate('+rot+'deg)';
     el.style.transformOrigin=origin;
     layer.appendChild(el);
   });
   if(layer.childNodes.length) screen.appendChild(layer);
 }
-function noteFallback(screen){
-  if(screen.querySelector('.fbnote')) return;
-  const d=document.createElement('div');
-  d.className='fbnote';
-  d.textContent='Kleine Vorschau · Zuschnitt nicht geladen';
-  screen.appendChild(d);
-}
 function renderScreen(it){
   const screen=document.getElementById('screen');
   if(!it){
+    shownFile='';
+    setFrameHang(hang||'portrait');
     screen.innerHTML='<div class="empty">Kein Bild</div>';
     return;
   }
+  shownFile=it.file;
   const m=it.meta||{};
-  const f=encodeURIComponent(it.file);
+  setFrameHang(viewOrient(m));
   screen.innerHTML='';
   const img=document.createElement('img');
   img.alt='';
-  const urls=['/api/src?name='+f,'/api/thumb?name='+f];
-  let u=0, retried=false;
-  img.onload=function(){ renderLabelOverlay(screen, m); if(u>0) noteFallback(screen); };
+  img.onload=function(){
+    if(shownFile!==it.file) return;
+    renderLabelOverlay(screen, it.meta||{});
+  };
   img.onerror=function(){
-    if(!retried){ retried=true; setTimeout(function(){ img.src=urls[u]+'&r='+Date.now(); }, 700); return; }
-    u++; retried=false;
-    if(u<urls.length){ img.src=urls[u]; return; }
+    if(shownFile!==it.file) return;
     screen.innerHTML='<div class="empty">Bild nicht geladen<br/><small>Gerät belegt oder kein Vorschaubild</small></div>';
   };
-  img.src=urls[0];
+  img.src='/api/thumb?name='+encodeURIComponent(it.file);
   screen.appendChild(img);
+  if(m.labels) renderLabelOverlay(screen, m);
 }
 function updateNav(){
   const n=items.length;
@@ -320,8 +375,20 @@ function showLocal(i){
     it._metaTried=true;
     fetch('/api/meta?name='+encodeURIComponent(it.file)).then(r=>r.json()).then(m=>{
       if(m && typeof m==='object') it.meta=m;
-      if(items[idx]===it){ renderCaps(it); renderScreen(it); updateNav(); }
-    }).catch(()=>{});
+      it._kindDone=true;
+      if((pile==='memory')!==isMemoryMeta(it.meta)){
+        const keep=it.file;
+        syncPile();
+        const n=items.findIndex(function(x){ return x.file===keep; });
+        showLocal(n>=0?n:0);
+        return;
+      }
+      if(items[idx]===it){
+        renderCaps(it);
+        applyLiveView(it);
+        updateNav();
+      }
+    }).catch(function(){});
   }
 }
 async function showOnPanel(){
@@ -354,6 +421,7 @@ async function refreshStatus(){
     const z=document.getElementById('btnZzz');
     if(z) z.hidden=!!s.usb;
     document.getElementById('foot').textContent=s.copyright||'© 2026 Ingo Lissors';
+    if(s.hang==='portrait'||s.hang==='landscape') hang=s.hang;
   }catch(e){}
 }
 document.getElementById('btnZzz').onclick=()=>{ fetch('/api/sleep',{method:'POST'}).catch(()=>{}); };
@@ -365,11 +433,6 @@ async function load(){
       last=primaryFile(f.last||'');
     }catch(e){}
     panelFile=last;
-    if(last){
-      items=[{file:last, thumb:true}];
-      idx=0;
-      showLocal(0);
-    }
     let names=[];
     for(let attempt=0; attempt<20; attempt++){
       try{
@@ -379,16 +442,68 @@ async function load(){
       await new Promise(r=>setTimeout(r,1500));
     }
     if(Array.isArray(names) && names.length){
-      items=names;
+      allItems=names;
+      try{
+        const mem=await (await fetch('/api/erinnerungen')).json();
+        const byFile={};
+        allItems.forEach(function(it){ byFile[it.file]=it; });
+        memItems=(Array.isArray(mem)?mem:[]).map(function(it){
+          const src=byFile[it.file]||{};
+          return {
+            file:it.file,
+            name:it.name,
+            kind:'memory',
+            thumb:src.thumb, src:src.src, ct:src.ct,
+            meta:src.meta||{name:it.name,birth:it.birth,death:it.death,special:it.special,specialKind:it.specialKind,kind:'memory'}
+          };
+        });
+      }catch(e){ memItems=[]; }
+      if(last){
+        try{
+          const m=await (await fetch('/api/meta?name='+encodeURIComponent(last))).json();
+          const hit=allItems.find(function(it){ return it.file===last; });
+          const mhit=memItems.find(function(it){ return it.file===last; });
+          if(hit && m && typeof m==='object'){
+            hit.meta=m;
+            hit._metaTried=true;
+            hit._kindDone=true;
+          }
+          if(mhit && m && typeof m==='object'){
+            mhit.meta=m;
+            mhit._metaTried=true;
+            mhit._kindDone=true;
+          }
+          if(isMemoryMeta(m)) pile='memory';
+        }catch(e){}
+      }
+      document.getElementById('tabNormal').classList.toggle('on', pile==='normal');
+      document.getElementById('tabMemory').classList.toggle('on', pile==='memory');
+      syncPile();
       idx=findIndex(last);
       showLocal(idx);
-    }else if(!last){
-      items=[]; showLocal(0);
+    }else if(last){
+      allItems=[{file:last, thumb:true}];
+      syncPile();
+      idx=0;
+      showLocal(0);
+    }else{
+      allItems=[]; items=[]; showLocal(0);
     }
   }catch(e){
     document.getElementById('caps').innerHTML='<p class="muted">Fehler: '+esc(e)+'</p>';
   }
 }
+function setPile(p){
+  pile=p;
+  document.getElementById('tabNormal').classList.toggle('on', pile==='normal');
+  document.getElementById('tabMemory').classList.toggle('on', pile==='memory');
+  const keep=(items[idx]&&items[idx].file)||panelFile;
+  syncPile();
+  idx=findIndex(keep);
+  showLocal(idx);
+}
+document.getElementById('tabNormal').onclick=function(){ setPile('normal'); };
+document.getElementById('tabMemory').onclick=function(){ setPile('memory'); };
 document.getElementById('btnPrev').onclick=()=>showLocal(idx-1);
 document.getElementById('btnNext').onclick=()=>showLocal(idx+1);
 document.getElementById('btnShow').onclick=()=>showOnPanel();

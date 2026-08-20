@@ -49,6 +49,7 @@ label.field textarea{min-height:5.5rem;resize:vertical;line-height:1.4}
 button.primary,button.ghost{width:100%;margin-top:.45rem;padding:.7rem;border-radius:8px;border:0;cursor:pointer;font-weight:700;font:inherit}
 button.primary{background:var(--acc);color:#1a1612}
 button.ghost{background:transparent;border:1px solid var(--line);color:var(--txt)}
+button.primary:disabled,button.ghost:disabled{opacity:.4;cursor:default;pointer-events:none}
 .status{font-size:.8rem;color:var(--dim);min-height:1.2em;margin-top:.55rem;line-height:1.35}
 footer{text-align:center;padding:1rem;font-size:.75rem;color:var(--dim)}
 </style></head><body>
@@ -77,28 +78,42 @@ footer{text-align:center;padding:1rem;font-size:.75rem;color:var(--dim)}
       <option value="saved">Lab</option>
     </select>
   </label>
-  <button class="primary" id="btnSierra2" type="button">In E6 konvertieren</button>
-  <button class="primary" id="btnTuneStyle" type="button" hidden>Automatik</button>
+  <label class="row">Nur Schwarz/Weiß <input id="swOnly" type="checkbox"/></label>
+  <button class="primary" id="btnSierra2" type="button" disabled>In E6 konvertieren</button>
+  <button class="primary" id="btnTuneStyle" type="button" hidden disabled>Automatik</button>
   <h2>Format</h2>
-  <label class="row">Ausrichtung
-    <select id="orient"><option value="portrait" selected>Portrait 480×800</option><option value="landscape">Landscape 800×480</option></select>
+  <label class="row">Lage (System)
+    <select id="orient" disabled>
+      <option value="portrait" selected>Hochkant 480×800</option>
+      <option value="landscape">Quer 800×480</option>
+    </select>
   </label>
+  <p class="status" style="margin:.2rem 0 .45rem">Ändern unter System. Neue Fotos folgen der Lage, geladene Galeriebilder behalten ihre.</p>
   <label class="row">Zoom <input id="zoom" type="range" min="10" max="400" value="100"/><span class="val" data-for="zoom">100</span></label>
-  <button class="primary" id="btnShow">Anzeigen am Rahmen</button>
-  <button class="primary" id="btnSave">Speichern in Galerie</button>
+  <button class="primary" id="btnShow" disabled>Anzeigen am Rahmen</button>
+  <button class="primary" id="btnSave" disabled>Speichern in Galerie</button>
   <p class="status" id="status">Anzeigen = nur Panel. Speichern = Galerie.</p>
+  <h2>Bildart</h2>
+  <label class="row">Art
+    <select id="picKind">
+      <option value="normal" selected>Normal</option>
+      <option value="memory">Erinnerung</option>
+    </select>
+  </label>
   <h2>Person</h2>
   <label class="field">Name <input id="metaName" type="text" maxlength="80" placeholder="Name"/></label>
+  <label class="row">Name auf Bild <input id="showName" type="checkbox" checked/></label>
+  <label class="row">Größe Name <input id="sizeName" type="range" min="16" max="80" value="36"/></label>
+  <div id="blockMemory" hidden>
   <label class="field">Geburtsdatum <input id="metaBirth" type="text" maxlength="32" placeholder="TT.MM.JJJJ"/></label>
   <label class="field">Sterbedatum <input id="metaDeath" type="text" maxlength="32" placeholder="TT.MM.JJJJ"/></label>
   <label class="field">Besonderes Datum <input id="metaSpecial" type="text" maxlength="32" placeholder="TT.MM.JJJJ"/></label>
   <label class="field">Anlass <input id="metaSpecialKind" type="text" maxlength="80" placeholder="Hochzeitstag, Kennenlerntag…"/></label>
-  <label class="row">Name auf Bild <input id="showName" type="checkbox" checked/></label>
   <label class="row">Geburt auf Bild <input id="showBirth" type="checkbox" checked/></label>
   <label class="row">Tod auf Bild <input id="showDeath" type="checkbox" checked/></label>
   <label class="row">Besonderes auf Bild <input id="showSpecial" type="checkbox" checked/></label>
-  <label class="row">Größe Name <input id="sizeName" type="range" min="16" max="80" value="36"/></label>
   <label class="row">Größe Daten <input id="sizeDates" type="range" min="12" max="56" value="22"/></label>
+  </div>
   <h2>Bildbeschreibung</h2>
   <label class="field">Text (Live-Anzeige)
     <textarea id="metaDesc" maxlength="2000" placeholder="Kurzbeschreibung des Bildes, z. B. Personen, Ort, Anlass…"></textarea>
@@ -136,7 +151,7 @@ footer{text-align:center;padding:1rem;font-size:.75rem;color:var(--dim)}
   <div id="blockPrep" hidden>
   <h2>Vorbereitung</h2>
   <label class="row">Belichtung <input id="prepExp" type="range" min="0.5" max="2" step="0.05" value="1"/><span class="val" data-for="prepExp">1.00</span></label>
-  <label class="row">Sättigung <input id="prepSat" type="range" min="0.5" max="2" step="0.05" value="1"/><span class="val" data-for="prepSat">1.00</span></label>
+  <label class="row" id="rowPrepSat">Sättigung <input id="prepSat" type="range" min="0.5" max="2" step="0.05" value="1"/><span class="val" data-for="prepSat">1.00</span></label>
   <label class="row">S-Kurve <input id="prepScurve" type="range" min="0" max="1" step="0.05" value="0"/><span class="val" data-for="prepScurve">0.00</span></label>
   <label class="row">Lichter stauchen <input id="prepHi" type="range" min="0.5" max="5" step="0.1" value="1.5"/><span class="val" data-for="prepHi">1.50</span></label>
   <label class="row">Schatten <input id="prepShadow" type="range" min="0" max="1" step="0.05" value="0"/><span class="val" data-for="prepShadow">0.00</span></label>
@@ -145,7 +160,7 @@ footer{text-align:center;padding:1rem;font-size:.75rem;color:var(--dim)}
   <h2>E-Paper / Dither</h2>
   <label class="row">Helligkeit <input id="bright" type="range" min="0" max="100" value="48"/><span class="val" data-for="bright">48</span></label>
   <label class="row">Kontrast <input id="contrast" type="range" min="0" max="100" value="62"/><span class="val" data-for="contrast">62</span></label>
-  <label class="row">Wärme <input id="warmth" type="range" min="0" max="100" value="46"/><span class="val" data-for="warmth">46</span></label>
+  <label class="row" id="rowWarmth">Wärme <input id="warmth" type="range" min="0" max="100" value="46"/><span class="val" data-for="warmth">46</span></label>
   <label class="row">Dither % <input id="dither" type="range" min="0" max="100" value="100"/><span class="val" data-for="dither">100</span></label>
   <label class="row">Algorithmus
     <select id="algo">
@@ -165,6 +180,7 @@ const MEASURED=[
   {m:[135,19,0],d:[255,0,0]},{m:[5,64,158],d:[0,0,255]},{m:[39,102,60],d:[0,255,0]}
 ];
 const STYLE_DEF={bright:48,contrast:62,warmth:46,dither:100,algo:'atkinson'};
+const SW_MASK=[true,true,false,false,false,false];
 const SPEC6=[
   {m:[34,34,38],d:[0,0,0]},
   {m:[227,223,214],d:[255,255,255]},
@@ -174,6 +190,7 @@ const SPEC6=[
   {m:[232,185,49],d:[255,255,0]}
 ];
 let styleId='portrait', img=null, panX=0.5, panY=0.5, drag=false, lx=0, ly=0, t=null;
+let hang='portrait';
 let busy=false;
 let labels=[], dragLab=-1, selectedLab=-1, labDragMode=false, lastDither=null, lastCrop=null, uiBusy=false, busyDepth=0;
 let lastDitherSig='';
@@ -203,6 +220,8 @@ const prepScurve=document.getElementById('prepScurve'), prepHi=document.getEleme
 const prepShadow=document.getElementById('prepShadow'), prepMid=document.getElementById('prepMid');
 const prepCdr=document.getElementById('prepCdr');
 const paintMode=document.getElementById('paintMode');
+const picKind=document.getElementById('picKind');
+const swOnly=document.getElementById('swOnly');
 const capVisible=document.getElementById('capVisible');
 const metaName=document.getElementById('metaName'), metaBirth=document.getElementById('metaBirth'), metaDeath=document.getElementById('metaDeath');
 const metaSpecial=document.getElementById('metaSpecial'), metaSpecialKind=document.getElementById('metaSpecialKind');
@@ -559,7 +578,7 @@ function ditherDiffuse(imgData, strength, kernel, serpentine, regions){
         d[i]=0; d[i+1]=0; d[i+2]=0;
         continue;
       }
-      const mask=regions?inkMask(sr,sg,sb):null;
+      const mask=isSwOnly()?SW_MASK:(regions?inkMask(sr,sg,sb):null);
       const wr=clamp(sr+err[e],0,255), wg=clamp(sg+err[e+1],0,255), wb=clamp(sb+err[e+2],0,255);
       const ni=nearest(wr,wg,wb, mask), m=MEASURED[ni];
       d[i]=m.d[0]; d[i+1]=m.d[1]; d[i+2]=m.d[2];
@@ -589,7 +608,7 @@ function posterOnly(imgData){
   const d=imgData.data, abmalen=paintMode.value==='abmalen';
   for(let i=0;i<d.length;i+=4){
     if(isFlatBlack(d[i],d[i+1],d[i+2])){ d[i]=0; d[i+1]=0; d[i+2]=0; continue; }
-    const mask=abmalen?inkMask(d[i],d[i+1],d[i+2]):null;
+    const mask=isSwOnly()?SW_MASK:(abmalen?inkMask(d[i],d[i+1],d[i+2]):null);
     const m=MEASURED[nearest(d[i],d[i+1],d[i+2], mask)];
     d[i]=m.d[0]; d[i+1]=m.d[1]; d[i+2]=m.d[2];
   }
@@ -744,18 +763,20 @@ function syncPersonLabels(){
   const b=metaBirth.value.trim();
   const d=metaDeath.value.trim();
   upsertRoleLabel('name', showName.checked, n, +sizeName.value, 0.80);
-  upsertRoleLabel('birth', showBirth.checked, b?('* '+b):'', +sizeDates.value, 0.88);
-  upsertRoleLabel('death', showDeath.checked, d?('\u2020 '+d):'', +sizeDates.value, 0.94);
-  upsertRoleLabel('special', showSpecial.checked, specialOnPicText(), +sizeDates.value, 0.70);
+  const mem=isMemoryKind();
+  upsertRoleLabel('birth', mem && showBirth.checked, b?('* '+b):'', +sizeDates.value, 0.88);
+  upsertRoleLabel('death', mem && showDeath.checked, d?('\u2020 '+d):'', +sizeDates.value, 0.94);
+  upsertRoleLabel('special', mem && showSpecial.checked, specialOnPicText(), +sizeDates.value, 0.70);
   updateLabList();
 }
 function buildMeta(){
   return {
     name: metaName.value.trim(),
-    birth: metaBirth.value.trim(),
-    death: metaDeath.value.trim(),
-    special: metaSpecial.value.trim(),
-    specialKind: metaSpecialKind.value.trim(),
+    kind: isMemoryKind()?'memory':'normal',
+    birth: isMemoryKind()?metaBirth.value.trim():'',
+    death: isMemoryKind()?metaDeath.value.trim():'',
+    special: isMemoryKind()?metaSpecial.value.trim():'',
+    specialKind: isMemoryKind()?metaSpecialKind.value.trim():'',
     description: metaDesc.value.trim(),
     showName: !!showName.checked,
     showBirth: !!showBirth.checked,
@@ -779,6 +800,7 @@ function buildMeta(){
     prepMid: +prepMid.value,
     prepCdr: !!prepCdr.checked,
     paintMode: paintMode.value,
+    swOnly: isSwOnly(),
     zoom: +zoom.value,
     panX: panX,
     panY: panY,
@@ -870,7 +892,43 @@ async function ditherSierra2Spec(imgData, statusEl){
     }
   }
 }
+async function ditherSwKw(imgData, statusEl){
+  const palK=MEASURED[0], palW=MEASURED[1];
+  const lumK=0.299*palK.m[0]+0.587*palK.m[1]+0.114*palK.m[2];
+  const lumW=0.299*palW.m[0]+0.587*palW.m[1]+0.114*palW.m[2];
+  const w=imgData.width, h=imgData.height, d=imgData.data;
+  const curr=new Float32Array(w*h);
+  for(let p=0,i=0;i<d.length;i+=4,p++){
+    curr[p]=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+  }
+  for(let y=0;y<h;y++){
+    if(statusEl && (y%40)===0){
+      statusEl.textContent='S/W · Zeile '+y+'/'+h;
+      await new Promise(function(r){ setTimeout(r,0); });
+    }
+    const rtl=(y%2)===1;
+    for(let xi=0;xi<w;xi++){
+      const x=rtl?w-1-xi:xi;
+      const p=y*w+x;
+      const old=clamp(curr[p],0,255);
+      const useW=(old-lumK)*(old-lumK)>(old-lumW)*(old-lumW);
+      const pal=useW?palW:palK;
+      const pix=p*4;
+      d[pix]=pal.d[0]; d[pix+1]=pal.d[1]; d[pix+2]=pal.d[2]; d[pix+3]=255;
+      const er=old-(useW?lumW:lumK);
+      const nbrs=rtl
+        ?[[x-1,y,4],[x-2,y,3],[x+2,y+1,1],[x+1,y+1,2],[x,y+1,3],[x-1,y+1,2],[x-2,y+1,1]]
+        :[[x+1,y,4],[x+2,y,3],[x-2,y+1,1],[x-1,y+1,2],[x,y+1,3],[x+1,y+1,2],[x+2,y+1,1]];
+      for(let n=0;n<nbrs.length;n++){
+        const nx=nbrs[n][0], ny=nbrs[n][1], wf=nbrs[n][2]/16;
+        if(nx<0||nx>=w||ny<0||ny>=h) continue;
+        curr[ny*w+nx]+=er*wf;
+      }
+    }
+  }
+}
 async function renderOut(){
+  try{
   if(!img) return;
   if(sandboxRawFile){
     const wh=target(), w=wh[0], h=wh[1];
@@ -906,13 +964,14 @@ async function renderOut(){
     }
     const id=new ImageData(new Uint8ClampedArray(lastCrop.data), w, h);
     const msg=document.getElementById('busyMsg');
-    await ditherSierra2Spec(id, msg);
+    if(isSwOnly()) await ditherSwKw(id, msg);
+    else await ditherSierra2Spec(id, msg);
     octx.putImageData(id,0,0);
     lastDither=octx.getImageData(0,0,w,h);
     lastDitherSig=picSig();
     drawLabels(octx,w,h,true);
     sierra2Sig=sig;
-    status.textContent='Sierra · E6-Zuordnung';
+    status.textContent=isSwOnly()?'Sierra · S/W':'Sierra · E6-Zuordnung';
     return;
   }
   if(lastDither && lastDitherSig===picSig()){
@@ -924,6 +983,13 @@ async function renderOut(){
   const id=cctx.getImageData(0,0,w,h);
   applyInternetPrep(id.data);
   applyStylePixels(id.data);
+  if(isSwOnly()){
+    const px=id.data;
+    for(let i=0;i<px.length;i+=4){
+      const y=0.299*px[i]+0.587*px[i+1]+0.114*px[i+2];
+      px[i]=px[i+1]=px[i+2]=y;
+    }
+  }
   const abmalen=paintMode.value==='abmalen';
   const regions=abmalen?flattenColorRegions(id):null;
   const strength=+dither.value, a=algo.value;
@@ -936,15 +1002,17 @@ async function renderOut(){
   lastDitherSig=picSig();
   drawLabels(octx,w,h,true);
   drawLabels(cctx,w,h,true);
-  status.textContent='OK · Lab · '+a+' · H'+bright.value+' K'+contrast.value+' W'+warmth.value;
+  status.textContent='OK · Lab · '+(isSwOnly()?'S/W · ':'')+a+' · H'+bright.value+' K'+contrast.value+(isSwOnly()?'':' W'+warmth.value);
+  } finally { syncActionButtons(); }
 }
 function schedule(msg){
   clearTimeout(t);
+  syncActionButtons();
   t=setTimeout(async function(){
-    if(busy) return;
+    if(busy){ schedule(msg); return; }
     busy=true;
     if(msg) setBusy(true, msg);
-    try{ await renderOut(); } finally{ busy=false; if(msg) setBusy(false); }
+    try{ await renderOut(); } finally{ busy=false; if(msg) setBusy(false); syncActionButtons(); }
   }, 60);
 }
 function syncSliderVals(){
@@ -982,16 +1050,49 @@ function applyStyleDefaults(st){
   dither.value=st.dither; algo.value=st.algo;
   syncSliderVals();
 }
+function isMemoryKind(){ return picKind && picKind.value==='memory'; }
+function syncKindUi(){
+  const b=document.getElementById('blockMemory');
+  if(b) b.hidden=!isMemoryKind();
+  syncPersonLabels();
+}
 function isSierra2(){ return paintMode.value==='sierra2'; }
+function isSwOnly(){ return !!(swOnly && swOnly.checked); }
+function e6Ready(){
+  if(sandboxRawFile) return true;
+  if(!img) return false;
+  if(isSierra2()) return !!(sierra2Done && lastDither && sierra2Sig===cropSig());
+  return !!(lastDither && lastDitherSig===picSig() && tunedSig===cropSig());
+}
+function canSaveMetaOnly(){
+  return !!(editName && !pictureDirty && picSig()===loadedPicSig);
+}
+function syncActionButtons(){
+  const hasSrc=!!img && !sandboxRawFile;
+  const ready=e6Ready();
+  const btnS=document.getElementById('btnSierra2');
+  const btnT=document.getElementById('btnTuneStyle');
+  const btnShow=document.getElementById('btnShow');
+  const btnSave=document.getElementById('btnSave');
+  if(btnS) btnS.disabled=!hasSrc;
+  if(btnT) btnT.disabled=!hasSrc;
+  if(btnShow) btnShow.disabled=!ready;
+  if(btnSave) btnSave.disabled=!(ready || canSaveMetaOnly());
+}
 function syncVerfahrenUi(){
   const s2=isSierra2();
   const saved=paintMode.value==='saved';
   const prep=document.getElementById('blockPrep');
   const btnS=document.getElementById('btnSierra2');
   const btnT=document.getElementById('btnTuneStyle');
+  const rowSat=document.getElementById('rowPrepSat');
+  const rowW=document.getElementById('rowWarmth');
   if(prep) prep.hidden=s2;
   if(btnS) btnS.hidden=!s2;
   if(btnT) btnT.hidden=!saved;
+  if(rowSat) rowSat.hidden=isSwOnly();
+  if(rowW) rowW.hidden=isSwOnly();
+  syncActionButtons();
 }
 function syncEditUi(){
   dropTitle.textContent=editName?('Bearbeitung: '+editName):(isSierra2()?'Foto hierher · dann In E6 konvertieren':'Foto hierher · JPG/PNG/BMP');
@@ -1054,8 +1155,8 @@ function loadFile(f){
   status.textContent='Lade '+f.name+'…';
   const url=URL.createObjectURL(f); const im=new Image();
   im.onload=function(){
-    img=im; srcOriginal=f; editName=null; metaName.value=metaBirth.value=metaDeath.value=metaSpecial.value=metaSpecialKind.value=metaDesc.value='';
-    labels=[]; selectedLab=-1; updateLabList(); zoom.value=zoomFitPct(); panX=panY=0.5;
+    img=im; srcOriginal=f; editName=null; picKind.value='normal'; syncKindUi(); metaName.value=metaBirth.value=metaDeath.value=metaSpecial.value=metaSpecialKind.value=metaDesc.value='';
+    labels=[]; selectedLab=-1; updateLabList(); orient.value=hang||'portrait'; zoom.value=zoomFitPct(); panX=panY=0.5;
     styleId='portrait';
     applyPrepDefaults();
     if(isSierra2()){
@@ -1068,9 +1169,10 @@ function loadFile(f){
     }
     applyStyleDefaults(STYLE_DEF);
     imgSeq++; tunedSig=null; appliedSeq=-1;
-    syncStage(true); URL.revokeObjectURL(url);
-    status.textContent=f.name+' · Automatik…';
-    tunePromise=runAutotune().catch(function(e){ status.textContent='Automatik: '+(e.message||e); });
+    lastDither=null; lastDitherSig='';
+    URL.revokeObjectURL(url);
+    syncStage();
+    status.textContent=f.name+' · Lab — Werte über Automatik';
   };
   im.onerror=function(){ srcOriginal=null; status.textContent='Bild konnte nicht geladen werden'; URL.revokeObjectURL(url); };
   im.src=url;
@@ -1106,7 +1208,7 @@ drop.addEventListener('drop',function(e){
 });
 btnNewPic.onclick=function(){
   if(uiBusy) return;
-  img=null; srcOriginal=null; srcNeedsRewrite=false; sandboxRawFile=null; sierra2Done=false; sierra2Sig=''; editName=null; loadedPicSig=''; pictureDirty=false; lastDitherSig=''; paintMode.value='sierra2'; syncVerfahrenUi(); metaName.value=metaBirth.value=metaDeath.value=metaSpecial.value=metaSpecialKind.value=metaDesc.value=''; labels=[]; selectedLab=-1; updateLabList(); zoom.value=100; panX=panY=0.5; imgSeq++; tunedSig=null; tunePromise=null; lastDither=null; syncEditUi(); syncStage(); status.textContent='Neues Bild · Foto wählen';
+  img=null; srcOriginal=null; srcNeedsRewrite=false; sandboxRawFile=null; sierra2Done=false; sierra2Sig=''; editName=null; loadedPicSig=''; pictureDirty=false; lastDitherSig=''; paintMode.value='sierra2'; swOnly.checked=false; picKind.value='normal'; syncVerfahrenUi(); syncKindUi(); metaName.value=metaBirth.value=metaDeath.value=metaSpecial.value=metaSpecialKind.value=metaDesc.value=''; labels=[]; selectedLab=-1; updateLabList(); orient.value=hang||'portrait'; zoom.value=100; panX=panY=0.5; imgSeq++; tunedSig=null; tunePromise=null; lastDither=null; syncEditUi(); syncStage(); status.textContent='Neues Bild · Foto wählen';
 };
 
 document.getElementById('btnAddLab').onclick=function(){
@@ -1210,9 +1312,22 @@ prepCdr.addEventListener('change', function(){ pictureDirty=true; schedule(); })
 paintMode.addEventListener('change', function(){
   pictureDirty=true;
   sierra2Done=false; sierra2Sig=''; lastDither=null; lastDitherSig='';
+  tunedSig=null;
   syncVerfahrenUi();
   syncEditUi();
-  schedule(isSierra2()?'Sierra · Zuschnitt':'Verfahren…');
+  schedule(isSierra2()?'Sierra · Zuschnitt':'Lab — zuerst Automatik');
+});
+picKind.addEventListener('change', function(){
+  pictureDirty=true;
+  syncKindUi();
+  schedule();
+});
+swOnly.addEventListener('change', function(){
+  pictureDirty=true;
+  sierra2Done=false; sierra2Sig=''; lastDither=null; lastDitherSig='';
+  tunedSig=null;
+  syncVerfahrenUi();
+  schedule(isSierra2()?(isSwOnly()?'Sierra · S/W':'Sierra · Zuschnitt'):'Lab — S/W');
 });
 syncSliderVals();
 orient.addEventListener('change', function(){ pictureDirty=true; syncStage(); });
@@ -1362,6 +1477,10 @@ async function send(show){
     return;
   }
   if(!img){ status.textContent='Kein Bild'; return; }
+  if(isMemoryKind() && !metaBirth.value.trim() && !metaDeath.value.trim() && !metaSpecial.value.trim()){
+    status.textContent='Erinnerung: ein Datum eintragen';
+    return;
+  }
   if(editName && !show && !pictureDirty && picSig()===loadedPicSig){
     setBusy(true,'Text speichern…');
     try{
@@ -1373,6 +1492,7 @@ async function send(show){
     return;
   }
   if(isSierra2() && !sierra2Done){ status.textContent='Zuerst In E6 konvertieren'; return; }
+  if(!isSierra2() && tunedSig!==cropSig()){ status.textContent='Zuerst Automatik'; return; }
   if(tunePromise) await tunePromise;
   setBusy(true, show?'Anzeigen…':'Speichern…');
   try{
@@ -1417,6 +1537,9 @@ function applyMeta(m){
   metaDeath.value=m.death||'';
   metaSpecial.value=m.special||'';
   metaSpecialKind.value=m.specialKind||'';
+  if(m.kind==='memory'||m.kind==='normal') picKind.value=m.kind;
+  else picKind.value=((m.birth||'')+(m.death||'')+(m.special||'')).trim()?'memory':'normal';
+  syncKindUi();
   metaDesc.value=m.description||m.beschreibung||'';
   if(typeof m.showName==='boolean') showName.checked=m.showName;
   if(typeof m.showBirth==='boolean') showBirth.checked=m.showBirth;
@@ -1432,8 +1555,10 @@ function applyMeta(m){
   if(m.warmth!=null) warmth.value=m.warmth;
   if(m.dither!=null) dither.value=m.dither;
   if(m.algo) algo.value=m.algo;
-  if(m.paintMode==='sierra2'||m.paintMode==='saved') paintMode.value=m.paintMode;
+  if(m.paintMode==='sw'){ paintMode.value='sierra2'; swOnly.checked=true; }
+  else if(m.paintMode==='sierra2'||m.paintMode==='saved') paintMode.value=m.paintMode;
   else paintMode.value='saved';
+  if(typeof m.swOnly==='boolean') swOnly.checked=m.swOnly;
   syncVerfahrenUi();
   writePrep(m);
   if(m.zoom!=null) zoom.value=m.zoom;
@@ -1507,7 +1632,7 @@ function cropSig(){
           Math.round(panX*1000), Math.round(panY*1000)].join('|');
 }
 function picSig(){
-  return cropSig()+'|'+[paintMode.value, bright.value, contrast.value, warmth.value, dither.value, algo.value,
+  return cropSig()+'|'+[paintMode.value, swOnly.checked?1:0, bright.value, contrast.value, warmth.value, dither.value, algo.value,
     prepExp.value, prepSat.value, prepScurve.value, prepHi.value, prepShadow.value, prepMid.value,
     prepCdr.checked?1:0].join('|');
 }
@@ -1548,9 +1673,10 @@ async function runAutotune(){
     applyPrepDefaults();
     applyStyleDefaults(STYLE_DEF);
     const algos=['atkinson','floyd','stucki'];
-    const warms=[42,46,50,54,58];
-    const sats=[0.85,0.95,1.00,1.10,1.20];
-    const total=algos.length+warms.length*sats.length;
+    const sw=isSwOnly();
+    const warms=sw?[50]:[42,46,50,54,58];
+    const sats=sw?[1]:[0.85,0.95,1.00,1.10,1.20];
+    const total=sw?algos.length:(algos.length+warms.length*sats.length);
     let best=null, bestScore=-1e18, done=0;
     const msg=document.getElementById('busyMsg');
     async function tryCand(c){
@@ -1570,23 +1696,26 @@ async function runAutotune(){
     }
     for(let i=0;i<algos.length;i++) await tryCand({algo:algos[i]});
     algo.value=best.algo;
-    for(let wi=0;wi<warms.length;wi++){
-      for(let si=0;si<sats.length;si++){
-        await tryCand({warm:warms[wi], sat:sats[si]});
+    if(!sw){
+      for(let wi=0;wi<warms.length;wi++){
+        for(let si=0;si<sats.length;si++){
+          await tryCand({warm:warms[wi], sat:sats[si]});
+        }
       }
+      warmth.value=best.warm;
+      prepSat.value=best.sat;
     }
-    algo.value=best.algo;
-    warmth.value=best.warm;
-    prepSat.value=best.sat;
     syncSliderVals();
     appliedSeq=imgSeq;
     tunedSig=cropSig();
     await renderOut();
     const names={atkinson:'Atkinson',floyd:'Floyd',stucki:'Stucki'};
-    status.textContent='Automatik OK · '+(names[best.algo]||best.algo)+' · W'+best.warm+' · Sat '+Number(best.sat).toFixed(2);
+    status.textContent=sw
+      ? ('Automatik OK · S/W · '+(names[best.algo]||best.algo))
+      : ('Automatik OK · '+(names[best.algo]||best.algo)+' · W'+best.warm+' · Sat '+Number(best.sat).toFixed(2));
   }catch(e){
     status.textContent='Automatik: '+e.message;
-  }finally{ tuning=false; setBusy(false); }
+  }finally{ tuning=false; setBusy(false); syncActionButtons(); }
 }
 document.getElementById('btnTuneStyle').onclick=function(){
   tunePromise=runAutotune().catch(function(e){ status.textContent='Automatik: '+(e.message||e); });
@@ -1609,12 +1738,20 @@ async function refreshStatus(){
     const z=document.getElementById('btnZzz');
     if(z) z.hidden=!!s.usb;
     document.getElementById('foot').textContent=s.copyright||'© 2026 Ingo Lissors';
+    if(s.hang==='portrait'||s.hang==='landscape'){
+      hang=s.hang;
+      if(!editName && orient.value!==hang){
+        orient.value=hang;
+        syncStage();
+      }
+    }
   }catch(e){}
 }
 document.getElementById('btnZzz').onclick=()=>{ fetch('/api/sleep',{method:'POST'}).catch(()=>{}); };
 refreshStatus(); setInterval(refreshStatus,15000);
 syncPersonLabels();
 syncVerfahrenUi();
+syncKindUi();
 syncEditUi();
 (function(){
   const btnRaw=document.getElementById('btnRawE6');
@@ -1641,7 +1778,7 @@ syncEditUi();
       pictureDirty=true;
       lastDither=null;
       sierra2Sig='';
-      setBusy(true, 'LUT + Sierra…');
+      setBusy(true, isSwOnly()?'Sierra S/W …':'LUT + Sierra…');
       try{ await renderOut(); }
       catch(e){ status.textContent=String(e.message||e); sierra2Done=false; }
       finally{ setBusy(false); }
