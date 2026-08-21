@@ -33,6 +33,13 @@ static const int SLIDE_MAX = 256;
 static String g_memNextJson;
 static uint32_t g_memNextMs = 0;
 static bool g_memNextValid = false;
+static int g_potLeft = -1;
+static int g_potTotal = -1;
+static uint32_t g_potMs = 0;
+
+void slideshowInvalidatePot() {
+  g_potLeft = -1;
+}
 
 static bool intervalOk(int m) {
   return m == 5 || m == 10 || m == 30 || m == 60;
@@ -381,6 +388,7 @@ static int deckLoad(String *out, int maxN) {
 }
 
 static void deckSave(const String *a, int n) {
+  slideshowInvalidatePot();
   if (SD_MMC.exists(DECK_PATH)) {
     SD_MMC.remove(DECK_PATH);
   }
@@ -843,6 +851,50 @@ void slideshowAppendMemoryJson(String &out) {
   out += g_memNextJson;
 }
 
+void slideshowAppendPotJson(String &j) {
+  if (g_potLeft < 0 || (millis() - g_potMs) > 8000UL) {
+    g_potLeft = 0;
+    g_potTotal = 0;
+    g_potMs = millis();
+    if (sdOk()) {
+      PicCand *cands = new PicCand[SLIDE_MAX];
+      if (cands) {
+        int n = 0;
+        if (collectCandidates(cands, SLIDE_MAX, n)) {
+          String *pool = new String[SLIDE_MAX];
+          int poolN = 0;
+          if (pool) {
+            for (int i = 0; i < n; i++) {
+              if (cands[i].noDates) {
+                pool[poolN++] = cands[i].file;
+              }
+            }
+            g_potTotal = poolN;
+            String *deck = new String[SLIDE_MAX];
+            int left = 0;
+            if (deck) {
+              int dn = deckLoad(deck, SLIDE_MAX);
+              for (int i = 0; i < dn; i++) {
+                if (nameIn(pool, poolN, deck[i])) {
+                  left++;
+                }
+              }
+              delete[] deck;
+            }
+            g_potLeft = left;
+            delete[] pool;
+          }
+        }
+        delete[] cands;
+      }
+    }
+  }
+  j += ",\"potLeft\":";
+  j += String(g_potLeft);
+  j += ",\"potTotal\":";
+  j += String(g_potTotal);
+}
+
 void slideshowGetJson(String &out) {
   time_t now = time(nullptr);
   struct tm ti;
@@ -875,6 +927,7 @@ void slideshowGetJson(String &out) {
   }
   ntpAppendJson(out);
   slideshowAppendMemoryJson(out);
+  slideshowAppendPotJson(out);
   out += "}";
 }
 

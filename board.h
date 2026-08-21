@@ -14,6 +14,9 @@ int pmuBatteryPercent();  // -1 if unknown / no battery
 bool pmuCharging();
 bool pmuUsbPowered();  // VBUS in — USB, no deep sleep
 float pmuBattVoltage();  // volts, 0 if unknown
+void pmuAppendJson(String &j);  // /api/status: all AXP2101 battery fields
+int pmuChargeMa();              // setpoint 100…1000, or -1
+bool pmuSetChargeMa(int ma);    // exact AXP step
 bool pmuEnableAudioRail();  // ALDO3 for ES8311, on demand
 
 bool bmpShowFromMemory(const uint8_t *data, size_t len);
@@ -60,7 +63,9 @@ void slideshowSetTimeOk(bool ok);
 bool slideshowTimeOk();
 void slideshowGetJson(String &out);
 void slideshowAppendMemoryJson(String &out);
+void slideshowAppendPotJson(String &out);
 void slideshowInvalidateMemPreview();
+void slideshowInvalidatePot();
 bool slideshowSet(int mode, int intervalMin, int dailyHour, int dailyMin);
 void slideshowForceNow();  // KEY / Jetzt wechseln: Zufall; bei mehreren fälligen Erinnerungen die nächste
 void slideshowOnTimer();   // Intervall / Uhr: Erinnerungen zuerst (eine, alle 3 h die nächste), sonst Zufall

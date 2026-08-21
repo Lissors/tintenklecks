@@ -57,6 +57,7 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
 <p class="hint" id="clockHint">—</p>
 <p class="hint" id="ntpHint">—</p>
 <p class="hint" id="memNext">—</p>
+<p class="hint" id="potLine">—</p>
 </div>
 <div class="panel">
 <h2>Wechsel</h2>
@@ -138,6 +139,13 @@ function applyFrame(f){
   if(ntp) ntp.textContent=ntpLine(f);
   const mem=document.getElementById('memNext');
   if(mem) mem.textContent=memLine(f);
+  const pot=document.getElementById('potLine');
+  if(pot){
+    const t=f.potTotal|0;
+    if(typeof f.potLeft!=='number' || t<1) pot.textContent='Zufallstopf: —';
+    else if(f.potLeft<1) pot.textContent='Zufallstopf: nächster Zug neue Runde ('+t+' Bilder)';
+    else pot.textContent='Zufallstopf noch '+f.potLeft+' von '+t;
+  }
   if(f.now){
     document.getElementById('clock').value=f.now;
   }

@@ -312,6 +312,7 @@ static void invalidateListCacheHard() {
   g_listGen = g_listGen + 1;
   g_orphanSweepWanted = true;
   g_listCache = "";
+  slideshowInvalidatePot();
   if (sdOk() && SD_MMC.exists(LIST_CACHE_PATH)) {
     SD_MMC.remove(LIST_CACHE_PATH);
   }
@@ -1774,14 +1775,21 @@ static void handleDelete() {
     server.send(400, "text/plain", "name required");
     return;
   }
+  String shown = slideshowLastShown();
   String names[16];
   int n = collectStemFiles(stem, names, 16);
   int gone = 0;
+  bool onPanel = false;
   for (int i = 0; i < n; i++) {
     if (SD_MMC.remove(String(PIC_DIR) + "/" + names[i])) {
       gone++;
       Serial.printf("DEL %s\n", names[i].c_str());
       if (isBmpFileName(names[i])) {
+        if (shown.length() &&
+            (shown == names[i] ||
+             (String(",") + shown + ",").indexOf(String(",") + names[i] + ",") >= 0)) {
+          onPanel = true;
+        }
         slideshowForgetShown(names[i]);
         slideshowDeckRemove(names[i]);
       }
@@ -1789,8 +1797,17 @@ static void handleDelete() {
   }
   memoriesRemove(server.arg("name"));
   invalidateListCacheHard();
+  slideshowInvalidatePot();
   if (gone == 0) {
     server.send(404, "text/plain", "not found");
+    return;
+  }
+  if (onPanel) {
+    server.send(200, "text/plain", "OK deleted " + String(gone) + "/" + String(n) + " files · nächstes Bild");
+    delay(50);
+    powerNoteBusy(true);
+    slideshowForceNow();
+    powerNoteBusy(false);
     return;
   }
   server.send(200, "text/plain", "OK deleted " + String(gone) + "/" + String(n) + " files");
@@ -2133,6 +2150,7 @@ static void handleStatus() {
   j += pmuCharging() ? "true" : "false";
   j += ",\"voltage\":";
   j += String(pmuBattVoltage(), 2);
+  pmuAppendJson(j);
   j += ",\"heap\":";
   j += String((unsigned)ESP.getFreeHeap());
   j += ",\"pmu\":";
@@ -2145,6 +2163,7 @@ static void handleStatus() {
   j += String((unsigned)audioVolume());
   ntpAppendJson(j);
   slideshowAppendMemoryJson(j);
+  slideshowAppendPotJson(j);
   j += "}";
   server.send(200, "application/json", j);
 }
@@ -2187,6 +2206,27 @@ static void handleVolPost() {
   }
   audioSetVolume((uint8_t)v);
   handleVolGet();
+}
+
+static void handleChargeGet() {
+  String j = "{\"ichg\":";
+  j += String(pmuChargeMa());
+  j += "}";
+  server.send(200, "application/json", j);
+}
+
+static void handleChargePost() {
+  powerNoteActivity();
+  if (!server.hasArg("ichg")) {
+    server.send(400, "text/plain", "ichg=100…1000");
+    return;
+  }
+  int ma = server.arg("ichg").toInt();
+  if (!pmuSetChargeMa(ma)) {
+    server.send(400, "text/plain", "ichg=100,125,150,175,200,300…1000");
+    return;
+  }
+  handleChargeGet();
 }
 
 static void handleFrameGet() {
@@ -2541,20 +2581,220 @@ static void handleBackup() {
   powerNoteBusy(false);
 }
 
+static void zipU16(uint16_t v) {
+  char b[2] = {(char)(v & 0xFF), (char)((v >> 8) & 0xFF)};
+  server.chunkWrite(b, 2);
+}
+
+static void zipU32(uint32_t v) {
+  char b[4] = {(char)(v & 0xFF), (char)((v >> 8) & 0xFF), (char)((v >> 16) & 0xFF),
+               (char)((v >> 24) & 0xFF)};
+  server.chunkWrite(b, 4);
+}
+
+struct ZipEnt {
+  uint32_t off;
+  uint32_t crc;
+  uint32_t sz;
+  uint8_t nlen;
+  char name[81];
+};
+static ZipEnt *g_zipEnts = nullptr;
+static int g_zipN = 0;
+static int g_zipMax = 0;
+static uint32_t g_zipOff = 0;
+
+static uint32_t zipCrcPath(const char *abs) {
+  File f = SD_MMC.open(abs, FILE_READ);
+  if (!f) {
+    return 0;
+  }
+  uint32_t crc = 0xFFFFFFFF;
+  uint8_t buf[1024];
+  while (f.available()) {
+    size_t n = f.read(buf, sizeof(buf));
+    for (size_t i = 0; i < n; i++) {
+      crc ^= buf[i];
+      for (int k = 0; k < 8; k++) {
+        uint32_t m = (crc & 1u) ? 0xFFFFFFFFu : 0u;
+        crc = (crc >> 1) ^ (0xEDB88320u & m);
+      }
+    }
+    yield();
+  }
+  f.close();
+  return ~crc;
+}
+
+static bool zipAddDir(const char *absDir, const char *prefix) {
+  char dirpath[48];
+  snprintf(dirpath, sizeof(dirpath), "%s%s", SD_MOUNT, absDir);
+  DIR *d = opendir(dirpath);
+  if (!d) {
+    return true;
+  }
+  uint8_t buf[1024];
+  struct dirent *e;
+  while ((e = readdir(d)) != nullptr) {
+    if (e->d_name[0] == '.' || e->d_name[0] == '_') {
+      continue;
+    }
+    String base = e->d_name;
+    if (!backupNameOk(base)) {
+      continue;
+    }
+    if (g_zipN >= g_zipMax) {
+      closedir(d);
+      return false;
+    }
+    String abs = String(absDir) + "/" + base;
+    File f = SD_MMC.open(abs, FILE_READ);
+    if (!f) {
+      continue;
+    }
+    String rel = String(prefix) + "/" + base;
+    uint32_t sz = (uint32_t)f.size();
+    f.close();
+    uint32_t crc = zipCrcPath(abs.c_str());
+    f = SD_MMC.open(abs, FILE_READ);
+    if (!f) {
+      continue;
+    }
+    ZipEnt &z = g_zipEnts[g_zipN];
+    z.off = g_zipOff;
+    z.crc = crc;
+    z.sz = sz;
+    z.nlen = (uint8_t)rel.length();
+    if (z.nlen > 80) {
+      f.close();
+      continue;
+    }
+    memcpy(z.name, rel.c_str(), z.nlen);
+    z.name[z.nlen] = 0;
+    zipU32(0x04034b50);
+    zipU16(20);
+    zipU16(0);
+    zipU16(0);
+    zipU16(0);
+    zipU16(0);
+    zipU32(crc);
+    zipU32(sz);
+    zipU32(sz);
+    zipU16(z.nlen);
+    zipU16(0);
+    server.chunkWrite(z.name, z.nlen);
+    g_zipOff += 30u + z.nlen;
+    uint32_t left = sz;
+    while (left) {
+      size_t n = f.read(buf, left > sizeof(buf) ? sizeof(buf) : left);
+      if (n == 0) {
+        break;
+      }
+      server.chunkWrite((const char *)buf, n);
+      left -= (uint32_t)n;
+      g_zipOff += (uint32_t)n;
+      yield();
+    }
+    f.close();
+    if (left) {
+      closedir(d);
+      return false;
+    }
+    g_zipN++;
+  }
+  closedir(d);
+  return true;
+}
+
+static void handleBackupZip() {
+  powerNoteActivity();
+  if (!sdOk()) {
+    server.send(500, "text/plain", "no SD");
+    return;
+  }
+  powerNoteBusy(true);
+  WiFi.setSleep(false);
+  server.client().setTimeout(600000);
+  char fn[40];
+  time_t now = time(nullptr);
+  struct tm ti;
+  if (now > 1700000000 && localtime_r(&now, &ti)) {
+    snprintf(fn, sizeof(fn), "tintenklecks-%04d-%02d-%02d.zip", ti.tm_year + 1900, ti.tm_mon + 1, ti.tm_mday);
+  } else {
+    snprintf(fn, sizeof(fn), "tintenklecks.zip");
+  }
+  const int maxEnt = 800;
+  g_zipEnts = (ZipEnt *)ps_malloc(sizeof(ZipEnt) * maxEnt);
+  if (!g_zipEnts) {
+    powerNoteBusy(false);
+    server.send(500, "text/plain", "no RAM");
+    return;
+  }
+  g_zipN = 0;
+  g_zipMax = maxEnt;
+  g_zipOff = 0;
+  server.sendHeader("Content-Disposition", String("attachment; filename=\"") + fn + "\"");
+  server.sendHeader("Cache-Control", "no-store");
+  server.chunkResponseBegin("application/zip");
+  bool ok = zipAddDir(PIC_DIR, "pic") && zipAddDir("/sound", "sound");
+  uint32_t cdOff = g_zipOff;
+  if (ok) {
+    for (int i = 0; i < g_zipN; i++) {
+      zipU32(0x02014b50);
+      zipU16(20);
+      zipU16(20);
+      zipU16(0);
+      zipU16(0);
+      zipU16(0);
+      zipU16(0);
+      zipU32(g_zipEnts[i].crc);
+      zipU32(g_zipEnts[i].sz);
+      zipU32(g_zipEnts[i].sz);
+      zipU16(g_zipEnts[i].nlen);
+      zipU16(0);
+      zipU16(0);
+      zipU16(0);
+      zipU16(0);
+      zipU32(0);
+      zipU32(g_zipEnts[i].off);
+      server.chunkWrite(g_zipEnts[i].name, g_zipEnts[i].nlen);
+      g_zipOff += 46u + g_zipEnts[i].nlen;
+    }
+    zipU32(0x06054b50);
+    zipU16(0);
+    zipU16(0);
+    zipU16((uint16_t)g_zipN);
+    zipU16((uint16_t)g_zipN);
+    zipU32(g_zipOff - cdOff);
+    zipU32(cdOff);
+    zipU16(0);
+  }
+  server.chunkResponseEnd();
+  free(g_zipEnts);
+  g_zipEnts = nullptr;
+  powerNoteBusy(false);
+}
+
 enum {
   RST_MAGIC = 0,
   RST_NLEN,
   RST_NAME,
   RST_SZ,
   RST_DATA,
+  RST_ZIPHDR,
+  RST_ZIPXTRA,
+  RST_ZIPSKIP,
+  RST_ZIPDONE,
   RST_DEAD
 };
 static int g_rst = RST_MAGIC;
 static uint8_t g_rstBuf[88];
-static uint32_t g_rstNeed = 6;
+static uint32_t g_rstNeed = 4;
 static uint32_t g_rstHave = 0;
 static uint32_t g_rstNlen = 0;
 static uint32_t g_rstLeft = 0;
+static uint32_t g_rstXlen = 0;
+static bool g_rstZip = false;
 static char g_rstName[81];
 static String g_rstPath;
 static File g_rstFile;
@@ -2562,6 +2802,10 @@ static int g_rstFiles = 0;
 
 static uint32_t rstU32(const uint8_t *p) {
   return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
+}
+
+static uint16_t rstU16(const uint8_t *p) {
+  return (uint16_t)p[0] | ((uint16_t)p[1] << 8);
 }
 
 static void rstCloseFile(bool keep) {
@@ -2601,8 +2845,52 @@ static bool rstOpenFile() {
   return true;
 }
 
+static void rstZipNextHdr() {
+  g_rst = RST_ZIPHDR;
+  g_rstNeed = 4;
+  g_rstHave = 0;
+}
+
+static void rstZipAfterName() {
+  size_t nl = strlen(g_rstName);
+  bool dir = nl > 0 && g_rstName[nl - 1] == '/';
+  if (g_rstXlen > 0) {
+    g_rst = RST_ZIPXTRA;
+    return;
+  }
+  if (dir || g_rstLeft > 32UL * 1024UL * 1024UL || !rstOpenFile()) {
+    rstCloseFile(true);
+    if (g_rstLeft == 0) {
+      rstZipNextHdr();
+    } else {
+      g_rst = RST_DATA;
+    }
+    return;
+  }
+  if (g_rstLeft == 0) {
+    rstCloseFile(true);
+    g_rstFiles++;
+    rstZipNextHdr();
+  } else {
+    g_rst = RST_DATA;
+  }
+}
+
 static void rstFeed(const uint8_t *data, size_t n) {
   while (n && g_rst != RST_DEAD) {
+    if (g_rst == RST_ZIPSKIP || g_rst == RST_ZIPDONE) {
+      return;
+    }
+    if (g_rst == RST_ZIPXTRA) {
+      size_t take = n < g_rstXlen ? n : (size_t)g_rstXlen;
+      data += take;
+      n -= take;
+      g_rstXlen -= (uint32_t)take;
+      if (g_rstXlen == 0) {
+        rstZipAfterName();
+      }
+      continue;
+    }
     if (g_rst == RST_DATA) {
       size_t take = n < g_rstLeft ? n : (size_t)g_rstLeft;
       if (g_rstFile && take) {
@@ -2612,11 +2900,18 @@ static void rstFeed(const uint8_t *data, size_t n) {
       n -= take;
       g_rstLeft -= (uint32_t)take;
       if (g_rstLeft == 0) {
+        bool wrote = g_rstPath.length() > 0;
         rstCloseFile(true);
-        g_rstFiles++;
-        g_rst = RST_NLEN;
-        g_rstNeed = 4;
-        g_rstHave = 0;
+        if (wrote) {
+          g_rstFiles++;
+        }
+        if (g_rstZip) {
+          rstZipNextHdr();
+        } else {
+          g_rst = RST_NLEN;
+          g_rstNeed = 4;
+          g_rstHave = 0;
+        }
       }
       continue;
     }
@@ -2630,13 +2925,56 @@ static void rstFeed(const uint8_t *data, size_t n) {
       return;
     }
     if (g_rst == RST_MAGIC) {
-      if (memcmp(g_rstBuf, "TKBAK2", 6) != 0) {
+      if (g_rstNeed == 4) {
+        uint32_t sig = rstU32(g_rstBuf);
+        if (sig == 0x04034b50) {
+          g_rstZip = true;
+          g_rst = RST_ZIPHDR;
+          g_rstNeed = 30;
+          g_rstHave = 4;
+        } else if (sig == 0x02014b50 || sig == 0x06054b50) {
+          g_rstZip = true;
+          g_rst = (sig == 0x06054b50) ? RST_ZIPDONE : RST_ZIPSKIP;
+        } else {
+          g_rstNeed = 6;
+        }
+      } else if (memcmp(g_rstBuf, "TKBAK2", 6) != 0) {
         rstFail();
         return;
+      } else {
+        g_rstZip = false;
+        g_rst = RST_NLEN;
+        g_rstNeed = 4;
+        g_rstHave = 0;
       }
-      g_rst = RST_NLEN;
-      g_rstNeed = 4;
-      g_rstHave = 0;
+    } else if (g_rst == RST_ZIPHDR) {
+      uint32_t sig = rstU32(g_rstBuf);
+      if (g_rstNeed == 4) {
+        if (sig == 0x04034b50) {
+          g_rstNeed = 30;
+          g_rstHave = 4;
+        } else if (sig == 0x02014b50) {
+          g_rst = RST_ZIPSKIP;
+        } else if (sig == 0x06054b50) {
+          g_rst = RST_ZIPDONE;
+        } else {
+          rstFail();
+          return;
+        }
+      } else {
+        uint16_t flags = rstU16(g_rstBuf + 6);
+        uint16_t method = rstU16(g_rstBuf + 8);
+        g_rstLeft = rstU32(g_rstBuf + 18);
+        g_rstNlen = rstU16(g_rstBuf + 26);
+        g_rstXlen = rstU16(g_rstBuf + 28);
+        if (method != 0 || (flags & 0x08) || g_rstNlen < 1 || g_rstNlen > 80) {
+          rstFail();
+          return;
+        }
+        g_rst = RST_NAME;
+        g_rstNeed = g_rstNlen;
+        g_rstHave = 0;
+      }
     } else if (g_rst == RST_NLEN) {
       g_rstNlen = rstU32(g_rstBuf);
       if (g_rstNlen < 1 || g_rstNlen > 80) {
@@ -2649,9 +2987,13 @@ static void rstFeed(const uint8_t *data, size_t n) {
     } else if (g_rst == RST_NAME) {
       memcpy(g_rstName, g_rstBuf, g_rstNlen);
       g_rstName[g_rstNlen] = 0;
-      g_rst = RST_SZ;
-      g_rstNeed = 4;
-      g_rstHave = 0;
+      if (g_rstZip) {
+        rstZipAfterName();
+      } else {
+        g_rst = RST_SZ;
+        g_rstNeed = 4;
+        g_rstHave = 0;
+      }
     } else if (g_rst == RST_SZ) {
       g_rstLeft = rstU32(g_rstBuf);
       if (g_rstLeft > 32UL * 1024UL * 1024UL || !rstOpenFile()) {
@@ -2678,18 +3020,21 @@ static void handleRestoreAllUpload() {
     WiFi.setSleep(false);
     server.client().setTimeout(600000);
     g_rst = RST_MAGIC;
-    g_rstNeed = 6;
+    g_rstNeed = 4;
     g_rstHave = 0;
     g_rstFiles = 0;
+    g_rstZip = false;
     g_rstPath = "";
     rstCloseFile(true);
   } else if (up.status == UPLOAD_FILE_WRITE) {
-    if (g_rst != RST_DEAD && up.currentSize) {
+    if (g_rst != RST_DEAD && g_rst != RST_ZIPSKIP && g_rst != RST_ZIPDONE && up.currentSize) {
       rstFeed(up.buf, up.currentSize);
     }
   } else if (up.status == UPLOAD_FILE_END) {
     if (g_rst == RST_DATA) {
       rstFail();
+    } else if (g_rst == RST_ZIPSKIP || g_rst == RST_ZIPDONE) {
+      // zip central directory
     } else if (g_rst == RST_NLEN && g_rstHave == 0) {
       // archive ended after a complete file
     } else if (g_rst == RST_MAGIC && g_rstHave == 0) {
@@ -2703,10 +3048,8 @@ static void handleRestoreAllUpload() {
 static void handleRestoreAllDone() {
   powerNoteBusy(false);
   slideshowInvalidateMemPreview();
-  bool ok = (g_rst != RST_DEAD) && (g_rst == RST_NLEN || g_rst == RST_MAGIC) && g_rstHave == 0;
-  if (g_rst == RST_NLEN && g_rstHave == 0) {
-    ok = true;
-  }
+  bool ok = (g_rst != RST_DEAD) &&
+            ((g_rst == RST_NLEN && g_rstHave == 0) || g_rst == RST_ZIPSKIP || g_rst == RST_ZIPDONE);
   if (!ok) {
     rstCloseFile(false);
     server.send(400, "text/plain", "restore failed");
@@ -2791,6 +3134,8 @@ void webBegin() {
   server.on("/api/hang", HTTP_POST, handleHangPost);
   server.on("/api/volume", HTTP_GET, handleVolGet);
   server.on("/api/volume", HTTP_POST, handleVolPost);
+  server.on("/api/charge", HTTP_GET, handleChargeGet);
+  server.on("/api/charge", HTTP_POST, handleChargePost);
   server.on("/api/frame", HTTP_GET, handleFrameGet);
   server.on("/api/frame", HTTP_POST, handleFramePost);
   server.on("/api/frame-now", HTTP_POST, handleFrameNow);
@@ -2827,6 +3172,7 @@ void webBegin() {
   server.on("/api/backup-list", HTTP_GET, handleBackupList);
   server.on("/api/backup-file", HTTP_GET, handleBackupFile);
   server.on("/api/backup", HTTP_GET, handleBackup);
+  server.on("/api/backup-zip", HTTP_GET, handleBackupZip);
   server.on("/api/restore", HTTP_POST, handleRestoreAllDone, handleRestoreAllUpload);
   server.on("/api/restore-file", HTTP_POST, handleRestoreDone, handleRestoreUpload);
 

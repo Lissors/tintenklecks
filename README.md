@@ -227,14 +227,14 @@ Häkchen **Beschriftung anzeigen** (aus: Name, Daten und Freitexte unsichtbar). 
 
 ![Galerie](docs/galerie.png)
 
-Zwei Reiter: **Zufall** und **Erinnerungen**. Karten nach Personenname. Vorschau mit Beschriftung wie im Studio, darunter Name, `*` Geburt, `†` Tod, Anlass plus besonderes Datum, Beschreibung (Tipp klappt den ganzen Text auf), Dateiname.
+Zwei Reiter: **Zufall** und **Erinnerungen**. Oben die Zähler und der **Zufallstopf** (noch *n* von *m*; ist der Topf leer: nächster Zug neue Runde). Karten nach Personenname. Vorschau mit Beschriftung wie im Studio, darunter Name, `*` Geburt, `†` Tod, Anlass plus besonderes Datum, Beschreibung (Tipp klappt den ganzen Text auf), Dateiname.
 
 | Knopf | Wirkung |
 | --- | --- |
 | Bearbeiten | Studio mit Zuschnitt und gespeicherten Werten |
 | Anzeigen | dieses BMP aufs Panel |
 | Umbenennen | Dateiname ohne `.bmp` |
-| Löschen | BMP plus JSON, Vorschauen und zugehörigen Ton (Nachfrage) |
+| Löschen | BMP plus JSON, Vorschauen und zugehörigen Ton (Nachfrage). Hängt genau dieses Bild am Panel, kommt danach das nächste — wie KEY / Jetzt wechseln |
 
 Fehlt die Vorschau: **Kein Vorschaubild · neu speichern**. Ohne Zuschnitt-Datei ein roter Rand und **Kein Zuschnitt**. Der Index baut sich nach dem Start im Hintergrund; die Seite wartet darauf (**Galerie-Index wird gebaut…**). Fehlende Vorschaubilder versucht die Seite selbst nachzuziehen.
 
@@ -254,7 +254,7 @@ Leere Liste: **Kein Bild**.
 
 ![Rahmen](docs/rahmen.png)
 
-Zuerst die Uhr. **Suchen** filtert die Stadtliste. Stadt wählen, **Standort speichern** (Sommerzeit, danach NTP). Zeit: Feld **Datum & Zeit** und **Uhr setzen**, oder **Von diesem Gerät übernehmen**. Handgestellte Uhr bleibt 10 Minuten stehen, dann holt NTP die Netzzeit — aber nur, wenn ein Zeitserver wirklich geantwortet hat, nicht schon weil die RTC irgendetwas Gültiges hat. Beim Aufwachen ebenfalls NTP. Access Point: keine Netzzeit. Darunter: NTP-Status und **Nächste Erinnerung** (heute, morgen oder übermorgen: Datum · Name). Ohne gültige Chip-Zeit kein Tageswechsel.
+Zuerst die Uhr. **Suchen** filtert die Stadtliste. Stadt wählen, **Standort speichern** (Sommerzeit, danach NTP). Zeit: Feld **Datum & Zeit** und **Uhr setzen**, oder **Von diesem Gerät übernehmen**. Handgestellte Uhr bleibt 10 Minuten stehen, dann holt NTP die Netzzeit — aber nur, wenn ein Zeitserver wirklich geantwortet hat, nicht schon weil die RTC irgendetwas Gültiges hat. Beim Aufwachen ebenfalls NTP. Access Point: keine Netzzeit. Darunter: NTP-Status, **Nächste Erinnerung** (heute, morgen oder übermorgen: Datum · Name) und **Zufallstopf noch n von m**. Ohne gültige Chip-Zeit kein Tageswechsel.
 
 **Wechsel:** Modus **Aus**, **Im Intervall** (5 / 10 / 30 / 60 Minuten) oder **1× pro Tag** (Uhrzeit, Vorgabe 08:00). **Speichern** merkt den Modus. **Jetzt wechseln** sofort — nur Zufall, keine Erinnerungen. **Aus** = kein Timer.
 
@@ -264,7 +264,9 @@ Zuerst die Uhr. **Suchen** filtert die Stadtliste. Stadt wählen, **Standort spe
 
 ![System](docs/system.png)
 
-**Status:** Gerät, IP, Modus (AP oder Heimnetz), SD, Akku, Heap, NTP.
+**Status:** Gerät, IP, Modus (AP oder Heimnetz), SD, Heap, NTP.
+
+**Akku:** alles, was der AXP2101 hergibt — auch bei USB: Zelle, Prozent, Akkuspannung, USB ja/nein und USB-Spannung, Systemspannung, Pfad (laden/entladen/standby), Ladestufe, Ladestrom- und Ende-Strom-Vorgabe, USB-Limit, PMU-Temperatur, Wärme- und Eingangsbegrenzung, Chip-Warn- und Abschaltschwelle. Kein gemessener Strom, keine mAh. **Ladestrom** 100–1000 mA (Chip-Default 300, Maximum 1000) geht in die Zelle, nicht in den ESP. USB muss Rahmen plus Laden tragen.
 
 **ntfy:** Thema oder volle URL (leer = aus), Priorität Min / Niedrig / Normal / Hoch / Dringend. **Speichern**, **Probe senden**. Gleiches Thema, zwei Nachrichten: Warnung „Akku … %“ einmal am Kalendertag unter 10 %; Aufwachen „Aufgewacht, Akku … %“ (Timer, KEY, BOOT), stumm. App [ntfy](https://ntfy.sh/), dasselbe Thema abonnieren.
 
@@ -272,7 +274,7 @@ Zuerst die Uhr. **Suchen** filtert die Stadtliste. Stadt wählen, **Standort spe
 
 **Anzeige:** **Rahmenlage** Hochkant oder Quer, **Lage speichern**. Gilt für neue Bilder in Studio, Live und am Panel; vorhandene Bilder bleiben unverändert. Der Rahmen muss physisch so hängen. **Panel leeren (weiß)** — Bilder danach wieder über Galerie **Anzeigen**. **Akkuwarnung testen** legt „Akku < 10 %“ unten rechts auf das aktuelle Bild, unabhängig vom echten Stand (und sendet die ntfy-Probe, wenn ein Thema gesetzt ist).
 
-**Sicherung:** **Sicherung herunterladen** holt `pic/` und `sound/` in einer Datei vom Rahmen (`tintenklecks-JJJJ-MM-TT.txt`). USB stecken lassen. **Wiederherstellen:** die `.txt` in einem Rutsch auf den Rahmen; älteres `.zip` geht noch Datei für Datei. Gleicher Name überschreibt, sonst bleibt alles. Firmware-Backup ist das GitHub-Release.
+**Sicherung:** **Sicherung als .txt** holt `pic/` und `sound/` in einer Datei (`tintenklecks-JJJJ-MM-TT.txt`) — geht in Chrome über HTTP. **Sicherung als .zip** dasselbe unkomprimiert; Chrome kann Zip über HTTP sperren, dann Firefox/Edge oder die `.txt`. USB stecken. **Wiederherstellen:** `.txt` und unkomprimiertes `.zip` in einem Rutsch. Komprimiertes Zip noch Datei für Datei. Gleicher Name überschreibt, sonst bleibt alles. Firmware-Backup ist das GitHub-Release.
 
 **Wartung:** **Neustart** (spielt `neustart.wav`). **Jetzt aufräumen** entfernt Reste gelöschter Bilder (passiert sonst automatisch beim Start und nach jedem Löschen). **WLAN-Daten löschen & Neustart** vergisst das Heimnetz (Nachfrage), danach wieder Access Point.
 

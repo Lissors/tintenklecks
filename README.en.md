@@ -229,14 +229,14 @@ Checkbox **Beschriftung anzeigen** (off: name, dates and free texts hidden). Fie
 
 ![Gallery](docs/galerie.png)
 
-Two tabs: **Zufall** and **Erinnerungen**. Cards sorted by person name. Preview with captions as in Studio, then name, `*` birth, `†` death, occasion plus special date, description (tap to expand), filename.
+Two tabs: **Zufall** and **Erinnerungen**. At the top: counts and the **Zufallstopf** (still *n* of *m*; if the pot is empty: next draw starts a new round). Cards sorted by person name. Preview with captions as in Studio, then name, `*` birth, `†` death, occasion plus special date, description (tap to expand), filename.
 
 | Button | Effect |
 | --- | --- |
 | Bearbeiten | Studio with crop and saved values |
 | Anzeigen | this BMP on the panel |
 | Umbenennen | filename without `.bmp` |
-| Löschen | BMP plus JSON, thumbnails and related sound (asks first) |
+| Löschen | BMP plus JSON, thumbnails and related sound (asks first). If that picture is on the panel, the next one is shown — same as KEY / Jetzt wechseln |
 
 Missing preview: **Kein Vorschaubild · neu speichern**. Without a crop file: red border and **Kein Zuschnitt**. The index is built in the background after start; the page waits (**Galerie-Index wird gebaut…**). The page tries to rebuild missing thumbnails itself.
 
@@ -256,7 +256,7 @@ Empty list: **Kein Bild**.
 
 ![Frame](docs/rahmen.png)
 
-Clock first. **Suchen** filters the city list. Pick a city, **Standort speichern** (daylight saving, then NTP). Time: **Datum & Zeit** and **Uhr setzen**, or **Von diesem Gerät übernehmen**. A hand-set clock is left alone for 10 minutes, then NTP fetches network time — only if a time server actually answered, not because the RTC already holds some valid time. NTP also runs on wake. Access point: no network time. Below the clock: NTP status and **Nächste Erinnerung** (today, tomorrow or the day after: date · name). Without a valid chip time, there is no daily switch.
+Clock first. **Suchen** filters the city list. Pick a city, **Standort speichern** (daylight saving, then NTP). Time: **Datum & Zeit** and **Uhr setzen**, or **Von diesem Gerät übernehmen**. A hand-set clock is left alone for 10 minutes, then NTP fetches network time — only if a time server actually answered, not because the RTC already holds some valid time. NTP also runs on wake. Access point: no network time. Below the clock: NTP status, **Nächste Erinnerung** (today, tomorrow or the day after: date · name) and **Zufallstopf still n of m**. Without a valid chip time, there is no daily switch.
 
 **Wechsel:** mode **Aus**, **Im Intervall** (5 / 10 / 30 / 60 minutes) or **1× pro Tag** (time of day, default 08:00). **Speichern** keeps the mode. **Jetzt wechseln** immediately — Zufall only, no memories. **Aus** = no timer.
 
@@ -266,7 +266,9 @@ Clock first. **Suchen** filters the city list. Pick a city, **Standort speichern
 
 ![System](docs/system.png)
 
-**Status:** device, IP, mode (AP or home network), SD, battery, heap, NTP.
+**Status:** device, IP, mode (AP or home network), SD, heap, NTP.
+
+**Akku:** everything the AXP2101 reports — also on USB: cell present, percent, battery voltage, USB yes/no and USB voltage, system voltage, path (charge/discharge/standby), charge stage, charge-current and end-current setpoints, USB current limit, PMU temperature, thermal and input limiting, chip warning and shutdown thresholds. No measured current, no mAh. **Ladestrom** 100–1000 mA (chip default 300, maximum 1000) goes into the cell, not the ESP. USB must supply the frame plus charging.
 
 **ntfy:** topic or full URL (empty = off), priority Min / Niedrig / Normal / Hoch / Dringend. **Speichern**, **Probe senden**. Same topic, two messages: warning “Akku … %” once per calendar day under 10 %; wake “Aufgewacht, Akku … %” (timer, KEY, BOOT), silent. App [ntfy](https://ntfy.sh/), subscribe to the same topic.
 
@@ -274,7 +276,7 @@ Clock first. **Suchen** filters the city list. Pick a city, **Standort speichern
 
 **Anzeige:** **Rahmenlage** Hochkant or Quer, **Lage speichern**. Applies to new pictures in Studio, Live and on the panel; existing pictures stay as they are. Hang the device to match. **Panel leeren (weiß)** — show pictures again from the gallery with **Anzeigen**. **Akkuwarnung testen** puts “Akku < 10 %” at the bottom right of the current picture, regardless of the real level (and sends the ntfy probe if a topic is set).
 
-**Sicherung:** **Sicherung herunterladen** fetches `pic/` and `sound/` as one file from the frame (`tintenklecks-YYYY-MM-DD.txt`). Leave USB plugged in. **Wiederherstellen:** the `.txt` in one go; an older `.zip` still goes file by file. Same name overwrites, everything else stays. Firmware backup is the GitHub release.
+**Sicherung:** **Sicherung als .txt** fetches `pic/` and `sound/` as one file (`tintenklecks-YYYY-MM-DD.txt`) — works in Chrome over HTTP. **Sicherung als .zip** the same, uncompressed; Chrome may block zip over HTTP, then use Firefox/Edge or the `.txt`. Leave USB plugged in. **Wiederherstellen:** `.txt` and uncompressed `.zip` in one go. Compressed zip still file by file. Same name overwrites, everything else stays. Firmware backup is the GitHub release.
 
 **Wartung:** **Neustart** (plays `neustart.wav`). **Jetzt aufräumen** removes leftovers of deleted pictures (otherwise automatic at start and after each delete). **WLAN-Daten löschen & Neustart** forgets the home network (asks first), then access point again.
 

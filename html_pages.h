@@ -255,6 +255,9 @@ async function refreshStatus(){
     const z=document.getElementById('btnZzz');
     if(z) z.hidden=!!s.usb;
     document.getElementById('foot').textContent=s.copyright||'© 2026 Ingo Lissors';
+    if(typeof s.potLeft==='number') window.__potLeft=s.potLeft;
+    if(typeof s.potTotal==='number') window.__potTotal=s.potTotal;
+    refreshCounts();
   }catch(e){}
 }
 function specialLine(m){
@@ -512,7 +515,13 @@ function refreshCounts(){
   const status=document.getElementById('status');
   const nN=document.getElementById('listNormal').querySelectorAll('.card').length;
   const nM=document.getElementById('listMemory').querySelectorAll('.card').length;
-  if(status) status.textContent=nN+' Zufall · '+nM+' Erinnerung';
+  let pot='';
+  const t=window.__potTotal|0;
+  if(typeof window.__potLeft==='number' && t>0){
+    if(window.__potLeft<1) pot=' · Topf: neue Runde ('+t+')';
+    else pot=' · Topf noch '+window.__potLeft+' von '+t;
+  }
+  if(status) status.textContent=nN+' Zufall · '+nM+' Erinnerung'+pot;
 }
 async function loadMetaCard(card){
   if(!card || card.dataset.metaLoaded) return;
@@ -675,6 +684,7 @@ label.field input,label.field select{width:100%;margin-top:.3rem;box-sizing:bord
 button{width:100%;margin-top:.55rem;padding:.7rem;border-radius:8px;border:1px solid var(--line);background:#1a1612;color:var(--txt);font:inherit;font-weight:700;cursor:pointer}
 button.pri{background:var(--acc);color:#1a1612;border:0}
 a.pri{display:block;width:100%;margin-top:.55rem;padding:.7rem;border-radius:8px;background:var(--acc);color:#1a1612;font:inherit;font-weight:700;text-align:center;text-decoration:none}
+a.sec{display:block;width:100%;margin-top:.55rem;padding:.7rem;border-radius:8px;border:1px solid var(--line);background:#1a1612;color:var(--txt);font:inherit;font-weight:700;text-align:center;text-decoration:none;box-sizing:border-box}
 button.danger{border-color:#8a4030;color:#e8a090}
 .status{font-size:.85rem;color:var(--dim);min-height:1.2em;margin-top:.5rem}
 .hint{font-size:.78rem;color:var(--dim);line-height:1.4;margin:.5rem 0 0}
@@ -693,9 +703,49 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
 <div class="row"><span>IP</span><b id="ip">—</b></div>
 <div class="row"><span>Modus</span><b id="mode">—</b></div>
 <div class="row"><span>SD</span><b id="sd">—</b></div>
-<div class="row"><span>Akku</span><b id="batt">—</b></div>
 <div class="row"><span>Heap</span><b id="heap">—</b></div>
 <div class="row"><span>NTP</span><b id="ntp">—</b></div>
+</div>
+<div class="panel">
+<h2>Akku</h2>
+<div class="row"><span>PMU</span><b id="bOk">—</b></div>
+<div class="row"><span>Zelle</span><b id="bCell">—</b></div>
+<div class="row"><span>Stand</span><b id="bPct">—</b></div>
+<div class="row"><span>Akkuspannung</span><b id="bV">—</b></div>
+<div class="row"><span>USB</span><b id="bUsb">—</b></div>
+<div class="row"><span>USB-Spannung</span><b id="bVbus">—</b></div>
+<div class="row"><span>Systemspannung</span><b id="bVsys">—</b></div>
+<div class="row"><span>Pfad</span><b id="bPath">—</b></div>
+<div class="row"><span>Ladestufe</span><b id="bChg">—</b></div>
+<div class="row"><span>Ladestrom (Vorgabe)</span><b id="bIchg">—</b></div>
+<div class="row"><span>Ladeziel</span><b id="bVt">—</b></div>
+<div class="row"><span>Ende-Strom (Vorgabe)</span><b id="bIterm">—</b></div>
+<div class="row"><span>USB-Limit</span><b id="bIlim">—</b></div>
+<div class="row"><span>PMU-Temperatur</span><b id="bTemp">—</b></div>
+<div class="row"><span>Wärmebegrenzung</span><b id="bTh">—</b></div>
+<div class="row"><span>Eingang begrenzt</span><b id="bLimHit">—</b></div>
+<div class="row"><span>Chip-Warnung unter</span><b id="bWarn">—</b></div>
+<div class="row"><span>Chip-Abschaltung unter</span><b id="bOff">—</b></div>
+<label class="field">Ladestrom
+  <select id="ichg">
+    <option value="100">100 mA</option>
+    <option value="125">125 mA</option>
+    <option value="150">150 mA</option>
+    <option value="175">175 mA</option>
+    <option value="200">200 mA</option>
+    <option value="300" selected>300 mA</option>
+    <option value="400">400 mA</option>
+    <option value="500">500 mA</option>
+    <option value="600">600 mA</option>
+    <option value="700">700 mA</option>
+    <option value="800">800 mA</option>
+    <option value="900">900 mA</option>
+    <option value="1000">1000 mA</option>
+  </select>
+</label>
+<button class="pri" id="btnChgSave">Ladestrom speichern</button>
+<p class="hint">Geht in die Zelle, nicht in den ESP. Chip-Default 300&nbsp;mA, Maximum 1000&nbsp;mA. USB muss Rahmen plus Laden tragen — der ESP wird davon nicht überlastet. Kein gemessener Strom, keine mAh — Prozent ist Schätzung. Ende-Strom ist Vorgabe des Chips, nicht der Ist-Wert.</p>
+<p class="status" id="chgStatus"></p>
 </div>
 <div class="panel">
 <h2>ntfy</h2>
@@ -742,8 +792,9 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
 </div>
 <div class="panel">
 <h2>Sicherung</h2>
-<p class="hint">Bilder und Töne als eine Datei vom Rahmen. Endung <code>.txt</code>, weil Chrome über HTTP alles andere sperrt. USB stecken. Wiederherstellen der <code>.txt</code> in einem Rutsch. Firmware bleibt das GitHub-Release.</p>
-<a class="pri" id="btnBackup" href="/api/backup">Sicherung herunterladen</a>
+<p class="hint">Bilder und Töne als eine Datei vom Rahmen. <code>.txt</code> geht in Chrome über HTTP. <code>.zip</code> ebenfalls in einem Rutsch — Chrome kann Zip über HTTP sperren, dann Firefox/Edge oder die <code>.txt</code>. USB stecken. Wiederherstellen von <code>.txt</code> und unkomprimiertem <code>.zip</code> in einem Rutsch. Firmware bleibt das GitHub-Release.</p>
+<a class="pri" id="btnBackup" href="/api/backup">Sicherung als .txt</a>
+<a class="sec" id="btnBackupZip" href="/api/backup-zip">Sicherung als .zip</a>
 <label class="field">Wiederherstellen
   <input id="restoreZip" type="file" accept=".txt,.tkbak,.zip,text/plain,application/octet-stream,application/zip"/>
 </label>
@@ -781,10 +832,6 @@ async function refreshStatus(){
     document.getElementById('ip').textContent=s.ip||'—';
     document.getElementById('mode').textContent=s.ap?'AP':'STA';
     document.getElementById('sd').textContent=s.sd?'OK':'fehlt';
-    let b='—';
-    if(s.usb) b='USB-Betrieb';
-    else if(s.battery>=0) b=s.battery+'%'+(s.charging?' · lädt':'')+' · '+s.voltage+' V';
-    document.getElementById('batt').textContent=b;
     document.getElementById('heap').textContent=(s.heap||0)+' B';
     const ntp=document.getElementById('ntp');
     if(ntp){
@@ -797,6 +844,33 @@ async function refreshStatus(){
       else if(s.ntp==='ap') ntp.textContent='— (Access Point)';
       else ntp.textContent='—';
     }
+    (function(){
+      const set=function(id,t){ const e=document.getElementById(id); if(e) e.textContent=t; };
+      const b=s.batt;
+      if(!b || !b.ok){
+        set('bOk','fehlt');
+        ['bCell','bPct','bV','bUsb','bVbus','bVsys','bPath','bChg','bIchg','bVt','bIterm','bIlim','bTemp','bTh','bLimHit','bWarn','bOff'].forEach(function(id){ set(id,'—'); });
+        return;
+      }
+      set('bOk','AXP2101');
+      set('bCell', b.cell?'ja':'nein');
+      set('bPct', (typeof b.pct==='number' && b.pct>=0)? (b.pct+' %') : '—');
+      set('bV', (b.cell && b.v)? (b.v+' V') : '—');
+      set('bUsb', b.usb?'ja':'nein');
+      set('bVbus', b.usb && b.vbus? (b.vbus+' V') : '—');
+      set('bVsys', b.vsys? (b.vsys+' V') : '—');
+      set('bPath', b.path||'—');
+      set('bChg', b.chg||'—');
+      set('bIchg', (typeof b.ichg==='number' && b.ichg>=0)? (b.ichg+' mA') : '—');
+      set('bVt', (typeof b.vtarget==='number' && b.vtarget>0)? ((b.vtarget/1000).toFixed(2)+' V') : '—');
+      set('bIterm', (typeof b.iterm==='number' && b.iterm>=0)? (b.iterm+' mA') : '—');
+      set('bIlim', (typeof b.ilim==='number' && b.ilim>=0)? (b.ilim+' mA') : '—');
+      set('bTemp', (typeof b.temp==='number')? (b.temp+' °C') : '—');
+      set('bTh', b.thermal?'ja':'nein');
+      set('bLimHit', b.limHit?'ja':'nein');
+      set('bWarn', (typeof b.warnPct==='number')? (b.warnPct+' %') : '—');
+      set('bOff', (typeof b.offPct==='number')? (b.offPct+' %') : '—');
+    })();
     const bat=document.getElementById('bat');
     if(s.usb) bat.textContent='USB-Betrieb';
     else if(s.battery<0) bat.textContent='Akku —';
@@ -811,6 +885,10 @@ async function refreshStatus(){
       vol.value=String(s.vol);
       const lb=document.getElementById('volLbl');
       if(lb) lb.textContent=String(s.vol);
+    }
+    const ichg=document.getElementById('ichg');
+    if(ichg && s.batt && typeof s.batt.ichg==='number' && s.batt.ichg>0 && document.activeElement!==ichg){
+      ichg.value=String(s.batt.ichg);
     }
   }catch(e){ document.getElementById('status').textContent=String(e); }
   try{
@@ -857,6 +935,16 @@ document.getElementById('btnVolSave').onclick=async()=>{
     const r=await fetch('/api/volume',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'vol='+encodeURIComponent(vol)});
     document.getElementById('volStatus').textContent=r.ok?'gespeichert':await r.text();
   }catch(e){ document.getElementById('volStatus').textContent=String(e); }
+  finally{ setBusy(false); }
+};
+document.getElementById('btnChgSave').onclick=async()=>{
+  if(!setBusy(true,'Ladestrom…')) return;
+  try{
+    const ichg=document.getElementById('ichg').value;
+    const r=await fetch('/api/charge',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'ichg='+encodeURIComponent(ichg)});
+    document.getElementById('chgStatus').textContent=r.ok?'gespeichert':await r.text();
+    if(r.ok) await refreshStatus();
+  }catch(e){ document.getElementById('chgStatus').textContent=String(e); }
   finally{ setBusy(false); }
 };
 document.getElementById('btnNtfySave').onclick=async()=>{
@@ -1008,7 +1096,11 @@ async function readBackup(u8){
 }
 document.getElementById('btnBackup').onclick=()=>{
   const st=document.getElementById('backupStatus');
-  if(st) st.textContent='Download läuft in Chrome… USB stecken lassen.';
+  if(st) st.textContent='Download läuft… USB stecken lassen.';
+};
+document.getElementById('btnBackupZip').onclick=()=>{
+  const st=document.getElementById('backupStatus');
+  if(st) st.textContent='Zip-Download… USB stecken. Chrome über HTTP kann Zip sperren — dann .txt oder anderen Browser.';
 };
 document.getElementById('btnRestore').onclick=async()=>{
   const inp=document.getElementById('restoreZip');
@@ -1019,10 +1111,12 @@ document.getElementById('btnRestore').onclick=async()=>{
   try{
     const mag=new Uint8Array(await file.slice(0,6).arrayBuffer());
     const isTk=mag.length>=6 && mag[0]===0x54 && mag[1]===0x4b && mag[2]===0x42 && mag[3]===0x41 && mag[4]===0x4b && mag[5]===0x32;
-    if(isTk){
+    const isZip=mag.length>=4 && mag[0]===0x50 && mag[1]===0x4b && (mag[2]===0x03||mag[2]===0x05) && (mag[3]===0x04||mag[3]===0x06);
+    if(isTk||isZip){
+      try{
       const text=await new Promise(function(resolve,reject){
         const fd=new FormData();
-        fd.append('file', file, file.name||'sicherung.txt');
+        fd.append('file', file, file.name|| (isZip?'sicherung.zip':'sicherung.txt'));
         const x=new XMLHttpRequest();
         x.timeout=0;
         x.upload.onprogress=function(e){
@@ -1042,6 +1136,10 @@ document.getElementById('btnRestore').onclick=async()=>{
       });
       st.textContent=text||'fertig';
       return;
+      }catch(e){
+        if(isTk) throw e;
+        st.textContent='Zip komprimiert, Datei für Datei…';
+      }
     }
     const entries=await readBackup(new Uint8Array(await file.arrayBuffer()));
     if(!entries.length){ st.textContent='In der Datei keine pic/ oder sound/ Dateien'; return; }
