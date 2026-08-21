@@ -1729,6 +1729,7 @@ if(document.fonts && document.fonts.load){
   ]).then(function(){ schedule(); }).catch(function(){});
 }
 async function refreshStatus(){
+  if(window.__zzz) return;
   try{
     const s=await (await fetch('/api/status')).json();
     const bat=document.getElementById('bat');
@@ -1747,7 +1748,22 @@ async function refreshStatus(){
     }
   }catch(e){}
 }
-document.getElementById('btnZzz').onclick=()=>{ fetch('/api/sleep',{method:'POST'}).catch(()=>{}); };
+document.getElementById('btnZzz').onclick=()=>{
+  if(window.__zzz) return;
+  window.__zzz=1;
+  (async()=>{
+    for(let i=0;i<8;i++){
+      try{
+        const r=await fetch('/api/sleep',{method:'POST',cache:'no-store'});
+        const t=await r.text();
+        if(r.ok && t.indexOf('USB')<0) return;
+        if(t.indexOf('USB')>=0) break;
+      }catch(e){}
+      await new Promise(res=>setTimeout(res,300));
+    }
+    window.__zzz=0;
+  })();
+};
 refreshStatus(); setInterval(refreshStatus,15000);
 syncPersonLabels();
 syncVerfahrenUi();

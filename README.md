@@ -242,7 +242,7 @@ Fehlt die Vorschau: **Kein Vorschaubild · neu speichern**. Ohne Zuschnitt-Datei
 
 ![Live-Anzeige](docs/live.png)
 
-Holzrahmen-Vorschau des gewählten Bildes samt Text auf dem Bild (Vorschaubild / Thumb, Zuschnitt schon drin). Darunter Name, Daten, Bildbeschreibung, Freitexte. Reiter **Zufall** / **Erinnerungen**, **‹** / **›** blättern, Zähler in der Mitte. Die Attrappe folgt der Lage des Bildes (Hochkant oder Quer).
+Holzrahmen-Vorschau des gewählten Bildes samt Text auf dem Bild (Vorschaubild / Thumb, Zuschnitt schon drin). Darunter Name, Daten, Bildbeschreibung, Freitexte, dann eine Zeile **Nächste Erinnerung** (nicht im Holzrahmen). Reiter **Zufall** / **Erinnerungen**, **‹** / **›** blättern, Zähler in der Mitte. Die Attrappe folgt der Lage des Bildes (Hochkant oder Quer).
 
 ![Live mit Person](docs/live_person.png)
 
@@ -254,7 +254,7 @@ Leere Liste: **Kein Bild**.
 
 ![Rahmen](docs/rahmen.png)
 
-Zuerst die Uhr. **Suchen** filtert die Stadtliste. Stadt wählen, **Standort speichern** (Sommerzeit, danach NTP). Zeit: Feld **Datum & Zeit** und **Uhr setzen**, oder **Von diesem Gerät übernehmen**. Ohne gültige Chip-Zeit kein Tageswechsel.
+Zuerst die Uhr. **Suchen** filtert die Stadtliste. Stadt wählen, **Standort speichern** (Sommerzeit, danach NTP). Zeit: Feld **Datum & Zeit** und **Uhr setzen**, oder **Von diesem Gerät übernehmen**. Handgestellte Uhr bleibt 10 Minuten stehen, dann holt NTP die Netzzeit — aber nur, wenn ein Zeitserver wirklich geantwortet hat, nicht schon weil die RTC irgendetwas Gültiges hat. Beim Aufwachen ebenfalls NTP. Access Point: keine Netzzeit. Darunter: NTP-Status und **Nächste Erinnerung** (heute, morgen oder übermorgen: Datum · Name). Ohne gültige Chip-Zeit kein Tageswechsel.
 
 **Wechsel:** Modus **Aus**, **Im Intervall** (5 / 10 / 30 / 60 Minuten) oder **1× pro Tag** (Uhrzeit, Vorgabe 08:00). **Speichern** merkt den Modus. **Jetzt wechseln** sofort — nur Zufall, keine Erinnerungen. **Aus** = kein Timer.
 
@@ -264,11 +264,15 @@ Zuerst die Uhr. **Suchen** filtert die Stadtliste. Stadt wählen, **Standort spe
 
 ![System](docs/system.png)
 
-**Status:** Gerät, IP, Modus (AP oder Heimnetz), SD, Akku, Heap.
+**Status:** Gerät, IP, Modus (AP oder Heimnetz), SD, Akku, Heap, NTP.
 
-**ntfy:** Thema oder volle URL (leer = aus), Priorität Min / Niedrig / Normal / Hoch / Dringend. **Speichern**, **Probe senden**. Es geht nur eine Meldung pro Kalendertag bei Akku unter 10 %, keine Wachmeldung. App [ntfy](https://ntfy.sh/), dasselbe Thema abonnieren.
+**ntfy:** Thema oder volle URL (leer = aus), Priorität Min / Niedrig / Normal / Hoch / Dringend. **Speichern**, **Probe senden**. Gleiches Thema, zwei Nachrichten: Warnung „Akku … %“ einmal am Kalendertag unter 10 %; Aufwachen „Aufgewacht, Akku … %“ (Timer, KEY, BOOT), stumm. App [ntfy](https://ntfy.sh/), dasselbe Thema abonnieren.
+
+**Ton:** Lautstärke der Hinweise 0–100, Vorgabe 80. **Lautstärke speichern**. Gilt für Willkommen, WLAN, AP, Neustart.
 
 **Anzeige:** **Rahmenlage** Hochkant oder Quer, **Lage speichern**. Gilt für neue Bilder in Studio, Live und am Panel; vorhandene Bilder bleiben unverändert. Der Rahmen muss physisch so hängen. **Panel leeren (weiß)** — Bilder danach wieder über Galerie **Anzeigen**. **Akkuwarnung testen** legt „Akku < 10 %“ unten rechts auf das aktuelle Bild, unabhängig vom echten Stand (und sendet die ntfy-Probe, wenn ein Thema gesetzt ist).
+
+**Sicherung:** **Sicherung herunterladen** holt `pic/` und `sound/` in einer Datei vom Rahmen (`tintenklecks-JJJJ-MM-TT.txt`). USB stecken lassen. **Wiederherstellen:** die `.txt` in einem Rutsch auf den Rahmen; älteres `.zip` geht noch Datei für Datei. Gleicher Name überschreibt, sonst bleibt alles. Firmware-Backup ist das GitHub-Release.
 
 **Wartung:** **Neustart** (spielt `neustart.wav`). **Jetzt aufräumen** entfernt Reste gelöschter Bilder (passiert sonst automatisch beim Start und nach jedem Löschen). **WLAN-Daten löschen & Neustart** vergisst das Heimnetz (Nachfrage), danach wieder Access Point.
 

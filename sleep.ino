@@ -5,6 +5,7 @@
 
 #include <esp_sleep.h>
 #include <WiFi.h>
+#include <driver/gpio.h>
 
 static const uint32_t POWER_CLIENT_IDLE_MS = 60UL * 1000UL;
 static const int64_t POWER_MIN_SLEEP_SEC = 20;
@@ -33,7 +34,28 @@ void powerNoteBusy(bool on) {
   }
 }
 
+void ledsAfterWake() {
+  gpio_deep_sleep_hold_dis();
+  gpio_hold_dis((gpio_num_t)PIN_LED_GREEN);
+  gpio_hold_dis((gpio_num_t)PIN_LED_RED);
+}
+
+void ledsOff() {
+  pinMode(PIN_LED_GREEN, OUTPUT);
+  pinMode(PIN_LED_RED, OUTPUT);
+  digitalWrite(PIN_LED_GREEN, HIGH);
+  digitalWrite(PIN_LED_RED, HIGH);
+}
+
+static void ledsHoldOff() {
+  ledsOff();
+  gpio_hold_en((gpio_num_t)PIN_LED_GREEN);
+  gpio_hold_en((gpio_num_t)PIN_LED_RED);
+  gpio_deep_sleep_hold_en();
+}
+
 static void powerEnterDeepSleep(int64_t secs) {
+  ledsHoldOff();
   epdPanelSleep();
   WiFi.disconnect(true);
   WiFi.mode(WIFI_OFF);

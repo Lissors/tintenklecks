@@ -116,6 +116,7 @@ footer{text-align:center;padding:2rem 1rem 1.5rem;font-size:.75rem;color:var(--d
 <footer id="foot">© 2026 Ingo Lissors</footer>
 <script>
 async function refreshStatus(){
+  if(window.__zzz) return;
   try{
     const s=await (await fetch('/api/status')).json();
     const bat=document.getElementById('bat');
@@ -127,7 +128,22 @@ async function refreshStatus(){
     document.getElementById('foot').textContent=s.copyright||'© 2026 Ingo Lissors';
   }catch(e){ document.getElementById('bat').textContent='Akku ?'; }
 }
-document.getElementById('btnZzz').onclick=()=>{ fetch('/api/sleep',{method:'POST'}).catch(()=>{}); };
+document.getElementById('btnZzz').onclick=()=>{
+  if(window.__zzz) return;
+  window.__zzz=1;
+  (async()=>{
+    for(let i=0;i<8;i++){
+      try{
+        const r=await fetch('/api/sleep',{method:'POST',cache:'no-store'});
+        const t=await r.text();
+        if(r.ok && t.indexOf('USB')<0) return;
+        if(t.indexOf('USB')>=0) break;
+      }catch(e){}
+      await new Promise(res=>setTimeout(res,300));
+    }
+    window.__zzz=0;
+  })();
+};
 refreshStatus(); setInterval(refreshStatus,15000);
 </script>
 </body></html>
@@ -229,6 +245,7 @@ function isMemoryMeta(m){
   return !!(String(m.birth||'').trim()||String(m.death||'').trim()||String(m.special||'').trim());
 }
 async function refreshStatus(){
+  if(window.__zzz) return;
   try{
     const s=await (await fetch('/api/status')).json();
     const bat=document.getElementById('bat');
@@ -609,7 +626,22 @@ document.querySelector('main').addEventListener('click', async e=>{
     finally{ setBusy(false); }
   }
 });
-document.getElementById('btnZzz').onclick=()=>{ fetch('/api/sleep',{method:'POST'}).catch(()=>{}); };
+document.getElementById('btnZzz').onclick=()=>{
+  if(window.__zzz) return;
+  window.__zzz=1;
+  (async()=>{
+    for(let i=0;i<8;i++){
+      try{
+        const r=await fetch('/api/sleep',{method:'POST',cache:'no-store'});
+        const t=await r.text();
+        if(r.ok && t.indexOf('USB')<0) return;
+        if(t.indexOf('USB')>=0) break;
+      }catch(e){}
+      await new Promise(res=>setTimeout(res,300));
+    }
+    window.__zzz=0;
+  })();
+};
 refreshStatus(); setInterval(refreshStatus,15000); loadList();
 </script>
 </body></html>
@@ -642,6 +674,7 @@ label.field{display:block;margin:.55rem 0;font-size:.8rem;color:var(--dim)}
 label.field input,label.field select{width:100%;margin-top:.3rem;box-sizing:border-box;padding:.55rem .65rem;border-radius:8px;border:1px solid var(--line);background:#1a1612;color:var(--txt);font:inherit}
 button{width:100%;margin-top:.55rem;padding:.7rem;border-radius:8px;border:1px solid var(--line);background:#1a1612;color:var(--txt);font:inherit;font-weight:700;cursor:pointer}
 button.pri{background:var(--acc);color:#1a1612;border:0}
+a.pri{display:block;width:100%;margin-top:.55rem;padding:.7rem;border-radius:8px;background:var(--acc);color:#1a1612;font:inherit;font-weight:700;text-align:center;text-decoration:none}
 button.danger{border-color:#8a4030;color:#e8a090}
 .status{font-size:.85rem;color:var(--dim);min-height:1.2em;margin-top:.5rem}
 .hint{font-size:.78rem;color:var(--dim);line-height:1.4;margin:.5rem 0 0}
@@ -662,6 +695,7 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
 <div class="row"><span>SD</span><b id="sd">—</b></div>
 <div class="row"><span>Akku</span><b id="batt">—</b></div>
 <div class="row"><span>Heap</span><b id="heap">—</b></div>
+<div class="row"><span>NTP</span><b id="ntp">—</b></div>
 </div>
 <div class="panel">
 <h2>ntfy</h2>
@@ -679,8 +713,17 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
 </label>
 <button class="pri" id="btnNtfySave">Speichern</button>
 <button id="btnNtfyTest">Probe senden</button>
-<p class="hint">Nur Akku unter 10&nbsp;%, einmal am Tag. Keine Meldung beim Aufwachen. App: ntfy, Thema abonnieren.</p>
+<p class="hint">Gleiches Thema, zwei Nachrichten. Warnung: „Akku … %“, unter 10&nbsp;%, einmal am Tag. Aufwachen: „Aufgewacht, Akku … %“ (Timer, KEY, BOOT), stumm. App: ntfy, Thema abonnieren.</p>
 <p class="status" id="ntfyStatus"></p>
+</div>
+<div class="panel">
+<h2>Ton</h2>
+<label class="field">Lautstärke Hinweise <span id="volLbl">80</span>
+  <input id="vol" type="range" min="0" max="100" value="80"/>
+</label>
+<button class="pri" id="btnVolSave">Lautstärke speichern</button>
+<p class="hint">Default 80. Willkommen, WLAN, AP, Neustart.</p>
+<p class="status" id="volStatus"></p>
 </div>
 <div class="panel">
 <h2>Anzeige</h2>
@@ -696,6 +739,17 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
 <button class="pri" id="btnBlank">Panel leeren (weiß)</button>
 <button id="btnBattWarn">Akkuwarnung testen</button>
 <p class="status">Leert das E-Paper. Bilder erneut über Galerie „Anzeigen“. Test: „Akku &lt; 10 %“ unten rechts auf dem aktuellen Bild, unabhängig vom echten Stand.</p>
+</div>
+<div class="panel">
+<h2>Sicherung</h2>
+<p class="hint">Bilder und Töne als eine Datei vom Rahmen. Endung <code>.txt</code>, weil Chrome über HTTP alles andere sperrt. USB stecken. Wiederherstellen der <code>.txt</code> in einem Rutsch. Firmware bleibt das GitHub-Release.</p>
+<a class="pri" id="btnBackup" href="/api/backup">Sicherung herunterladen</a>
+<label class="field">Wiederherstellen
+  <input id="restoreZip" type="file" accept=".txt,.tkbak,.zip,text/plain,application/octet-stream,application/zip"/>
+</label>
+<button id="btnRestore">Sicherung auf den Rahmen spielen</button>
+<p class="hint">Gleiche Namen werden überschrieben, andere Dateien bleiben. Danach baut die Galerie neu auf.</p>
+<p class="status" id="backupStatus"></p>
 </div>
 <div class="panel">
 <h2>Wartung</h2>
@@ -720,6 +774,7 @@ function setBusy(on,msg){
   return true;
 }
 async function refreshStatus(){
+  if(window.__zzz) return;
   try{
     const s=await (await fetch('/api/status')).json();
     document.getElementById('dev').textContent=s.device||'—';
@@ -731,6 +786,17 @@ async function refreshStatus(){
     else if(s.battery>=0) b=s.battery+'%'+(s.charging?' · lädt':'')+' · '+s.voltage+' V';
     document.getElementById('batt').textContent=b;
     document.getElementById('heap').textContent=(s.heap||0)+' B';
+    const ntp=document.getElementById('ntp');
+    if(ntp){
+      if(s.ntp==='hold') ntp.textContent='Pause nach Handzeit, noch '+Math.max(1,Math.ceil((s.ntpHoldSec||0)/60))+' min';
+      else if(s.ntp==='ok'){
+        const at=(s.ntpAt||'').replace('T',' ');
+        ntp.textContent='ja'+(at.length>=16?', '+at.slice(11,16):'');
+      }
+      else if(s.ntp==='fail') ntp.textContent='fehlgeschlagen, RTC gilt';
+      else if(s.ntp==='ap') ntp.textContent='— (Access Point)';
+      else ntp.textContent='—';
+    }
     const bat=document.getElementById('bat');
     if(s.usb) bat.textContent='USB-Betrieb';
     else if(s.battery<0) bat.textContent='Akku —';
@@ -740,6 +806,12 @@ async function refreshStatus(){
     document.getElementById('foot').textContent=s.copyright||'© 2026 Ingo Lissors';
     const hang=document.getElementById('hang');
     if(hang && (s.hang==='portrait'||s.hang==='landscape') && document.activeElement!==hang) hang.value=s.hang;
+    const vol=document.getElementById('vol');
+    if(vol && typeof s.vol==='number' && document.activeElement!==vol){
+      vol.value=String(s.vol);
+      const lb=document.getElementById('volLbl');
+      if(lb) lb.textContent=String(s.vol);
+    }
   }catch(e){ document.getElementById('status').textContent=String(e); }
   try{
     const n=await (await fetch('/api/ntfy')).json();
@@ -749,7 +821,22 @@ async function refreshStatus(){
     if(pr && n.prio) pr.value=n.prio;
   }catch(e){}
 }
-document.getElementById('btnZzz').onclick=()=>{ fetch('/api/sleep',{method:'POST'}).catch(()=>{}); };
+document.getElementById('btnZzz').onclick=()=>{
+  if(window.__zzz) return;
+  window.__zzz=1;
+  (async()=>{
+    for(let i=0;i<8;i++){
+      try{
+        const r=await fetch('/api/sleep',{method:'POST',cache:'no-store'});
+        const t=await r.text();
+        if(r.ok && t.indexOf('USB')<0) return;
+        if(t.indexOf('USB')>=0) break;
+      }catch(e){}
+      await new Promise(res=>setTimeout(res,300));
+    }
+    window.__zzz=0;
+  })();
+};
 document.getElementById('btnHangSave').onclick=async()=>{
   if(!setBusy(true,'Lage…')) return;
   try{
@@ -757,6 +844,19 @@ document.getElementById('btnHangSave').onclick=async()=>{
     const r=await fetch('/api/hang',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'hang='+encodeURIComponent(hang)});
     document.getElementById('hangStatus').textContent=r.ok?'gespeichert':await r.text();
   }catch(e){ document.getElementById('hangStatus').textContent=String(e); }
+  finally{ setBusy(false); }
+};
+document.getElementById('vol').oninput=function(){
+  const lb=document.getElementById('volLbl');
+  if(lb) lb.textContent=this.value;
+};
+document.getElementById('btnVolSave').onclick=async()=>{
+  if(!setBusy(true,'Lautstärke…')) return;
+  try{
+    const vol=document.getElementById('vol').value;
+    const r=await fetch('/api/volume',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'vol='+encodeURIComponent(vol)});
+    document.getElementById('volStatus').textContent=r.ok?'gespeichert':await r.text();
+  }catch(e){ document.getElementById('volStatus').textContent=String(e); }
   finally{ setBusy(false); }
 };
 document.getElementById('btnNtfySave').onclick=async()=>{
@@ -817,6 +917,147 @@ document.getElementById('btnWifi').onclick=async()=>{
   if(!confirm('Gespeicherte WLAN-Daten löschen und neu starten?')) return;
   if(!setBusy(true,'Lösche WLAN…')) return;
   await fetch('/api/wifi-clear',{method:'POST'});
+};
+function concat(parts){
+  let n=0;
+  for(const p of parts) n+=p.length;
+  const o=new Uint8Array(n); let at=0;
+  for(const p of parts){ o.set(p,at); at+=p.length; }
+  return o;
+}
+function unwrapBackup(u8){
+  if(u8.length>=6 && u8[0]===0x54 && u8[1]===0x4b && u8[2]===0x42 && u8[3]===0x41 && u8[4]===0x4b && u8[5]===0x31){
+    return u8.subarray(6);
+  }
+  return u8;
+}
+function u16at(u8,i){ return u8[i]| (u8[i+1]<<8); }
+function u32at(u8,i){ return (u8[i]|(u8[i+1]<<8)|(u8[i+2]<<16)|(u8[i+3]<<24))>>>0; }
+function findEocd(u8){
+  const min=Math.max(0, u8.length-22-65535);
+  for(let i=u8.length-22;i>=min;i--){
+    if(u32at(u8,i)===0x06054b50) return i;
+  }
+  return -1;
+}
+async function inflateRaw(u8){
+  const ds=new DecompressionStream('deflate-raw');
+  const w=ds.writable.getWriter();
+  await w.write(u8); await w.close();
+  const r=ds.readable.getReader();
+  const parts=[];
+  for(;;){ const {value,done}=await r.read(); if(done) break; parts.push(value); }
+  return concat(parts);
+}
+function backupRel(name){
+  name=String(name||'').replace(/\\/g,'/');
+  const m=name.match(/(?:^|\/)(pic|sound)\/([^/]+)$/i);
+  if(!m) return '';
+  return m[1].toLowerCase()+'/'+m[2];
+}
+function parseTkbak2(u8){
+  const dv=new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+  let i=6;
+  const out=[];
+  while(i+8<=u8.length){
+    const nl=dv.getUint32(i,true); i+=4;
+    if(nl<1||nl>80||i+nl+4>u8.length) throw new Error('Sicherung beschädigt');
+    const name=new TextDecoder().decode(u8.subarray(i,i+nl)); i+=nl;
+    const sz=dv.getUint32(i,true); i+=4;
+    if(i+sz>u8.length) throw new Error('Sicherung unvollständig: '+name);
+    const rel=backupRel(name);
+    const data=u8.slice(i,i+sz); i+=sz;
+    if(rel) out.push({name:rel, data});
+  }
+  return out;
+}
+async function unzipBackup(u8){
+  u8=unwrapBackup(u8);
+  const eocd=findEocd(u8);
+  if(eocd<0) throw new Error('kein Zip');
+  const n=u16at(u8,eocd+10);
+  let off=u32at(u8,eocd+16);
+  const out=[];
+  for(let i=0;i<n;i++){
+    if(u32at(u8,off)!==0x02014b50) throw new Error('Zip beschädigt');
+    const method=u16at(u8,off+10);
+    const comp=u32at(u8,off+20);
+    const uncomp=u32at(u8,off+24);
+    const nl=u16at(u8,off+28), xl=u16at(u8,off+30), cl=u16at(u8,off+32);
+    const local=u32at(u8,off+42);
+    const name=new TextDecoder().decode(u8.slice(off+46, off+46+nl));
+    off+=46+nl+xl+cl;
+    if(name.endsWith('/')) continue;
+    const rel=backupRel(name);
+    if(!rel) continue;
+    const lnl=u16at(u8,local+26), lxl=u16at(u8,local+28);
+    const data=u8.slice(local+30+lnl+lxl, local+30+lnl+lxl+comp);
+    let raw=data;
+    if(method===8) raw=await inflateRaw(data);
+    else if(method!==0) throw new Error('Zip-Methode '+method+' nicht lesbar');
+    if(uncomp && raw.length!==uncomp) throw new Error('Zip-Größe passt nicht: '+rel);
+    out.push({name:rel, data:raw});
+  }
+  return out;
+}
+async function readBackup(u8){
+  if(u8.length>=6 && u8[0]===0x54 && u8[1]===0x4b && u8[2]===0x42 && u8[3]===0x41 && u8[4]===0x4b && u8[5]===0x32){
+    return parseTkbak2(u8);
+  }
+  return unzipBackup(u8);
+}
+document.getElementById('btnBackup').onclick=()=>{
+  const st=document.getElementById('backupStatus');
+  if(st) st.textContent='Download läuft in Chrome… USB stecken lassen.';
+};
+document.getElementById('btnRestore').onclick=async()=>{
+  const inp=document.getElementById('restoreZip');
+  const file=inp && inp.files && inp.files[0];
+  if(!file){ document.getElementById('backupStatus').textContent='Bitte Sicherung wählen'; return; }
+  if(!setBusy(true,'Wiederherstellen…')) return;
+  const st=document.getElementById('backupStatus');
+  try{
+    const mag=new Uint8Array(await file.slice(0,6).arrayBuffer());
+    const isTk=mag.length>=6 && mag[0]===0x54 && mag[1]===0x4b && mag[2]===0x42 && mag[3]===0x41 && mag[4]===0x4b && mag[5]===0x32;
+    if(isTk){
+      const text=await new Promise(function(resolve,reject){
+        const fd=new FormData();
+        fd.append('file', file, file.name||'sicherung.txt');
+        const x=new XMLHttpRequest();
+        x.timeout=0;
+        x.upload.onprogress=function(e){
+          if(!e.lengthComputable) return;
+          const pct=Math.floor(e.loaded*100/e.total);
+          st.textContent='Sende '+pct+' % · '+(e.loaded/1048576).toFixed(0)+' MB';
+          const m=document.getElementById('busyMsg');
+          if(m) m.textContent='Wiederherstellen '+pct+' %';
+        };
+        x.onload=function(){
+          if(x.status>=200 && x.status<300) resolve(x.responseText);
+          else reject(new Error(x.responseText||('Fehler '+x.status)));
+        };
+        x.onerror=function(){ reject(new Error('Netzwerkfehler')); };
+        x.open('POST','/api/restore');
+        x.send(fd);
+      });
+      st.textContent=text||'fertig';
+      return;
+    }
+    const entries=await readBackup(new Uint8Array(await file.arrayBuffer()));
+    if(!entries.length){ st.textContent='In der Datei keine pic/ oder sound/ Dateien'; return; }
+    const msg=document.getElementById('busyMsg');
+    for(let i=0;i<entries.length;i++){
+      if(msg) msg.textContent='Wiederherstellen '+(i+1)+'/'+entries.length+'…';
+      st.textContent='Schreibe '+entries[i].name+' ('+(i+1)+'/'+entries.length+')';
+      const fd=new FormData();
+      fd.append('file', new Blob([entries[i].data]), entries[i].name.split('/').pop());
+      const r=await fetch('/api/restore-file?path='+encodeURIComponent(entries[i].name), {method:'POST', body:fd});
+      if(!r.ok) throw new Error(entries[i].name+': '+await r.text());
+    }
+    await fetch('/api/list-rebuild',{method:'POST'}).catch(()=>{});
+    st.textContent=entries.length+' Dateien geschrieben';
+  }catch(e){ st.textContent=String(e); }
+  finally{ setBusy(false); }
 };
 refreshStatus(); setInterval(refreshStatus,10000);
 </script>

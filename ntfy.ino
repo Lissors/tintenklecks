@@ -85,7 +85,7 @@ static String ntfyUrl() {
   return u;
 }
 
-static bool ntfyPost(const String &body) {
+static bool ntfyPost(const String &body, const char *prio, const char *tags) {
   ntfyLoad();
   if (g_topic.length() < 1) {
     return false;
@@ -97,6 +97,7 @@ static bool ntfyPost(const String &body) {
   HTTPClient http;
   http.setTimeout(8000);
   int code = 0;
+  const char *pr = (prio && prio[0]) ? prio : g_prio.c_str();
   if (url.startsWith("https://")) {
     WiFiClientSecure client;
     client.setInsecure();
@@ -106,8 +107,10 @@ static bool ntfyPost(const String &body) {
     }
     http.addHeader("Content-Type", "text/plain; charset=utf-8");
     http.addHeader("Title", "Tintenklecks");
-    http.addHeader("Priority", g_prio);
-    http.addHeader("Tags", "battery,warning");
+    http.addHeader("Priority", pr);
+    if (tags && tags[0]) {
+      http.addHeader("Tags", tags);
+    }
     code = http.POST(body);
     http.end();
   } else {
@@ -116,8 +119,10 @@ static bool ntfyPost(const String &body) {
     }
     http.addHeader("Content-Type", "text/plain; charset=utf-8");
     http.addHeader("Title", "Tintenklecks");
-    http.addHeader("Priority", g_prio);
-    http.addHeader("Tags", "battery,warning");
+    http.addHeader("Priority", pr);
+    if (tags && tags[0]) {
+      http.addHeader("Tags", tags);
+    }
     code = http.POST(body);
     http.end();
   }
@@ -130,7 +135,7 @@ bool ntfySendTest() {
   if (g_topic.length() < 1) {
     return false;
   }
-  return ntfyPost("Tintenklecks ntfy-Probe");
+  return ntfyPost("Tintenklecks ntfy-Probe", nullptr, nullptr);
 }
 
 bool ntfySendBatteryProbe() {
@@ -138,7 +143,26 @@ bool ntfySendBatteryProbe() {
   if (g_topic.length() < 1) {
     return false;
   }
-  return ntfyPost("Akku < 10 %");
+  return ntfyPost("Akku < 10 %", nullptr, "battery,warning");
+}
+
+bool ntfySendWake() {
+  ntfyLoad();
+  if (g_topic.length() < 1) {
+    return false;
+  }
+  if (wifiIsAp() || WiFi.status() != WL_CONNECTED) {
+    return false;
+  }
+  const int bat = pmuBatteryPercent();
+  String body = "Aufgewacht, Akku ";
+  if (bat < 0) {
+    body += "—";
+  } else {
+    body += String(bat);
+    body += " %";
+  }
+  return ntfyPost(body, "min", "battery");
 }
 
 void ntfyBatteryWatch() {
@@ -170,7 +194,7 @@ void ntfyBatteryWatch() {
   String body = "Akku ";
   body += String(bat);
   body += " %";
-  if (!ntfyPost(body)) {
+  if (!ntfyPost(body, nullptr, "battery,warning")) {
     return;
   }
   g_sentYday = yday;

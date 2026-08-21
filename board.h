@@ -57,7 +57,10 @@ void serialProtocolBegin();
 void slideshowBegin();
 void slideshowLoop();
 void slideshowSetTimeOk(bool ok);
+bool slideshowTimeOk();
 void slideshowGetJson(String &out);
+void slideshowAppendMemoryJson(String &out);
+void slideshowInvalidateMemPreview();
 bool slideshowSet(int mode, int intervalMin, int dailyHour, int dailyMin);
 void slideshowForceNow();  // KEY / Jetzt wechseln: Zufall; bei mehreren fälligen Erinnerungen die nächste
 void slideshowOnTimer();   // Intervall / Uhr: Erinnerungen zuerst (eine, alle 3 h die nächste), sonst Zufall
@@ -86,6 +89,8 @@ bool powerClientHere();
 void powerOnBoot();  // after SD/EPD/slideshow — timer-wake may switch image
 void powerLoop();
 void powerSleepNow();  // zzz — now, next picture or BOOT wakes
+void ledsAfterWake();  // Hold von Grün/Rot lösen
+void ledsOff();        // beide aus (aktiv low)
 
 void keyBegin();
 void keyLoop();
@@ -99,6 +104,9 @@ bool tzSet(const String &city, const String &posix);
 void tzGetJson(String &out);
 const char *tzCitiesJson();
 bool ntpSyncToRtc();
+void ntpHoldAfterManual();
+void ntpLoop();
+void ntpAppendJson(String &out);
 
 void ntfyBegin();
 void ntfyBatteryWatch();
@@ -107,6 +115,7 @@ String ntfyPrio();
 bool ntfySet(const String &topic, const String &prio);
 bool ntfySendTest();
 bool ntfySendBatteryProbe();
+bool ntfySendWake();
 
 // Audio (ES8311 + speaker)
 bool audioInit();
@@ -114,6 +123,8 @@ bool audioEnsureReady();  // lazy init on first speak
 bool audioReady();
 bool audioBusy();
 void audioStop();
+uint8_t audioVolume();  // 0…100, default 80
+bool audioSetVolume(uint8_t pct);
 /** Play WAV from SD path (async). Returns false if missing/busy/bad. */
 bool audioPlaySd(const char *path);
 bool audioPlayClip(const char *clip);  // /sound/{clip}.wav, no-op if missing

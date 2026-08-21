@@ -26,7 +26,8 @@
  * Power: USB = kein Deep Sleep. Akku: nur bei Wechsel ≥ 10 min oder täglich,
  *        ohne Client direkt nach Bildwechsel, mit Client 60 s Inaktivität.
  *        Wecken: Timer (Bildwechsel), KEY (Bildwechsel, dann wieder schlafen)
- *        oder BOOT-Taste (Web an, kein Bildwechsel). ntfy nur Akku < 10 %, keine Wachmeldung.
+ *        oder BOOT-Taste (Web an, kein Bildwechsel). ntfy: stumm mit Akkustand bei jedem
+ *        Aufwachen; Warnung nur Akku < 10 %, einmal am Tag.
  */
 
 #include "config.h"
@@ -47,10 +48,8 @@ static void bootBlink(int n) {
 }
 
 void setup() {
-  pinMode(PIN_LED_GREEN, OUTPUT);
-  pinMode(PIN_LED_RED, OUTPUT);
-  digitalWrite(PIN_LED_GREEN, HIGH);
-  digitalWrite(PIN_LED_RED, HIGH);
+  ledsAfterWake();
+  ledsOff();
   bootBlink(3);
 
   Serial.setRxBufferSize(4096);
@@ -92,6 +91,13 @@ void setup() {
   powerOnBoot();
   keyBegin();
   ntfyBegin();
+  {
+    esp_sleep_wakeup_cause_t wake = esp_sleep_get_wakeup_cause();
+    if (wake == ESP_SLEEP_WAKEUP_TIMER || wake == ESP_SLEEP_WAKEUP_EXT0 ||
+        wake == ESP_SLEEP_WAKEUP_EXT1) {
+      ntfySendWake();
+    }
+  }
   ntfyBatteryWatch();
   serialProtocolBegin();
 
@@ -106,8 +112,7 @@ void setup() {
     Serial.println(F("Mode: AP — http://192.168.4.1"));
   }
 
-  digitalWrite(PIN_LED_GREEN, (sdOk() && g_epdOk) ? LOW : HIGH);
-  digitalWrite(PIN_LED_RED, HIGH);
+  ledsOff();
 
   // Reset / ESP.restart only — not timer, KEY, or BOOT wake.
   if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_UNDEFINED) {

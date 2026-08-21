@@ -244,7 +244,7 @@ Missing preview: **Kein Vorschaubild · neu speichern**. Without a crop file: re
 
 ![Live display](docs/live.png)
 
-Wooden-frame preview of the chosen picture, including text on the image (thumbnail; the crop is already in it). Below: name, dates, description, free texts. Tabs **Zufall** / **Erinnerungen**, **‹** / **›** browse, counter in the middle. The mock-up follows the picture’s hang (Hochkant or Quer).
+Wooden-frame preview of the chosen picture, including text on the image (thumbnail; the crop is already in it). Below: name, dates, description, free texts, then a line **Nächste Erinnerung** (not inside the wooden frame). Tabs **Zufall** / **Erinnerungen**, **‹** / **›** browse, counter in the middle. The mock-up follows the picture’s hang (Hochkant or Quer).
 
 ![Live with person](docs/live_person.png)
 
@@ -256,7 +256,7 @@ Empty list: **Kein Bild**.
 
 ![Frame](docs/rahmen.png)
 
-Clock first. **Suchen** filters the city list. Pick a city, **Standort speichern** (daylight saving, then NTP). Time: **Datum & Zeit** and **Uhr setzen**, or **Von diesem Gerät übernehmen**. Without a valid chip time, there is no daily switch.
+Clock first. **Suchen** filters the city list. Pick a city, **Standort speichern** (daylight saving, then NTP). Time: **Datum & Zeit** and **Uhr setzen**, or **Von diesem Gerät übernehmen**. A hand-set clock is left alone for 10 minutes, then NTP fetches network time — only if a time server actually answered, not because the RTC already holds some valid time. NTP also runs on wake. Access point: no network time. Below the clock: NTP status and **Nächste Erinnerung** (today, tomorrow or the day after: date · name). Without a valid chip time, there is no daily switch.
 
 **Wechsel:** mode **Aus**, **Im Intervall** (5 / 10 / 30 / 60 minutes) or **1× pro Tag** (time of day, default 08:00). **Speichern** keeps the mode. **Jetzt wechseln** immediately — Zufall only, no memories. **Aus** = no timer.
 
@@ -266,11 +266,15 @@ Clock first. **Suchen** filters the city list. Pick a city, **Standort speichern
 
 ![System](docs/system.png)
 
-**Status:** device, IP, mode (AP or home network), SD, battery, heap.
+**Status:** device, IP, mode (AP or home network), SD, battery, heap, NTP.
 
-**ntfy:** topic or full URL (empty = off), priority Min / Niedrig / Normal / Hoch / Dringend. **Speichern**, **Probe senden**. One message per calendar day when battery is under 10 %, no wake-up message. App [ntfy](https://ntfy.sh/), subscribe to the same topic.
+**ntfy:** topic or full URL (empty = off), priority Min / Niedrig / Normal / Hoch / Dringend. **Speichern**, **Probe senden**. Same topic, two messages: warning “Akku … %” once per calendar day under 10 %; wake “Aufgewacht, Akku … %” (timer, KEY, BOOT), silent. App [ntfy](https://ntfy.sh/), subscribe to the same topic.
+
+**Ton:** volume of the notice sounds 0–100, default 80. **Lautstärke speichern**. Applies to Willkommen, WLAN, AP, Neustart.
 
 **Anzeige:** **Rahmenlage** Hochkant or Quer, **Lage speichern**. Applies to new pictures in Studio, Live and on the panel; existing pictures stay as they are. Hang the device to match. **Panel leeren (weiß)** — show pictures again from the gallery with **Anzeigen**. **Akkuwarnung testen** puts “Akku < 10 %” at the bottom right of the current picture, regardless of the real level (and sends the ntfy probe if a topic is set).
+
+**Sicherung:** **Sicherung herunterladen** fetches `pic/` and `sound/` as one file from the frame (`tintenklecks-YYYY-MM-DD.txt`). Leave USB plugged in. **Wiederherstellen:** the `.txt` in one go; an older `.zip` still goes file by file. Same name overwrites, everything else stays. Firmware backup is the GitHub release.
 
 **Wartung:** **Neustart** (plays `neustart.wav`). **Jetzt aufräumen** removes leftovers of deleted pictures (otherwise automatic at start and after each delete). **WLAN-Daten löschen & Neustart** forgets the home network (asks first), then access point again.
 

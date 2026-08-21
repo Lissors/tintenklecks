@@ -55,6 +55,8 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
 <button id="btnTime" type="button">Uhr setzen</button>
 <button id="btnPhone" type="button">Von diesem Gerät übernehmen</button>
 <p class="hint" id="clockHint">—</p>
+<p class="hint" id="ntpHint">—</p>
+<p class="hint" id="memNext">—</p>
 </div>
 <div class="panel">
 <h2>Wechsel</h2>
@@ -101,6 +103,28 @@ function syncUi(){
   document.getElementById('dailyBox').style.display=mode==='2'?'block':'none';
 }
 document.getElementById('mode').onchange=syncUi;
+function ntpLine(f){
+  if(f.ntp==='hold'){
+    const m=Math.max(1, Math.ceil((f.ntpHoldSec||0)/60));
+    return 'NTP: Pause nach Handzeit, noch '+m+' min';
+  }
+  if(f.ntp==='ok'){
+    const at=(f.ntpAt||'').replace('T',' ');
+    const hm=at.length>=16?at.slice(11,16):at;
+    return 'NTP: ja'+(hm?', '+hm:'');
+  }
+  if(f.ntp==='fail') return 'NTP: fehlgeschlagen, RTC gilt';
+  if(f.ntp==='ap') return 'NTP: — (Access Point)';
+  return 'NTP: —';
+}
+function memLine(f){
+  if(!f.timeOk) return 'Nächste Erinnerung: — (keine Chip-Zeit)';
+  const m=f.memoryNext;
+  if(!m) return 'Keine Erinnerung in den nächsten zwei Tagen';
+  let s='Nächste Erinnerung: '+(m.when||'')+' · '+(m.name||m.file||'');
+  if((m.count||0)>1) s+=' · '+(m.count-1)+' weitere';
+  return s;
+}
 function applyFrame(f){
   document.getElementById('mode').value=String(f.mode||0);
   document.getElementById('intervalMin').value=String(f.intervalMin||5);
@@ -110,12 +134,17 @@ function applyFrame(f){
   document.getElementById('hint').textContent=
     'Zeit: '+(f.now||'—')+' · RTC '+(f.rtc?'OK':'fehlt')+' · sync '+(f.timeOk?'ja':'nein')+(f.last?' · zuletzt: '+f.last:'');
   document.getElementById('clockHint').textContent=f.now?('Aktuell: '+f.now.replace('T',' ')):'Keine gültige Chip-Zeit — bitte setzen';
+  const ntp=document.getElementById('ntpHint');
+  if(ntp) ntp.textContent=ntpLine(f);
+  const mem=document.getElementById('memNext');
+  if(mem) mem.textContent=memLine(f);
   if(f.now){
     document.getElementById('clock').value=f.now;
   }
   syncUi();
 }
 async function refreshStatus(){
+  if(window.__zzz) return;
   try{
     const s=await (await fetch('/api/status')).json();
     const bat=document.getElementById('bat');
@@ -127,7 +156,22 @@ async function refreshStatus(){
     document.getElementById('foot').textContent=s.copyright||'© 2026 Ingo Lissors';
   }catch(e){}
 }
-document.getElementById('btnZzz').onclick=()=>{ fetch('/api/sleep',{method:'POST'}).catch(()=>{}); };
+document.getElementById('btnZzz').onclick=()=>{
+  if(window.__zzz) return;
+  window.__zzz=1;
+  (async()=>{
+    for(let i=0;i<8;i++){
+      try{
+        const r=await fetch('/api/sleep',{method:'POST',cache:'no-store'});
+        const t=await r.text();
+        if(r.ok && t.indexOf('USB')<0) return;
+        if(t.indexOf('USB')>=0) break;
+      }catch(e){}
+      await new Promise(res=>setTimeout(res,300));
+    }
+    window.__zzz=0;
+  })();
+};
 async function loadTz(){
   try{
     const sel=document.getElementById('tzCity');

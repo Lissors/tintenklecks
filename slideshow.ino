@@ -30,6 +30,10 @@ static int g_memSeenDay = 0;
 static const int64_t MEM_CYCLE_SEC = 3 * 3600;
 static const int SLIDE_MAX = 256;
 
+static String g_memNextJson;
+static uint32_t g_memNextMs = 0;
+static bool g_memNextValid = false;
+
 static bool intervalOk(int m) {
   return m == 5 || m == 10 || m == 30 || m == 60;
 }
@@ -275,6 +279,45 @@ static bool matchAnniversarySoon(const String &date, int ty, int tm, int td) {
   (void)y1;
   (void)y2;
   return (bm == tm && bd == td) || (bm == m1 && bd == d1) || (bm == m2 && bd == d2);
+}
+
+static int anniversaryOffset(const String &date, int ty, int tm, int td) {
+  int bd, bm;
+  if (!parseDayMonth(date, bd, bm)) {
+    return -1;
+  }
+  if (bm == tm && bd == td) {
+    return 0;
+  }
+  int y1 = ty, m1 = tm, d1 = td;
+  addDays(y1, m1, d1, 1);
+  if (bm == m1 && bd == d1) {
+    return 1;
+  }
+  int y2 = ty, m2 = tm, d2 = td;
+  addDays(y2, m2, d2, 2);
+  if (bm == m2 && bd == d2) {
+    return 2;
+  }
+  return -1;
+}
+
+static void jsonAppendEscaped(String &out, const String &s) {
+  for (size_t i = 0; i < s.length(); i++) {
+    char c = s[i];
+    if (c == '"' || c == '\\') {
+      out += '\\';
+    }
+    if ((uint8_t)c < 0x20) {
+      out += ' ';
+    } else {
+      out += c;
+    }
+  }
+}
+
+void slideshowInvalidateMemPreview() {
+  g_memNextValid = false;
 }
 
 static String readMetaFile(const String &bmpName) {
@@ -675,6 +718,131 @@ void slideshowSetTimeOk(bool ok) {
   g_timeOk = ok;
 }
 
+bool slideshowTimeOk() {
+  return g_timeOk;
+}
+
+void slideshowAppendMemoryJson(String &out) {
+  if (g_memNextValid && (millis() - g_memNextMs) < 60000UL && g_memNextJson.length() > 0) {
+    out += ",\"memoryNext\":";
+    out += g_memNextJson;
+    return;
+  }
+
+  g_memNextJson = "null";
+  time_t now = time(nullptr);
+  struct tm ti;
+  bool haveTime = g_timeOk && now > 1700000000 && localtime_r(&now, &ti);
+  if (haveTime && sdOk()) {
+    char dirpath[48];
+    snprintf(dirpath, sizeof(dirpath), "%s%s", SD_MOUNT, PIC_DIR);
+    DIR *d = opendir(dirpath);
+    if (d) {
+      int ty = ti.tm_year + 1900;
+      int tmo = ti.tm_mon + 1;
+      int td = ti.tm_mday;
+      int bestOff = 99;
+      int count = 0;
+      String bestFile;
+      String bestName;
+      String bestWhen;
+      uint16_t tick = 0;
+      struct dirent *ent;
+      while ((ent = readdir(d)) != nullptr) {
+        const char *base = ent->d_name;
+        if (!base || !base[0] || base[0] == '.' || base[0] == '_') {
+          continue;
+        }
+        if (ent->d_type == DT_DIR) {
+          continue;
+        }
+        size_t len = strlen(base);
+        if (len < 5) {
+          continue;
+        }
+        const char *ext = base + len - 4;
+        const bool dotBmp =
+            ext[0] == '.' && (ext[1] == 'b' || ext[1] == 'B') && (ext[2] == 'm' || ext[2] == 'M') &&
+            (ext[3] == 'p' || ext[3] == 'P');
+        if (!dotBmp) {
+          continue;
+        }
+        String meta = readMetaFile(base);
+        String birth = jsonField(meta, "birth");
+        String death = jsonField(meta, "death");
+        String special = jsonField(meta, "special");
+        String kind = jsonField(meta, "kind");
+        bool noDates;
+        if (kind == "memory") {
+          noDates = false;
+        } else if (kind == "normal") {
+          noDates = true;
+        } else {
+          noDates = (birth.length() == 0 && death.length() == 0 && special.length() == 0);
+        }
+        if (noDates) {
+          continue;
+        }
+        int off = 99;
+        String when;
+        const String *fields[3] = {&birth, &death, &special};
+        for (int i = 0; i < 3; i++) {
+          int bd, bm;
+          int o = anniversaryOffset(*fields[i], ty, tmo, td);
+          if (o < 0 || o > off) {
+            continue;
+          }
+          if (!parseDayMonth(*fields[i], bd, bm)) {
+            continue;
+          }
+          char w[8];
+          snprintf(w, sizeof(w), "%02d.%02d.", bd, bm);
+          off = o;
+          when = w;
+        }
+        if (off > 2) {
+          continue;
+        }
+        count++;
+        if (off < bestOff) {
+          bestOff = off;
+          bestFile = base;
+          bestWhen = when;
+          String name = jsonField(meta, "name");
+          name.trim();
+          if (name.length() == 0) {
+            name = base;
+            if (name.length() > 4) {
+              name = name.substring(0, name.length() - 4);
+            }
+          }
+          bestName = name;
+        }
+        if ((++tick & 15) == 0) {
+          yield();
+        }
+      }
+      closedir(d);
+      if (count > 0 && bestFile.length() > 0) {
+        g_memNextJson = "{\"count\":";
+        g_memNextJson += String(count);
+        g_memNextJson += ",\"when\":\"";
+        jsonAppendEscaped(g_memNextJson, bestWhen);
+        g_memNextJson += "\",\"name\":\"";
+        jsonAppendEscaped(g_memNextJson, bestName);
+        g_memNextJson += "\",\"file\":\"";
+        jsonAppendEscaped(g_memNextJson, bestFile);
+        g_memNextJson += "\"}";
+      }
+    }
+  }
+
+  g_memNextValid = true;
+  g_memNextMs = millis();
+  out += ",\"memoryNext\":";
+  out += g_memNextJson;
+}
+
 void slideshowGetJson(String &out) {
   time_t now = time(nullptr);
   struct tm ti;
@@ -705,6 +873,8 @@ void slideshowGetJson(String &out) {
   } else {
     out += ",\"now\":null";
   }
+  ntpAppendJson(out);
+  slideshowAppendMemoryJson(out);
   out += "}";
 }
 

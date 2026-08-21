@@ -2055,8 +2055,10 @@ static void handleSleepNow() {
     server.send(200, "text/plain", "USB");
     return;
   }
+  WiFi.setSleep(false);
   server.send(200, "text/plain", "OK sleep");
-  delay(200);
+  server.client().flush();
+  delay(400);
   powerSleepNow();
 }
 
@@ -2107,7 +2109,6 @@ static void handlePalette() {
 }
 
 static void handleStatus() {
-  powerNoteActivity();
   int bat = pmuBatteryPercent();
   String j = "{";
   j += "\"device\":\"";
@@ -2138,7 +2139,13 @@ static void handleStatus() {
   j += pmuReady() ? "true" : "false";
   j += ",\"hang\":\"";
   j += hangValue();
-  j += "\"}";
+  j += "\",\"timeOk\":";
+  j += slideshowTimeOk() ? "true" : "false";
+  j += ",\"vol\":";
+  j += String((unsigned)audioVolume());
+  ntpAppendJson(j);
+  slideshowAppendMemoryJson(j);
+  j += "}";
   server.send(200, "application/json", j);
 }
 
@@ -2158,6 +2165,28 @@ static void handleHangPost() {
     return;
   }
   handleHangGet();
+}
+
+static void handleVolGet() {
+  String j = "{\"vol\":";
+  j += String((unsigned)audioVolume());
+  j += "}";
+  server.send(200, "application/json", j);
+}
+
+static void handleVolPost() {
+  powerNoteActivity();
+  if (!server.hasArg("vol")) {
+    server.send(400, "text/plain", "vol=0..100");
+    return;
+  }
+  int v = server.arg("vol").toInt();
+  if (v < 0 || v > 100) {
+    server.send(400, "text/plain", "vol=0..100");
+    return;
+  }
+  audioSetVolume((uint8_t)v);
+  handleVolGet();
 }
 
 static void handleFrameGet() {
@@ -2236,6 +2265,7 @@ static void handleTimePost() {
       server.send(500, "text/plain", "RTC write failed");
       return;
     }
+    ntpHoldAfterManual();
     String out;
     slideshowGetJson(out);
     server.send(200, "application/json", out);
@@ -2286,9 +2316,452 @@ static void handleTimePost() {
     server.send(500, "text/plain", "system time failed");
     return;
   }
+  ntpHoldAfterManual();
   String out;
   slideshowGetJson(out);
   server.send(200, "application/json", out);
+}
+
+static bool backupNameOk(const String &name) {
+  if (name.length() < 1 || name.length() > 80) {
+    return false;
+  }
+  for (size_t i = 0; i < name.length(); i++) {
+    char c = name[i];
+    const bool ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
+                    c == '.' || c == '_' || c == '-';
+    if (!ok) {
+      return false;
+    }
+  }
+  return true;
+}
+
+static bool backupPathOk(String raw, String &clean) {
+  raw.replace('\\', '/');
+  raw.trim();
+  while (raw.indexOf("//") >= 0) {
+    raw.replace("//", "/");
+  }
+  if (raw.indexOf("..") >= 0) {
+    return false;
+  }
+  if (raw.startsWith("/")) {
+    raw = raw.substring(1);
+  }
+  int slash = raw.indexOf('/');
+  if (slash < 1 || raw.indexOf('/', slash + 1) >= 0) {
+    return false;
+  }
+  String dir = raw.substring(0, slash);
+  String file = raw.substring(slash + 1);
+  dir.toLowerCase();
+  if (dir != "pic" && dir != "sound") {
+    return false;
+  }
+  if (!backupNameOk(file)) {
+    return false;
+  }
+  clean = "/" + dir + "/" + file;
+  return true;
+}
+
+static void backupListDir(const char *absDir, const char *prefix, String &out, bool &first) {
+  char dirpath[48];
+  snprintf(dirpath, sizeof(dirpath), "%s%s", SD_MOUNT, absDir);
+  DIR *d = opendir(dirpath);
+  if (!d) {
+    return;
+  }
+  struct dirent *ent;
+  uint16_t tick = 0;
+  while ((ent = readdir(d)) != nullptr) {
+    const char *base = ent->d_name;
+    if (!base || !base[0] || base[0] == '.') {
+      continue;
+    }
+    if (ent->d_type == DT_DIR) {
+      continue;
+    }
+    if (!backupNameOk(base)) {
+      continue;
+    }
+    String path = String(absDir) + "/" + base;
+    File f = SD_MMC.open(path, FILE_READ);
+    if (!f) {
+      continue;
+    }
+    size_t sz = f.size();
+    f.close();
+    char esc[96];
+    jsonEscapeName(base, esc, sizeof(esc));
+    if (!first) {
+      out += ",";
+    }
+    first = false;
+    out += "{\"path\":\"";
+    out += prefix;
+    out += "/";
+    out += esc;
+    out += "\",\"size\":";
+    out += String((unsigned)sz);
+    out += "}";
+    if ((++tick & 15) == 0) {
+      yield();
+    }
+  }
+  closedir(d);
+}
+
+static void handleBackupList() {
+  powerNoteActivity();
+  if (!sdOk()) {
+    server.send(500, "text/plain", "no SD");
+    return;
+  }
+  String out = "[";
+  bool first = true;
+  backupListDir(PIC_DIR, "pic", out, first);
+  backupListDir("/sound", "sound", out, first);
+  out += "]";
+  server.send(200, "application/json", out);
+}
+
+static void handleBackupFile() {
+  powerNoteActivity();
+  if (!sdOk() || !server.hasArg("path")) {
+    server.send(400, "text/plain", "path required");
+    return;
+  }
+  String clean;
+  if (!backupPathOk(server.arg("path"), clean) || !SD_MMC.exists(clean)) {
+    server.send(404, "text/plain", "not found");
+    return;
+  }
+  File f = SD_MMC.open(clean, FILE_READ);
+  if (!f) {
+    server.send(500, "text/plain", "open failed");
+    return;
+  }
+  powerNoteBusy(true);
+  server.sendHeader("Cache-Control", "no-store");
+  server.streamFile(f, "application/octet-stream");
+  f.close();
+  powerNoteBusy(false);
+}
+
+static void bakU32(uint32_t v) {
+  char b[4];
+  b[0] = (char)(v & 0xff);
+  b[1] = (char)((v >> 8) & 0xff);
+  b[2] = (char)((v >> 16) & 0xff);
+  b[3] = (char)((v >> 24) & 0xff);
+  server.chunkWrite(b, 4);
+}
+
+static bool backupStreamDir(const char *absDir, const char *prefix) {
+  char dirpath[48];
+  snprintf(dirpath, sizeof(dirpath), "%s%s", SD_MOUNT, absDir);
+  DIR *d = opendir(dirpath);
+  if (!d) {
+    return true;
+  }
+  uint8_t buf[1024];
+  struct dirent *ent;
+  while ((ent = readdir(d)) != nullptr) {
+    if (!server.client().connected()) {
+      closedir(d);
+      return false;
+    }
+    const char *base = ent->d_name;
+    if (!base || !base[0] || base[0] == '.') {
+      continue;
+    }
+    if (ent->d_type == DT_DIR) {
+      continue;
+    }
+    if (!backupNameOk(base)) {
+      continue;
+    }
+    String abs = String(absDir) + "/" + base;
+    File f = SD_MMC.open(abs, FILE_READ);
+    if (!f) {
+      continue;
+    }
+    String rel = String(prefix) + "/" + base;
+    uint32_t sz = (uint32_t)f.size();
+    bakU32((uint32_t)rel.length());
+    server.chunkWrite(rel.c_str(), rel.length());
+    bakU32(sz);
+    uint32_t left = sz;
+    while (left) {
+      size_t n = f.read(buf, left > sizeof(buf) ? sizeof(buf) : left);
+      if (n == 0) {
+        break;
+      }
+      server.chunkWrite((const char *)buf, n);
+      left -= (uint32_t)n;
+      yield();
+    }
+    f.close();
+    if (left) {
+      closedir(d);
+      return false;
+    }
+  }
+  closedir(d);
+  return true;
+}
+
+static void handleBackup() {
+  powerNoteActivity();
+  if (!sdOk()) {
+    server.send(500, "text/plain", "no SD");
+    return;
+  }
+  powerNoteBusy(true);
+  WiFi.setSleep(false);
+  server.client().setTimeout(600000);
+  char fn[40];
+  time_t now = time(nullptr);
+  struct tm ti;
+  if (now > 1700000000 && localtime_r(&now, &ti)) {
+    snprintf(fn, sizeof(fn), "tintenklecks-%04d-%02d-%02d.txt", ti.tm_year + 1900, ti.tm_mon + 1, ti.tm_mday);
+  } else {
+    snprintf(fn, sizeof(fn), "tintenklecks.txt");
+  }
+  server.sendHeader("Content-Disposition", String("attachment; filename=\"") + fn + "\"");
+  server.sendHeader("Cache-Control", "no-store");
+  server.sendHeader("X-Content-Type-Options", "nosniff");
+  server.chunkResponseBegin("text/plain");
+  server.chunkWrite("TKBAK2", 6);
+  backupStreamDir(PIC_DIR, "pic");
+  backupStreamDir("/sound", "sound");
+  server.chunkResponseEnd();
+  powerNoteBusy(false);
+}
+
+enum {
+  RST_MAGIC = 0,
+  RST_NLEN,
+  RST_NAME,
+  RST_SZ,
+  RST_DATA,
+  RST_DEAD
+};
+static int g_rst = RST_MAGIC;
+static uint8_t g_rstBuf[88];
+static uint32_t g_rstNeed = 6;
+static uint32_t g_rstHave = 0;
+static uint32_t g_rstNlen = 0;
+static uint32_t g_rstLeft = 0;
+static char g_rstName[81];
+static String g_rstPath;
+static File g_rstFile;
+static int g_rstFiles = 0;
+
+static uint32_t rstU32(const uint8_t *p) {
+  return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
+}
+
+static void rstCloseFile(bool keep) {
+  if (g_rstFile) {
+    g_rstFile.close();
+  }
+  if (!keep && g_rstPath.length() && SD_MMC.exists(g_rstPath)) {
+    SD_MMC.remove(g_rstPath);
+  }
+  g_rstPath = "";
+}
+
+static void rstFail() {
+  g_rst = RST_DEAD;
+  rstCloseFile(false);
+}
+
+static bool rstOpenFile() {
+  String clean;
+  if (!backupPathOk(String(g_rstName), clean)) {
+    return false;
+  }
+  if (clean.startsWith("/pic") && !SD_MMC.exists(PIC_DIR)) {
+    SD_MMC.mkdir(PIC_DIR);
+  }
+  if (clean.startsWith("/sound") && !SD_MMC.exists("/sound")) {
+    SD_MMC.mkdir("/sound");
+  }
+  if (SD_MMC.exists(clean)) {
+    SD_MMC.remove(clean);
+  }
+  g_rstFile = SD_MMC.open(clean, FILE_WRITE);
+  if (!g_rstFile) {
+    return false;
+  }
+  g_rstPath = clean;
+  return true;
+}
+
+static void rstFeed(const uint8_t *data, size_t n) {
+  while (n && g_rst != RST_DEAD) {
+    if (g_rst == RST_DATA) {
+      size_t take = n < g_rstLeft ? n : (size_t)g_rstLeft;
+      if (g_rstFile && take) {
+        g_rstFile.write(data, take);
+      }
+      data += take;
+      n -= take;
+      g_rstLeft -= (uint32_t)take;
+      if (g_rstLeft == 0) {
+        rstCloseFile(true);
+        g_rstFiles++;
+        g_rst = RST_NLEN;
+        g_rstNeed = 4;
+        g_rstHave = 0;
+      }
+      continue;
+    }
+    uint32_t want = g_rstNeed - g_rstHave;
+    size_t take = n < want ? n : (size_t)want;
+    memcpy(g_rstBuf + g_rstHave, data, take);
+    g_rstHave += (uint32_t)take;
+    data += take;
+    n -= take;
+    if (g_rstHave < g_rstNeed) {
+      return;
+    }
+    if (g_rst == RST_MAGIC) {
+      if (memcmp(g_rstBuf, "TKBAK2", 6) != 0) {
+        rstFail();
+        return;
+      }
+      g_rst = RST_NLEN;
+      g_rstNeed = 4;
+      g_rstHave = 0;
+    } else if (g_rst == RST_NLEN) {
+      g_rstNlen = rstU32(g_rstBuf);
+      if (g_rstNlen < 1 || g_rstNlen > 80) {
+        rstFail();
+        return;
+      }
+      g_rst = RST_NAME;
+      g_rstNeed = g_rstNlen;
+      g_rstHave = 0;
+    } else if (g_rst == RST_NAME) {
+      memcpy(g_rstName, g_rstBuf, g_rstNlen);
+      g_rstName[g_rstNlen] = 0;
+      g_rst = RST_SZ;
+      g_rstNeed = 4;
+      g_rstHave = 0;
+    } else if (g_rst == RST_SZ) {
+      g_rstLeft = rstU32(g_rstBuf);
+      if (g_rstLeft > 32UL * 1024UL * 1024UL || !rstOpenFile()) {
+        rstFail();
+        return;
+      }
+      if (g_rstLeft == 0) {
+        rstCloseFile(true);
+        g_rstFiles++;
+        g_rst = RST_NLEN;
+        g_rstNeed = 4;
+        g_rstHave = 0;
+      } else {
+        g_rst = RST_DATA;
+      }
+    }
+  }
+}
+
+static void handleRestoreAllUpload() {
+  HTTPUpload &up = server.upload();
+  if (up.status == UPLOAD_FILE_START) {
+    powerNoteBusy(true);
+    WiFi.setSleep(false);
+    server.client().setTimeout(600000);
+    g_rst = RST_MAGIC;
+    g_rstNeed = 6;
+    g_rstHave = 0;
+    g_rstFiles = 0;
+    g_rstPath = "";
+    rstCloseFile(true);
+  } else if (up.status == UPLOAD_FILE_WRITE) {
+    if (g_rst != RST_DEAD && up.currentSize) {
+      rstFeed(up.buf, up.currentSize);
+    }
+  } else if (up.status == UPLOAD_FILE_END) {
+    if (g_rst == RST_DATA) {
+      rstFail();
+    } else if (g_rst == RST_NLEN && g_rstHave == 0) {
+      // archive ended after a complete file
+    } else if (g_rst == RST_MAGIC && g_rstHave == 0) {
+      rstFail();
+    } else if (g_rst != RST_NLEN || g_rstHave != 0) {
+      rstFail();
+    }
+  }
+}
+
+static void handleRestoreAllDone() {
+  powerNoteBusy(false);
+  slideshowInvalidateMemPreview();
+  bool ok = (g_rst != RST_DEAD) && (g_rst == RST_NLEN || g_rst == RST_MAGIC) && g_rstHave == 0;
+  if (g_rst == RST_NLEN && g_rstHave == 0) {
+    ok = true;
+  }
+  if (!ok) {
+    rstCloseFile(false);
+    server.send(400, "text/plain", "restore failed");
+    return;
+  }
+  kickListBuild();
+  server.send(200, "text/plain", "OK " + String(g_rstFiles) + " Dateien");
+}
+
+static void handleRestoreUpload() {
+  HTTPUpload &up = server.upload();
+  if (up.status == UPLOAD_FILE_START) {
+    powerNoteBusy(true);
+    uploadBytes = 0;
+    uploadPath = "";
+    String clean;
+    if (!sdOk() || !server.hasArg("path") || !backupPathOk(server.arg("path"), clean)) {
+      return;
+    }
+    if (clean.startsWith("/pic") && !SD_MMC.exists(PIC_DIR)) {
+      SD_MMC.mkdir(PIC_DIR);
+    }
+    if (clean.startsWith("/sound") && !SD_MMC.exists("/sound")) {
+      SD_MMC.mkdir("/sound");
+    }
+    if (SD_MMC.exists(clean)) {
+      SD_MMC.remove(clean);
+    }
+    uploadFile = SD_MMC.open(clean, FILE_WRITE);
+    if (uploadFile) {
+      uploadPath = clean;
+    }
+  } else if (up.status == UPLOAD_FILE_WRITE) {
+    if (uploadFile) {
+      uploadFile.write(up.buf, up.currentSize);
+      uploadBytes += up.currentSize;
+    }
+  } else if (up.status == UPLOAD_FILE_END) {
+    if (uploadFile) {
+      uploadFile.close();
+    }
+  }
+}
+
+static void handleRestoreDone() {
+  powerNoteBusy(false);
+  slideshowInvalidateMemPreview();
+  if (!sdOk() || uploadPath.length() == 0) {
+    if (uploadPath.length() && SD_MMC.exists(uploadPath)) {
+      SD_MMC.remove(uploadPath);
+    }
+    server.send(400, "text/plain", "restore failed");
+    return;
+  }
+  server.send(200, "text/plain", "OK " + uploadPath + " (" + String(uploadBytes) + " bytes)");
 }
 
 void webBegin() {
@@ -2316,6 +2789,8 @@ void webBegin() {
   server.on("/api/status", HTTP_GET, handleStatus);
   server.on("/api/hang", HTTP_GET, handleHangGet);
   server.on("/api/hang", HTTP_POST, handleHangPost);
+  server.on("/api/volume", HTTP_GET, handleVolGet);
+  server.on("/api/volume", HTTP_POST, handleVolPost);
   server.on("/api/frame", HTTP_GET, handleFrameGet);
   server.on("/api/frame", HTTP_POST, handleFramePost);
   server.on("/api/frame-now", HTTP_POST, handleFrameNow);
@@ -2349,6 +2824,11 @@ void webBegin() {
   server.on("/api/ntfy", HTTP_GET, handleNtfyGet);
   server.on("/api/ntfy", HTTP_POST, handleNtfyPost);
   server.on("/api/ntfy-test", HTTP_POST, handleNtfyTest);
+  server.on("/api/backup-list", HTTP_GET, handleBackupList);
+  server.on("/api/backup-file", HTTP_GET, handleBackupFile);
+  server.on("/api/backup", HTTP_GET, handleBackup);
+  server.on("/api/restore", HTTP_POST, handleRestoreAllDone, handleRestoreAllUpload);
+  server.on("/api/restore-file", HTTP_POST, handleRestoreDone, handleRestoreUpload);
 
   server.on("/api/upload", HTTP_POST, handleUploadDone, handleUpload);
   server.on("/api/upload-thumb", HTTP_POST, handleThumbUploadDone, handleThumbUpload);

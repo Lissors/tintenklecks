@@ -127,6 +127,7 @@ h1{font-size:1.2rem;margin:0 0 1rem}
 .caps .labs li:first-child{border-top:0;padding-top:0}
 .caps .file{margin:.75rem 0 0;font-size:.7rem;color:var(--dim);word-break:break-all}
 .caps .muted{color:var(--dim);font-size:.88rem;margin:0}
+.memnext{font-size:.85rem;color:var(--dim);line-height:1.4;margin:.15rem 0 1rem}
 .navrow{display:flex;align-items:center;justify-content:center;gap:1rem;margin-bottom:.75rem}
 .tabs{display:flex;gap:.45rem;margin:0 0 1rem}
 .tabs button{flex:1;padding:.55rem;border-radius:8px;border:1px solid var(--line);background:#1a1612;color:var(--txt);font:inherit;font-weight:700;cursor:pointer}
@@ -164,6 +165,7 @@ footer{text-align:center;padding:1rem;font-size:.75rem;color:var(--dim)}
 <section class="caps" id="caps" aria-live="polite">
   <p class="muted">Lade…</p>
 </section>
+<p class="memnext" id="memNext">—</p>
 <div class="tabs">
   <button type="button" id="tabNormal" class="on">Zufall</button>
   <button type="button" id="tabMemory">Erinnerungen</button>
@@ -411,7 +413,16 @@ async function showOnPanel(){
   }catch(e){ st.textContent=String(e); }
   finally{ setBusy(false); }
 }
+function memLine(f){
+  if(!f.timeOk) return 'Nächste Erinnerung: — (keine Chip-Zeit)';
+  const m=f.memoryNext;
+  if(!m) return 'Keine Erinnerung in den nächsten zwei Tagen';
+  let s='Nächste Erinnerung: '+(m.when||'')+' · '+(m.name||m.file||'');
+  if((m.count||0)>1) s+=' · '+(m.count-1)+' weitere';
+  return s;
+}
 async function refreshStatus(){
+  if(window.__zzz) return;
   try{
     const s=await (await fetch('/api/status')).json();
     const bat=document.getElementById('bat');
@@ -422,9 +433,26 @@ async function refreshStatus(){
     if(z) z.hidden=!!s.usb;
     document.getElementById('foot').textContent=s.copyright||'© 2026 Ingo Lissors';
     if(s.hang==='portrait'||s.hang==='landscape') hang=s.hang;
+    const mem=document.getElementById('memNext');
+    if(mem) mem.textContent=memLine(s);
   }catch(e){}
 }
-document.getElementById('btnZzz').onclick=()=>{ fetch('/api/sleep',{method:'POST'}).catch(()=>{}); };
+document.getElementById('btnZzz').onclick=()=>{
+  if(window.__zzz) return;
+  window.__zzz=1;
+  (async()=>{
+    for(let i=0;i<8;i++){
+      try{
+        const r=await fetch('/api/sleep',{method:'POST',cache:'no-store'});
+        const t=await r.text();
+        if(r.ok && t.indexOf('USB')<0) return;
+        if(t.indexOf('USB')>=0) break;
+      }catch(e){}
+      await new Promise(res=>setTimeout(res,300));
+    }
+    window.__zzz=0;
+  })();
+};
 async function load(){
   try{
     let last='';

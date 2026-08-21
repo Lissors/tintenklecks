@@ -123,4 +123,5 @@ bool wifiBringUp() {
 }
 
 void wifiLoop() {
+  ntpLoop();
 }

@@ -11,6 +11,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <freertos/semphr.h>
+#include <Preferences.h>
 
 static bool g_audioOk = false;
 static bool g_playing = false;
@@ -42,8 +43,46 @@ static uint8_t es8311Read(uint8_t reg) {
   return (uint8_t)Wire.read();
 }
 
-static const uint8_t AUDIO_VOLUME_PCT = 80;  // 0…100
 static const uint8_t AUDIO_DAC_GAIN = 0x60;  // REG17 analog gain
+static uint8_t g_volPct = 80;
+static bool g_volLoaded = false;
+
+static void es8311SetVolume(uint8_t pct);
+
+static void volLoad() {
+  if (g_volLoaded) {
+    return;
+  }
+  Preferences p;
+  p.begin("audio", true);
+  g_volPct = p.getUChar("vol", 80);
+  p.end();
+  if (g_volPct > 100) {
+    g_volPct = 80;
+  }
+  g_volLoaded = true;
+}
+
+uint8_t audioVolume() {
+  volLoad();
+  return g_volPct;
+}
+
+bool audioSetVolume(uint8_t pct) {
+  volLoad();
+  if (pct > 100) {
+    pct = 100;
+  }
+  g_volPct = pct;
+  Preferences p;
+  p.begin("audio", false);
+  p.putUChar("vol", g_volPct);
+  p.end();
+  if (g_audioOk) {
+    es8311SetVolume(g_volPct);
+  }
+  return true;
+}
 
 static void es8311SetVolume(uint8_t pct) {
   if (pct > 100) {
@@ -151,7 +190,7 @@ static bool es8311Init(uint32_t sampleRate) {
   es8311Write(0x0F, 0x9C);
   delay(50);
 
-  es8311SetVolume(AUDIO_VOLUME_PCT);
+  es8311SetVolume(audioVolume());
 
   for (int i = 0; i < 50; i++) {
     if ((es8311Read(0x0B) & 0x03) == 0x02) {
@@ -389,7 +428,7 @@ static bool audioStartPcm(uint8_t *pcm, size_t dataLen, uint32_t rate, uint16_t 
     return false;
   }
   audioPa(true);
-  es8311SetVolume(AUDIO_VOLUME_PCT);
+  es8311SetVolume(audioVolume());
   delay(20);
 
   if (!audioEnsurePlayTask()) {
