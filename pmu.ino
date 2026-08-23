@@ -7,11 +7,44 @@
 #include <XPowersLib.h>
 #include <Preferences.h>
 #include <math.h>
+#include <string.h>
 
 static XPowersAXP2101 pmu;
 static bool pmuOk = false;
 
 static uint8_t pmuMaToOpt(int ma);
+
+struct PmuSnap {
+  bool ready;
+  bool cell;
+  int pct;
+  uint16_t mv;
+  bool usb;
+  bool charging;
+  bool discharge;
+  bool standby;
+  uint16_t vbus;
+  uint16_t vsys;
+  int ichg;
+  int vt;
+  int iterm;
+  int ilim;
+  int warn;
+  int off;
+  float temp;
+  bool thermal;
+  bool limHit;
+  uint8_t chgSt;
+};
+
+static PmuSnap g_pmuSnap;
+static uint32_t g_pmuSnapMs = 0;
+static bool g_pmuSnapOk = false;
+
+static void pmuFillSnap();
+static void pmuEnsureSnap();
+static int pmuTargetMv(uint8_t opt);
+static int pmuVbusLimMa(uint8_t opt);
 
 bool pmuInit() {
   Wire.begin(I2C_SDA, I2C_SCL);
@@ -60,31 +93,35 @@ bool pmuReady() {
 }
 
 int pmuBatteryPercent() {
-  if (!pmuOk || !pmu.isBatteryConnect()) {
+  pmuEnsureSnap();
+  if (!g_pmuSnap.ready || !g_pmuSnap.cell) {
     return -1;
   }
-  return (int)pmu.getBatteryPercent();
+  return g_pmuSnap.pct;
 }
 
 bool pmuCharging() {
-  if (!pmuOk) {
+  pmuEnsureSnap();
+  if (!g_pmuSnap.ready) {
     return false;
   }
-  return pmu.isCharging();
+  return g_pmuSnap.charging;
 }
 
 bool pmuUsbPowered() {
-  if (!pmuOk) {
+  pmuEnsureSnap();
+  if (!g_pmuSnap.ready) {
     return true;
   }
-  return pmu.isVbusIn();
+  return g_pmuSnap.usb;
 }
 
 float pmuBattVoltage() {
-  if (!pmuOk || !pmu.isBatteryConnect()) {
+  pmuEnsureSnap();
+  if (!g_pmuSnap.ready || !g_pmuSnap.cell) {
     return 0.0f;
   }
-  return pmu.getBattVoltage() / 1000.0f;
+  return g_pmuSnap.mv / 1000.0f;
 }
 
 static int pmuChgCurrMa(uint8_t opt) {
@@ -147,6 +184,7 @@ bool pmuSetChargeMa(int ma) {
   if (pmuOk) {
     pmu.setChargerConstantCurr(opt);
   }
+  g_pmuSnapOk = false;
   return true;
 }
 
@@ -169,17 +207,55 @@ static const char *pmuChgStage(uint8_t st) {
   }
 }
 
-static const char *pmuPath() {
-  if (pmu.isCharging()) {
+static const char *pmuPathFromSnap() {
+  if (g_pmuSnap.charging) {
     return "laden";
   }
-  if (pmu.isDischarge()) {
+  if (g_pmuSnap.discharge) {
     return "entladen";
   }
-  if (pmu.isStandby()) {
+  if (g_pmuSnap.standby) {
     return "standby";
   }
   return "—";
+}
+
+static void pmuFillSnap() {
+  g_pmuSnapMs = millis();
+  g_pmuSnapOk = true;
+  memset(&g_pmuSnap, 0, sizeof(g_pmuSnap));
+  g_pmuSnap.ready = pmuOk;
+  g_pmuSnap.pct = -1;
+  g_pmuSnap.temp = NAN;
+  if (!pmuOk) {
+    return;
+  }
+  g_pmuSnap.cell = pmu.isBatteryConnect();
+  g_pmuSnap.pct = g_pmuSnap.cell ? (int)pmu.getBatteryPercent() : -1;
+  g_pmuSnap.mv = g_pmuSnap.cell ? pmu.getBattVoltage() : 0;
+  g_pmuSnap.usb = pmu.isVbusIn();
+  g_pmuSnap.charging = pmu.isCharging();
+  g_pmuSnap.discharge = pmu.isDischarge();
+  g_pmuSnap.standby = pmu.isStandby();
+  g_pmuSnap.vbus = g_pmuSnap.usb ? pmu.getVbusVoltage() : 0;
+  g_pmuSnap.vsys = pmu.getSystemVoltage();
+  g_pmuSnap.ichg = pmuChgCurrMa(pmu.getChargerConstantCurr());
+  g_pmuSnap.vt = pmuTargetMv(pmu.getChargeTargetVoltage());
+  g_pmuSnap.iterm = (int)pmu.getChargerTerminationCurr() * 25;
+  g_pmuSnap.ilim = pmuVbusLimMa(pmu.getVbusCurrentLimit());
+  g_pmuSnap.warn = (int)pmu.getLowBatWarnThreshold() + 5;
+  g_pmuSnap.off = (int)pmu.getLowBatShutdownThreshold();
+  g_pmuSnap.temp = pmu.getTemperature();
+  g_pmuSnap.thermal = pmu.getThermalRegulationStatus();
+  g_pmuSnap.limHit = pmu.getCurrentLimitStatus();
+  g_pmuSnap.chgSt = (uint8_t)pmu.getChargerStatus();
+}
+
+static void pmuEnsureSnap() {
+  if (g_pmuSnapOk && (millis() - g_pmuSnapMs) < 2000) {
+    return;
+  }
+  pmuFillSnap();
 }
 
 static int pmuTargetMv(uint8_t opt) {
@@ -219,61 +295,49 @@ static int pmuVbusLimMa(uint8_t opt) {
 }
 
 void pmuAppendJson(String &j) {
+  pmuEnsureSnap();
   j += ",\"batt\":{";
-  if (!pmuOk) {
+  if (!g_pmuSnap.ready) {
     j += "\"ok\":false}";
     return;
   }
-  const bool cell = pmu.isBatteryConnect();
-  const int pct = cell ? (int)pmu.getBatteryPercent() : -1;
-  const uint16_t mv = cell ? pmu.getBattVoltage() : 0;
-  const bool usb = pmu.isVbusIn();
-  const uint16_t vbus = usb ? pmu.getVbusVoltage() : 0;
-  const uint16_t vsys = pmu.getSystemVoltage();
-  const int ichg = pmuChgCurrMa(pmu.getChargerConstantCurr());
-  const int vt = pmuTargetMv(pmu.getChargeTargetVoltage());
-  const int iterm = (int)pmu.getChargerTerminationCurr() * 25;
-  const int ilim = pmuVbusLimMa(pmu.getVbusCurrentLimit());
-  const int warn = (int)pmu.getLowBatWarnThreshold() + 5;
-  const int off = (int)pmu.getLowBatShutdownThreshold();
-  const float temp = pmu.getTemperature();
   j += "\"ok\":true,\"cell\":";
-  j += cell ? "true" : "false";
+  j += g_pmuSnap.cell ? "true" : "false";
   j += ",\"pct\":";
-  j += String(pct);
+  j += String(g_pmuSnap.pct);
   j += ",\"v\":";
-  j += cell ? String(mv / 1000.0f, 2) : "0";
+  j += g_pmuSnap.cell ? String(g_pmuSnap.mv / 1000.0f, 2) : "0";
   j += ",\"usb\":";
-  j += usb ? "true" : "false";
+  j += g_pmuSnap.usb ? "true" : "false";
   j += ",\"vbus\":";
-  j += usb ? String(vbus / 1000.0f, 2) : "0";
+  j += g_pmuSnap.usb ? String(g_pmuSnap.vbus / 1000.0f, 2) : "0";
   j += ",\"vsys\":";
-  j += String(vsys / 1000.0f, 2);
+  j += String(g_pmuSnap.vsys / 1000.0f, 2);
   j += ",\"path\":\"";
-  j += pmuPath();
+  j += pmuPathFromSnap();
   j += "\",\"chg\":\"";
-  j += pmuChgStage((uint8_t)pmu.getChargerStatus());
+  j += pmuChgStage(g_pmuSnap.chgSt);
   j += "\",\"ichg\":";
-  j += String(ichg);
+  j += String(g_pmuSnap.ichg);
   j += ",\"vtarget\":";
-  j += String(vt);
+  j += String(g_pmuSnap.vt);
   j += ",\"iterm\":";
-  j += String(iterm);
+  j += String(g_pmuSnap.iterm);
   j += ",\"ilim\":";
-  j += String(ilim);
+  j += String(g_pmuSnap.ilim);
   j += ",\"temp\":";
-  if (isnan(temp)) {
+  if (isnan(g_pmuSnap.temp)) {
     j += "null";
   } else {
-    j += String(temp, 1);
+    j += String(g_pmuSnap.temp, 1);
   }
   j += ",\"thermal\":";
-  j += pmu.getThermalRegulationStatus() ? "true" : "false";
+  j += g_pmuSnap.thermal ? "true" : "false";
   j += ",\"limHit\":";
-  j += pmu.getCurrentLimitStatus() ? "true" : "false";
+  j += g_pmuSnap.limHit ? "true" : "false";
   j += ",\"warnPct\":";
-  j += String(warn);
+  j += String(g_pmuSnap.warn);
   j += ",\"offPct\":";
-  j += String(off);
+  j += String(g_pmuSnap.off);
   j += "}";
 }

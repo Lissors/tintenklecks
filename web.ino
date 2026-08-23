@@ -290,9 +290,7 @@ static bool g_listCacheValid = false;
 static volatile bool g_listBuilding = false;
 static volatile bool g_listReload = false;
 static volatile uint32_t g_listGen = 0;
-static volatile bool g_orphanSweepWanted = true;
-static const char *LIST_CACHE_PATH = "/pic/_gallery.json";
-
+static volatile bool g_orphanSweepWanted = false;
 static String readWholeFile(const String &path);
 static bool writeWholeFile(const String &path, const String &data);
 static void kickListBuild();
@@ -301,7 +299,11 @@ static void sendFileCached(File &f, const char *mime);
 static void memoriesUpsert(const String &bmpName, const String &meta);
 static void memoriesRemove(const String &bmpName);
 static void memoriesRename(const String &fromBmp, const String &toBmp);
-static const char *MEMORIES_PATH = "/pic/_erinnerungen.json";
+static void listCacheUpsert(const String &bmpName, const String &meta);
+static void listCacheRemove(const String &bmpName);
+static void listCacheRename(const String &fromBmp, const String &toBmp);
+static int jsonObjectEnd(const String &s, int open);
+static bool patchListJsonBool(const String &bmpName, const char *key, bool on);
 
 static void invalidateListCache() {
   g_listCacheValid = false;
@@ -310,12 +312,8 @@ static void invalidateListCache() {
 static void invalidateListCacheHard() {
   g_listCacheValid = false;
   g_listGen = g_listGen + 1;
-  g_orphanSweepWanted = true;
-  g_listCache = "";
   slideshowInvalidatePot();
-  if (sdOk() && SD_MMC.exists(LIST_CACHE_PATH)) {
-    SD_MMC.remove(LIST_CACHE_PATH);
-  }
+  slideshowInvalidateMemPreview();
   kickListBuild();
 }
 
@@ -393,9 +391,10 @@ static void handleUploadDone() {
     server.send(500, "text/plain", "SD/upload failed");
     return;
   }
-  if (uploadMetaJson.length() > 0) {
+  String metaForIndex = uploadMetaJson;
+  if (metaForIndex.length() > 0) {
     String jp = jsonPathForBmp(uploadPath);
-    if (!writeWholeFile(jp, uploadMetaJson)) {
+    if (!writeWholeFile(jp, metaForIndex)) {
       Serial.println(F("WARN meta write failed"));
     } else {
       Serial.printf("META wrote %s\n", jp.c_str());
@@ -404,7 +403,7 @@ static void handleUploadDone() {
       if (slash >= 0) {
         base = base.substring(slash + 1);
       }
-      memoriesUpsert(base, uploadMetaJson);
+      memoriesUpsert(base, metaForIndex);
     }
   }
   String msg = "OK " + uploadPath + " (" + String(uploadBytes) + " bytes)";
@@ -436,7 +435,7 @@ static void handleUploadDone() {
       if (uploadIsNew) {
         slideshowDeckAdd(base);
       }
-      invalidateListCacheHard();
+      listCacheUpsert(base, metaForIndex);
     }
   }
 }
@@ -480,6 +479,9 @@ static bool markCleanThumbInIndex(const String &bmpName) {
     loadListCacheFromSd();
   }
   if (g_listCache.length() == 0) {
+    loadListCacheFromSd();
+  }
+  if (g_listCache.length() == 0) {
     return false;
   }
   String key = String("{\"file\":\"") + baseNameNoExt(bmpName) + ".bmp\"";
@@ -512,6 +514,51 @@ static bool markCleanThumbInIndex(const String &bmpName) {
   f.write((uint8_t)'1');
   f.close();
   return true;
+}
+
+static bool patchListJsonBool(const String &bmpName, const char *key, bool on) {
+  if (bmpName.length() == 0 || !key || g_listBuilding) {
+    return false;
+  }
+  if (g_listReload) {
+    g_listReload = false;
+    g_listCache = "";
+    loadListCacheFromSd();
+  }
+  if (g_listCache.length() == 0) {
+    loadListCacheFromSd();
+  }
+  if (g_listCache.length() == 0) {
+    return false;
+  }
+  String id = String("{\"file\":\"") + baseNameNoExt(bmpName) + ".bmp\"";
+  int at = g_listCache.indexOf(id);
+  if (at < 0) {
+    return false;
+  }
+  int end = jsonObjectEnd(g_listCache, at);
+  String needle = String("\"") + key + "\":";
+  int flag = g_listCache.indexOf(needle, at);
+  if (flag < 0 || end < 0 || flag > end) {
+    return false;
+  }
+  int pos = flag + needle.length();
+  const bool nowTrue = g_listCache.substring(pos, pos + 4) == "true";
+  const bool nowFalse = g_listCache.substring(pos, pos + 5) == "false";
+  if (on && nowTrue) {
+    return true;
+  }
+  if (!on && nowFalse) {
+    return true;
+  }
+  if (on && nowFalse) {
+    g_listCache = g_listCache.substring(0, pos) + "true" + g_listCache.substring(pos + 5);
+  } else if (!on && nowTrue) {
+    g_listCache = g_listCache.substring(0, pos) + "false" + g_listCache.substring(pos + 4);
+  } else {
+    return false;
+  }
+  return writeWholeFile(LIST_CACHE_PATH, g_listCache);
 }
 
 static uint16_t hashStem(const char *s) {
@@ -898,6 +945,112 @@ static void memoriesRename(const String &fromBmp, const String &toBmp) {
   }
 }
 
+static void listCacheLoad() {
+  if (g_listReload && !g_listBuilding) {
+    g_listReload = false;
+    g_listCache = "";
+  }
+  if (g_listCache.length() == 0) {
+    loadListCacheFromSd();
+  }
+  if (g_listCache.length() < 2 || g_listCache.charAt(0) != '[') {
+    g_listCache = "[]";
+  }
+}
+
+static String listObjectJson(const String &bmp, const String &meta) {
+  char fileEsc[80], nameEsc[160];
+  jsonEscapeName(bmp.c_str(), fileEsc, sizeof(fileEsc));
+  jsonEscapeName(jsonGetQuoted(meta, "name").c_str(), nameEsc, sizeof(nameEsc));
+  char kind[8];
+  classifyKind(meta.c_str(), kind, sizeof(kind));
+  const bool hasClean = SD_MMC.exists(cleanThumbPathForName(bmp));
+  const bool hasThumb = SD_MMC.exists(thumbPathForName(bmp));
+  const bool hasSrc = SD_MMC.exists(srcPathForName(bmp));
+  const bool hasPreview = hasClean || hasThumb || hasSrc;
+  String o = "{\"file\":\"";
+  o += fileEsc;
+  o += "\",\"name\":\"";
+  o += nameEsc;
+  o += "\",\"thumb\":";
+  o += hasPreview ? "true" : "false";
+  o += ",\"src\":";
+  o += hasSrc ? "true" : "false";
+  o += ",\"ct\":";
+  o += hasClean ? '1' : '0';
+  o += ",\"kind\":\"";
+  o += (kind[0] == 'm') ? "memory" : "normal";
+  o += "\"}";
+  return o;
+}
+
+static void listCacheCommit() {
+  g_listCacheValid = true;
+  writeWholeFile(LIST_CACHE_PATH, g_listCache);
+  slideshowInvalidatePot();
+  slideshowInvalidateMemPreview();
+}
+
+static void listCacheUpsert(const String &bmpName, const String &meta) {
+  if (!sdOk() || bmpName.length() == 0) {
+    return;
+  }
+  String bmp = safeBmpName(bmpName);
+  listCacheLoad();
+  String rec = listObjectJson(bmp, meta);
+  int from = 0, to = 0;
+  if (findMemoryObj(g_listCache, bmp, from, to)) {
+    g_listCache = g_listCache.substring(0, from) + rec + g_listCache.substring(to + 1);
+  } else if (g_listCache == "[]") {
+    g_listCache = "[" + rec + "]";
+  } else {
+    int end = g_listCache.lastIndexOf(']');
+    if (end < 0) {
+      g_listCache = "[" + rec + "]";
+    } else {
+      g_listCache = g_listCache.substring(0, end) + "," + rec + "]";
+    }
+  }
+  listCacheCommit();
+}
+
+static void listCacheRemove(const String &bmpName) {
+  if (!sdOk() || bmpName.length() == 0) {
+    return;
+  }
+  String bmp = safeBmpName(bmpName);
+  listCacheLoad();
+  int from = 0, to = 0;
+  if (!findMemoryObj(g_listCache, bmp, from, to)) {
+    return;
+  }
+  int cutL = from, cutR = to + 1;
+  int i = cutR;
+  while (i < (int)g_listCache.length() &&
+         (g_listCache.charAt(i) == ' ' || g_listCache.charAt(i) == '\n' || g_listCache.charAt(i) == '\r')) {
+    i++;
+  }
+  if (i < (int)g_listCache.length() && g_listCache.charAt(i) == ',') {
+    cutR = i + 1;
+  } else {
+    int j = cutL - 1;
+    while (j >= 0 && (g_listCache.charAt(j) == ' ' || g_listCache.charAt(j) == '\n' ||
+                      g_listCache.charAt(j) == '\r')) {
+      j--;
+    }
+    if (j >= 0 && g_listCache.charAt(j) == ',') {
+      cutL = j;
+    }
+  }
+  g_listCache = g_listCache.substring(0, cutL) + g_listCache.substring(cutR);
+  listCacheCommit();
+}
+
+static void listCacheRename(const String &fromBmp, const String &toBmp) {
+  listCacheRemove(fromBmp);
+  listCacheUpsert(toBmp, readWholeFile(jsonPathForBmp(toBmp)));
+}
+
 static String buildListJsonToSd() {
   const char *tmpPath = "/pic/_gallery.tmp";
   if (SD_MMC.exists(tmpPath)) {
@@ -1224,6 +1377,7 @@ static void kickListBuild() {
 }
 
 static void handleList() {
+  powerNoteActivity();
   if (!sdOk()) {
     server.send(500, "application/json", "{\"error\":\"no SD\"}");
     return;
@@ -1238,9 +1392,6 @@ static void handleList() {
   if (g_listCache.length() > 0) {
     server.sendHeader("Cache-Control", "no-store");
     server.send(200, "application/json", g_listCache);
-    if (!g_listCacheValid && !g_listBuilding) {
-      kickListBuild();
-    }
     return;
   }
   kickListBuild();
@@ -1418,7 +1569,8 @@ static int cleanupOrphansPass(bool *more) {
 
 static bool keepUnderscoreName(const char *base) {
   return !strcmp(base, "_gallery.json") || !strcmp(base, "_gallery.tmp") ||
-         !strcmp(base, "_deck.txt");
+         !strcmp(base, "_deck.txt") || !strcmp(base, "_erinnerungen.json") ||
+         !strcmp(base, "_erinnerungen.tmp");
 }
 
 static int cleanupUnderscorePic() {
@@ -1493,7 +1645,7 @@ static void handleCleanupOrphans() {
     return;
   }
   if (g_listBuilding) {
-    server.send(200, "text/plain", "Index wird gerade gebaut — dabei wird ohnehin aufgeräumt.");
+    server.send(200, "text/plain", "Index wird gerade gebaut — später nochmal aufräumen.");
     return;
   }
   int gone = cleanupOrphansRun();
@@ -1580,9 +1732,7 @@ static void handleThumb() {
     }
     f.seek(0);
   }
-  server.sendHeader("Cache-Control", "no-store");
-  server.streamFile(f, "image/jpeg");
-  f.close();
+  sendFileCached(f, "image/jpeg");
 }
 
 static void handleSrc() {
@@ -1659,10 +1809,19 @@ static void handleThumbUploadDone() {
     return;
   }
   server.send(200, "text/plain", "OK " + uploadPath + " (" + String(uploadBytes) + " bytes)");
-  if (server.arg("kind") == "clean" && markCleanThumbInIndex(server.arg("name"))) {
-    return;
+  String name = server.arg("name");
+  String kind = server.arg("kind");
+  bool patched = false;
+  if (kind == "clean") {
+    patched = markCleanThumbInIndex(name);
+  } else if (kind == "src") {
+    patched = patchListJsonBool(name, "src", true);
+  } else {
+    patched = patchListJsonBool(name, "thumb", true);
   }
-  invalidateListCache();
+  if (!patched) {
+    listCacheUpsert(name, readWholeFile(jsonPathForBmp(name)));
+  }
 }
 
 static void handleThumbClear() {
@@ -1673,7 +1832,7 @@ static void handleThumbClear() {
   }
   SD_MMC.remove(thumbPathForName(server.arg("name")));
   SD_MMC.remove(cleanThumbPathForName(server.arg("name")));
-  invalidateListCacheHard();
+  listCacheUpsert(server.arg("name"), readWholeFile(jsonPathForBmp(server.arg("name"))));
   server.send(200, "text/plain", "OK cleared");
 }
 
@@ -1760,8 +1919,8 @@ static void handleMetaPost() {
     return;
   }
   memoriesUpsert(server.arg("name"), json);
+  listCacheUpsert(server.arg("name"), json);
   server.send(200, "text/plain", "OK " + jp);
-  invalidateListCacheHard();
 }
 
 static void handleDelete() {
@@ -1796,8 +1955,7 @@ static void handleDelete() {
     }
   }
   memoriesRemove(server.arg("name"));
-  invalidateListCacheHard();
-  slideshowInvalidatePot();
+  listCacheRemove(server.arg("name"));
   if (gone == 0) {
     server.send(404, "text/plain", "not found");
     return;
@@ -1854,7 +2012,7 @@ static void handleRename() {
     SD_MMC.rename(from, to);
   }
   memoriesRename(server.arg("name"), server.arg("to"));
-  invalidateListCacheHard();
+  listCacheRename(server.arg("name"), server.arg("to"));
   server.send(200, "text/plain", "OK " + toBmp);
 }
 
@@ -2126,6 +2284,7 @@ static void handlePalette() {
 }
 
 static void handleStatus() {
+  powerNoteActivity();
   int bat = pmuBatteryPercent();
   String j = "{";
   j += "\"device\":\"";
@@ -2252,10 +2411,11 @@ static void handleFramePost() {
 
 static void handleFrameNow() {
   powerNoteActivity();
+  server.send(200, "text/plain", "OK switched");
+  delay(50);
   powerNoteBusy(true);
   slideshowForceNow();
   powerNoteBusy(false);
-  server.send(200, "text/plain", "OK switched");
 }
 
 static void handleTzGet() {
@@ -3055,7 +3215,7 @@ static void handleRestoreAllDone() {
     server.send(400, "text/plain", "restore failed");
     return;
   }
-  kickListBuild();
+  invalidateListCacheHard();
   server.send(200, "text/plain", "OK " + String(g_rstFiles) + " Dateien");
 }
 
@@ -3219,12 +3379,6 @@ void webLoop() {
     dns.processNextRequest();
   }
   server.handleClient();
-
-  static bool bootSweepDone = false;
-  if (!bootSweepDone && millis() > 15000 && sdOk()) {
-    bootSweepDone = true;
-    kickListBuild();
-  }
 
   static bool mdnsTried = false;
   if (!mdnsTried && millis() > 8000) {

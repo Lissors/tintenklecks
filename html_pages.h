@@ -145,6 +145,7 @@ document.getElementById('btnZzz').onclick=()=>{
   })();
 };
 refreshStatus(); setInterval(refreshStatus,15000);
+fetch('/api/list').catch(function(){});
 </script>
 </body></html>
 )HTML";
@@ -153,8 +154,6 @@ static const char PAGE_GALLERY[] PROGMEM = R"HTML(
 <!DOCTYPE html><html lang="de"><head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Bilder · Tintenklecks</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet"/>
 <style>
 :root{--bg:#14110f;--panel:#241e18;--line:#4a3f35;--acc:#c4966e;--txt:#f3ebe3;--dim:#a89888}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt)}
@@ -338,7 +337,7 @@ function thumbPlaceholder(txt){
   return '<div class="ph">'+(txt||'Kein Vorschaubild<br/><small>neu speichern</small>')+'</div>';
 }
 function thumbImgHtml(file){
-  return '<img loading="lazy" decoding="async" src="/api/thumb?name='+encodeURIComponent(file)+'&r='+Date.now()+'" alt="" data-thumb="1"/>';
+  return '<img loading="lazy" decoding="async" src="/api/thumb?name='+encodeURIComponent(file)+'" alt="" data-thumb="1"/>';
 }
 function thumbHtml(it){
   const pic=(it.ct||it.thumb||it.src)?thumbImgHtml(it.file):thumbPlaceholder();
@@ -480,7 +479,7 @@ function bindThumbFallback(root){
       const n=+(img.getAttribute('data-try')||0);
       if(n<1 && card){
         img.setAttribute('data-try','1');
-        img.src='/api/thumb?name='+encodeURIComponent(card.getAttribute('data-file'))+'&r='+Date.now();
+        img.src='/api/thumb?name='+encodeURIComponent(card.getAttribute('data-file'));
         return;
       }
       const d=document.createElement('div');
@@ -806,7 +805,7 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
 <h2>Wartung</h2>
 <button id="btnReboot">Neustart</button>
 <button id="btnOrphans">Jetzt aufräumen</button>
-<p class="status">Löschreste werden automatisch beim Start und nach jedem Löschen entfernt — der Knopf erzwingt es nur sofort.</p>
+<p class="status">Löschreste (JPG/JSON ohne BMP) nur hier entfernen — nicht automatisch.</p>
 <button class="danger" id="btnWifi">WLAN-Daten löschen &amp; Neustart</button>
 <p class="status" id="status"></p>
 </div>

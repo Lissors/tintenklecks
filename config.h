@@ -50,6 +50,8 @@ static const uint8_t EPD_GREEN = 0x6;
 
 static const char *SD_MOUNT = "/sdcard";
 static const char *PIC_DIR = "/pic";
+static const char *LIST_CACHE_PATH = "/pic/_gallery.json";
+static const char *MEMORIES_PATH = "/pic/_erinnerungen.json";
 static const char *DEVICE_NAME = "Tintenklecks";
 static const char *COPYRIGHT = "© 2026 Ingo Lissors";
 static const char *AP_SSID = "Tintenklecks";

@@ -64,8 +64,8 @@ ESP32 Arduino-Core, WebServer — Espressif / Arduino.
 
 Schrift
 -------
-Dancing Script — Impallari Type, SIL Open Font License,
-eingebunden über fonts.googleapis.com.
+Dancing Script — Impallari Type, SIL Open Font License.
+Nicht mehr von fonts.googleapis.com geladen (Fallback: System-Script/Serif).
 
 
 Systemklänge (mitgeliefert in sound/)

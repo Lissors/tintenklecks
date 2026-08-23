@@ -149,7 +149,7 @@ Open the frame’s IP in the browser: access point [http://192.168.4.1](http://1
 
 Top left **Tintenklecks**: on subpages this is a link back to the main menu; on the menu it is only the name.
 
-Right: **Akku … %**, while charging **· lädt**, or **USB-Betrieb**. Next to that **zzz** — visible only without USB. The button puts the frame into deep sleep immediately. Status polling in the browser does not keep the frame awake.
+Right: **Akku … %**, while charging **· lädt**, or **USB-Betrieb**. Next to that **zzz** — visible only without USB. The button puts the frame into deep sleep immediately. An open tab (status every 15 s) keeps the frame awake.
 
 ### Buttons on the device
 
@@ -183,7 +183,7 @@ Six tiles:
 
 ![Studio](docs/studio.png)
 
-Two stages: left **Zuschnitt**, right **E6 Vorschau**. Drop a photo onto the dashed field, or tap (JPG, PNG, BMP). Mouse wheel zooms; drag on the left stage to pan the crop.
+Two stages: left **Zuschnitt**, right **E6 Vorschau**. Drop a photo onto the dashed field, or tap (JPG, PNG, BMP). Mouse wheel zooms; drag on the left stage to pan the crop — the picture follows the mouse (including vertically).
 
 **Gerendertes BMP an E6** skips Studio: a finished 24-bit BMP at panel size (480×800 or 800×480) goes straight to the e-paper.
 
@@ -238,7 +238,7 @@ Two tabs: **Zufall** and **Erinnerungen**. At the top: counts and the **Zufallst
 | Umbenennen | filename without `.bmp` |
 | Löschen | BMP plus JSON, thumbnails and related sound (asks first). If that picture is on the panel, the next one is shown — same as KEY / Jetzt wechseln |
 
-Missing preview: **Kein Vorschaubild · neu speichern**. Without a crop file: red border and **Kein Zuschnitt**. The index is built in the background after start; the page waits (**Galerie-Index wird gebaut…**). The page tries to rebuild missing thumbnails itself.
+Missing preview: **Kein Vorschaubild · neu speichern**. Without a crop file: red border and **Kein Zuschnitt**. The index is a file on the SD card and is updated immediately on save, delete or rename — Zufall and Erinnerungen without a full rescan. Only if the file is missing (or after restore) is it rebuilt; then the page waits (**Galerie-Index wird gebaut…**). The page tries to rebuild missing thumbnails itself.
 
 ### Live-Anzeige
 
@@ -278,7 +278,7 @@ Clock first. **Suchen** filters the city list. Pick a city, **Standort speichern
 
 **Sicherung:** **Sicherung als .txt** fetches `pic/` and `sound/` as one file (`tintenklecks-YYYY-MM-DD.txt`) — works in Chrome over HTTP. **Sicherung als .zip** the same, uncompressed; Chrome may block zip over HTTP, then use Firefox/Edge or the `.txt`. Leave USB plugged in. **Wiederherstellen:** `.txt` and uncompressed `.zip` in one go. Compressed zip still file by file. Same name overwrites, everything else stays. Firmware backup is the GitHub release.
 
-**Wartung:** **Neustart** (plays `neustart.wav`). **Jetzt aufräumen** removes leftovers of deleted pictures (otherwise automatic at start and after each delete). **WLAN-Daten löschen & Neustart** forgets the home network (asks first), then access point again.
+**Wartung:** **Neustart** (plays `neustart.wav`). **Jetzt aufräumen** removes leftovers of deleted pictures (JPG/JSON without a BMP) — only when you press the button, not automatically. **WLAN-Daten löschen & Neustart** forgets the home network (asks first), then access point again.
 
 ### WLAN-Setup
 

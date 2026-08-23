@@ -327,6 +327,59 @@ void slideshowInvalidateMemPreview() {
   g_memNextValid = false;
 }
 
+static String readSdWhole(const char *path) {
+  File f = SD_MMC.open(path, FILE_READ);
+  if (!f) {
+    return "";
+  }
+  String s;
+  s.reserve((size_t)f.size() + 8);
+  uint8_t buf[512];
+  int n;
+  while ((n = f.read(buf, sizeof(buf))) > 0) {
+    s.concat(buf, (unsigned int)n);
+  }
+  f.close();
+  return s;
+}
+
+static int jsonObjEnd(const String &s, int open) {
+  if (open < 0 || open >= (int)s.length() || s.charAt(open) != '{') {
+    return -1;
+  }
+  int depth = 0;
+  bool inStr = false;
+  bool esc = false;
+  for (int i = open; i < (int)s.length(); i++) {
+    char c = s.charAt(i);
+    if (inStr) {
+      if (esc) {
+        esc = false;
+        continue;
+      }
+      if (c == '\\') {
+        esc = true;
+        continue;
+      }
+      if (c == '"') {
+        inStr = false;
+      }
+      continue;
+    }
+    if (c == '"') {
+      inStr = true;
+    } else if (c == '{') {
+      depth++;
+    } else if (c == '}') {
+      depth--;
+      if (depth == 0) {
+        return i;
+      }
+    }
+  }
+  return -1;
+}
+
 static String readMetaFile(const String &bmpName) {
   String base = bmpName;
   int slash = base.lastIndexOf('/');
@@ -337,17 +390,7 @@ static String readMetaFile(const String &bmpName) {
     base = base.substring(0, base.length() - 4);
   }
   String path = String(PIC_DIR) + "/" + base + ".json";
-  File f = SD_MMC.open(path, FILE_READ);
-  if (!f) {
-    return "";
-  }
-  String s;
-  s.reserve((size_t)f.size() + 8);
-  while (f.available()) {
-    s += (char)f.read();
-  }
-  f.close();
-  return s;
+  return readSdWhole(path.c_str());
 }
 
 static const char *DECK_PATH = "/pic/_deck.txt";
@@ -484,17 +527,44 @@ static bool pickFromPot(const String *pool, int poolN, const String &avoid, Stri
   return true;
 }
 
+static bool memDatesForFile(const String &mems, const String &file, String &birth, String &death,
+                            String &special) {
+  birth = "";
+  death = "";
+  special = "";
+  if (mems.length() < 2 || file.length() == 0) {
+    return false;
+  }
+  String needle = String("\"file\":\"") + file + "\"";
+  int at = mems.indexOf(needle);
+  if (at < 0) {
+    return false;
+  }
+  int open = at;
+  while (open > 0 && mems.charAt(open) != '{') {
+    open--;
+  }
+  int close = jsonObjEnd(mems, open);
+  if (close < 0) {
+    return false;
+  }
+  String rec = mems.substring(open, close + 1);
+  birth = jsonField(rec, "birth");
+  death = jsonField(rec, "death");
+  special = jsonField(rec, "special");
+  return true;
+}
+
 static bool collectCandidates(PicCand *out, int maxN, int &count) {
   count = 0;
-  if (!sdOk()) {
+  if (!sdOk() || maxN < 1) {
     return false;
   }
-  char dirpath[48];
-  snprintf(dirpath, sizeof(dirpath), "%s%s", SD_MOUNT, PIC_DIR);
-  DIR *d = opendir(dirpath);
-  if (!d) {
+  String gallery = readSdWhole(LIST_CACHE_PATH);
+  if (gallery.length() < 2 || gallery.charAt(0) != '[') {
     return false;
   }
+  String mems = readSdWhole(MEMORIES_PATH);
 
   time_t now = time(nullptr);
   struct tm ti;
@@ -503,51 +573,41 @@ static bool collectCandidates(PicCand *out, int maxN, int &count) {
   int tm = haveTime ? (ti.tm_mon + 1) : 0;
   int td = haveTime ? ti.tm_mday : 0;
 
+  int pos = 0;
   uint16_t tick = 0;
-  struct dirent *ent;
-  while ((ent = readdir(d)) != nullptr && count < maxN) {
-    const char *base = ent->d_name;
-    if (!base || !base[0] || base[0] == '.' || base[0] == '_') {
+  while (count < maxN) {
+    int open = gallery.indexOf('{', pos);
+    if (open < 0) {
+      break;
+    }
+    int close = jsonObjEnd(gallery, open);
+    if (close < 0) {
+      break;
+    }
+    pos = close + 1;
+    String rec = gallery.substring(open, close + 1);
+    String file = jsonField(rec, "file");
+    if (!file.length()) {
       continue;
     }
-    if (ent->d_type == DT_DIR) {
-      continue;
-    }
-    size_t len = strlen(base);
-    if (len < 5) {
-      continue;
-    }
-    const char *ext = base + len - 4;
-    const bool dotBmp =
-        ext[0] == '.' && (ext[1] == 'b' || ext[1] == 'B') && (ext[2] == 'm' || ext[2] == 'M') &&
-        (ext[3] == 'p' || ext[3] == 'P');
-    if (!dotBmp) {
-      continue;
-    }
-    String meta = readMetaFile(base);
-    String birth = jsonField(meta, "birth");
-    String death = jsonField(meta, "death");
-    String special = jsonField(meta, "special");
-    String kind = jsonField(meta, "kind");
     PicCand &c = out[count];
-    c.file = base;
-    if (kind == "memory") {
+    c.file = file;
+    if (jsonField(rec, "kind") == "memory") {
       c.noDates = false;
-    } else if (kind == "normal") {
-      c.noDates = true;
+      String birth, death, special;
+      memDatesForFile(mems, file, birth, death, special);
+      c.anniversarySoon = haveTime && (matchAnniversarySoon(birth, ty, tm, td) ||
+                                       matchAnniversarySoon(death, ty, tm, td) ||
+                                       matchAnniversarySoon(special, ty, tm, td));
     } else {
-      c.noDates = (birth.length() == 0 && death.length() == 0 && special.length() == 0);
+      c.noDates = true;
+      c.anniversarySoon = false;
     }
-    c.anniversarySoon =
-        !c.noDates && haveTime &&
-        (matchAnniversarySoon(birth, ty, tm, td) || matchAnniversarySoon(death, ty, tm, td) ||
-         matchAnniversarySoon(special, ty, tm, td));
     count++;
     if ((++tick & 15) == 0) {
       yield();
     }
   }
-  closedir(d);
   return count > 0;
 }
 
@@ -742,10 +802,8 @@ void slideshowAppendMemoryJson(String &out) {
   struct tm ti;
   bool haveTime = g_timeOk && now > 1700000000 && localtime_r(&now, &ti);
   if (haveTime && sdOk()) {
-    char dirpath[48];
-    snprintf(dirpath, sizeof(dirpath), "%s%s", SD_MOUNT, PIC_DIR);
-    DIR *d = opendir(dirpath);
-    if (d) {
+    String arr = readSdWhole(MEMORIES_PATH);
+    if (arr.length() >= 2 && arr.charAt(0) == '[') {
       int ty = ti.tm_year + 1900;
       int tmo = ti.tm_mon + 1;
       int td = ti.tm_mday;
@@ -754,43 +812,22 @@ void slideshowAppendMemoryJson(String &out) {
       String bestFile;
       String bestName;
       String bestWhen;
+      int pos = 0;
       uint16_t tick = 0;
-      struct dirent *ent;
-      while ((ent = readdir(d)) != nullptr) {
-        const char *base = ent->d_name;
-        if (!base || !base[0] || base[0] == '.' || base[0] == '_') {
-          continue;
+      while (true) {
+        int open = arr.indexOf('{', pos);
+        if (open < 0) {
+          break;
         }
-        if (ent->d_type == DT_DIR) {
-          continue;
+        int close = jsonObjEnd(arr, open);
+        if (close < 0) {
+          break;
         }
-        size_t len = strlen(base);
-        if (len < 5) {
-          continue;
-        }
-        const char *ext = base + len - 4;
-        const bool dotBmp =
-            ext[0] == '.' && (ext[1] == 'b' || ext[1] == 'B') && (ext[2] == 'm' || ext[2] == 'M') &&
-            (ext[3] == 'p' || ext[3] == 'P');
-        if (!dotBmp) {
-          continue;
-        }
-        String meta = readMetaFile(base);
-        String birth = jsonField(meta, "birth");
-        String death = jsonField(meta, "death");
-        String special = jsonField(meta, "special");
-        String kind = jsonField(meta, "kind");
-        bool noDates;
-        if (kind == "memory") {
-          noDates = false;
-        } else if (kind == "normal") {
-          noDates = true;
-        } else {
-          noDates = (birth.length() == 0 && death.length() == 0 && special.length() == 0);
-        }
-        if (noDates) {
-          continue;
-        }
+        pos = close + 1;
+        String rec = arr.substring(open, close + 1);
+        String birth = jsonField(rec, "birth");
+        String death = jsonField(rec, "death");
+        String special = jsonField(rec, "special");
         int off = 99;
         String when;
         const String *fields[3] = {&birth, &death, &special};
@@ -814,13 +851,13 @@ void slideshowAppendMemoryJson(String &out) {
         count++;
         if (off < bestOff) {
           bestOff = off;
-          bestFile = base;
+          bestFile = jsonField(rec, "file");
           bestWhen = when;
-          String name = jsonField(meta, "name");
+          String name = jsonField(rec, "name");
           name.trim();
           if (name.length() == 0) {
-            name = base;
-            if (name.length() > 4) {
+            name = bestFile;
+            if (name.endsWith(".bmp") || name.endsWith(".BMP")) {
               name = name.substring(0, name.length() - 4);
             }
           }
@@ -830,7 +867,6 @@ void slideshowAppendMemoryJson(String &out) {
           yield();
         }
       }
-      closedir(d);
       if (count > 0 && bestFile.length() > 0) {
         g_memNextJson = "{\"count\":";
         g_memNextJson += String(count);
@@ -857,35 +893,46 @@ void slideshowAppendPotJson(String &j) {
     g_potTotal = 0;
     g_potMs = millis();
     if (sdOk()) {
-      PicCand *cands = new PicCand[SLIDE_MAX];
-      if (cands) {
-        int n = 0;
-        if (collectCandidates(cands, SLIDE_MAX, n)) {
-          String *pool = new String[SLIDE_MAX];
-          int poolN = 0;
-          if (pool) {
-            for (int i = 0; i < n; i++) {
-              if (cands[i].noDates) {
-                pool[poolN++] = cands[i].file;
-              }
+      String g = readSdWhole(LIST_CACHE_PATH);
+      if (g.length() >= 2 && g.charAt(0) == '[') {
+        String *pool = new String[SLIDE_MAX];
+        int poolN = 0;
+        if (pool) {
+          int pos = 0;
+          while (poolN < SLIDE_MAX) {
+            int open = g.indexOf('{', pos);
+            if (open < 0) {
+              break;
             }
-            g_potTotal = poolN;
-            String *deck = new String[SLIDE_MAX];
-            int left = 0;
-            if (deck) {
-              int dn = deckLoad(deck, SLIDE_MAX);
-              for (int i = 0; i < dn; i++) {
-                if (nameIn(pool, poolN, deck[i])) {
-                  left++;
-                }
-              }
-              delete[] deck;
+            int close = jsonObjEnd(g, open);
+            if (close < 0) {
+              break;
             }
-            g_potLeft = left;
-            delete[] pool;
+            pos = close + 1;
+            String rec = g.substring(open, close + 1);
+            if (jsonField(rec, "kind") != "normal") {
+              continue;
+            }
+            String file = jsonField(rec, "file");
+            if (file.length()) {
+              pool[poolN++] = file;
+            }
           }
+          g_potTotal = poolN;
+          String *deck = new String[SLIDE_MAX];
+          int left = 0;
+          if (deck) {
+            int dn = deckLoad(deck, SLIDE_MAX);
+            for (int i = 0; i < dn; i++) {
+              if (nameIn(pool, poolN, deck[i])) {
+                left++;
+              }
+            }
+            delete[] deck;
+          }
+          g_potLeft = left;
+          delete[] pool;
         }
-        delete[] cands;
       }
     }
   }

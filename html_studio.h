@@ -4,8 +4,6 @@ static const char PAGE_STUDIO[] PROGMEM = R"HTML(
 <!DOCTYPE html><html lang="de"><head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Studio · Tintenklecks</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet"/>
 <style>
 :root{--bg:#14110f;--panel:#241e18;--line:#4a3f35;--acc:#c4966e;--txt:#f3ebe3;--dim:#a89888}
 *{box-sizing:border-box}
@@ -1338,7 +1336,7 @@ stage.addEventListener('pointermove',function(e){
   if(!drag||!img) return;
   const wh=target(), tw=wh[0], th=wh[1]; const z=coverBase()*(+zoom.value/100); const dw=img.width*z, dh=img.height*z;
   panX=clamp(panX-(e.clientX-lx)/Math.max(1,Math.abs(tw-dw)||tw),0,1);
-  panY=clamp(panY+(e.clientY-ly)/Math.max(1,Math.abs(th-dh)||th),0,1);
+  panY=clamp(panY-(e.clientY-ly)/Math.max(1,Math.abs(th-dh)||th),0,1);
   lx=e.clientX; ly=e.clientY; pictureDirty=true; drawCrop(); schedule();
 });
 
@@ -1722,12 +1720,6 @@ document.getElementById('btnTuneStyle').onclick=function(){
 };
 document.getElementById('btnShow').onclick=function(){send(true);};
 document.getElementById('btnSave').onclick=function(){send(false);};
-if(document.fonts && document.fonts.load){
-  Promise.all([
-    document.fonts.load('400 28px "Dancing Script"'),
-    document.fonts.load('700 28px "Dancing Script"')
-  ]).then(function(){ schedule(); }).catch(function(){});
-}
 async function refreshStatus(){
   if(window.__zzz) return;
   try{

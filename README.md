@@ -147,7 +147,7 @@ Im Browser die IP des Rahmens öffnen: Access Point [http://192.168.4.1](http://
 
 Oben links **Tintenklecks**: auf Unterseiten ein Link zurück ins Hauptmenü, auf dem Menü nur der Name.
 
-Rechts **Akku … %**, bei Ladung **· lädt**, oder **USB-Betrieb**. Daneben **zzz** — nur ohne USB sichtbar. Der Knopf schickt den Rahmen sofort in den Deep Sleep. Status-Abfragen im Browser halten den Rahmen nicht wach.
+Rechts **Akku … %**, bei Ladung **· lädt**, oder **USB-Betrieb**. Daneben **zzz** — nur ohne USB sichtbar. Der Knopf schickt den Rahmen sofort in den Deep Sleep. Ein offener Tab (Status alle 15 s) hält den Rahmen wach.
 
 ### Tasten am Gerät
 
@@ -181,7 +181,7 @@ Sechs Kacheln:
 
 ![Studio](docs/studio.png)
 
-Zwei Bühnen: links **Zuschnitt**, rechts **E6 Vorschau**. Das Foto in das gestrichelte Feld ziehen oder tippen (JPG, PNG, BMP). Mausrad zoomt, Ziehen auf der linken Bühne verschiebt den Ausschnitt.
+Zwei Bühnen: links **Zuschnitt**, rechts **E6 Vorschau**. Das Foto in das gestrichelte Feld ziehen oder tippen (JPG, PNG, BMP). Mausrad zoomt, Ziehen auf der linken Bühne verschiebt den Ausschnitt — das Bild folgt der Maus (auch senkrecht).
 
 **Gerendertes BMP an E6** umgeht das Studio: eine schon fertige 24-Bit-BMP in Panelgröße (480×800 oder 800×480) direkt aufs E-Paper.
 
@@ -236,7 +236,7 @@ Zwei Reiter: **Zufall** und **Erinnerungen**. Oben die Zähler und der **Zufalls
 | Umbenennen | Dateiname ohne `.bmp` |
 | Löschen | BMP plus JSON, Vorschauen und zugehörigen Ton (Nachfrage). Hängt genau dieses Bild am Panel, kommt danach das nächste — wie KEY / Jetzt wechseln |
 
-Fehlt die Vorschau: **Kein Vorschaubild · neu speichern**. Ohne Zuschnitt-Datei ein roter Rand und **Kein Zuschnitt**. Der Index baut sich nach dem Start im Hintergrund; die Seite wartet darauf (**Galerie-Index wird gebaut…**). Fehlende Vorschaubilder versucht die Seite selbst nachzuziehen.
+Fehlt die Vorschau: **Kein Vorschaubild · neu speichern**. Ohne Zuschnitt-Datei ein roter Rand und **Kein Zuschnitt**. Der Index liegt als Datei auf der SD und wird beim Speichern, Löschen oder Umbennen sofort mitgeführt — Zufall und Erinnerungen ohne Vollscan. Nur wenn die Datei fehlt (oder nach Wiederherstellen), wird sie neu gebaut; dann wartet die Seite (**Galerie-Index wird gebaut…**). Fehlende Vorschaubilder versucht die Seite selbst nachzuziehen.
 
 ### Live-Anzeige
 
@@ -276,7 +276,7 @@ Zuerst die Uhr. **Suchen** filtert die Stadtliste. Stadt wählen, **Standort spe
 
 **Sicherung:** **Sicherung als .txt** holt `pic/` und `sound/` in einer Datei (`tintenklecks-JJJJ-MM-TT.txt`) — geht in Chrome über HTTP. **Sicherung als .zip** dasselbe unkomprimiert; Chrome kann Zip über HTTP sperren, dann Firefox/Edge oder die `.txt`. USB stecken. **Wiederherstellen:** `.txt` und unkomprimiertes `.zip` in einem Rutsch. Komprimiertes Zip noch Datei für Datei. Gleicher Name überschreibt, sonst bleibt alles. Firmware-Backup ist das GitHub-Release.
 
-**Wartung:** **Neustart** (spielt `neustart.wav`). **Jetzt aufräumen** entfernt Reste gelöschter Bilder (passiert sonst automatisch beim Start und nach jedem Löschen). **WLAN-Daten löschen & Neustart** vergisst das Heimnetz (Nachfrage), danach wieder Access Point.
+**Wartung:** **Neustart** (spielt `neustart.wav`). **Jetzt aufräumen** entfernt Reste gelöschter Bilder (JPG/JSON ohne BMP) — nur auf Knopf, nicht automatisch. **WLAN-Daten löschen & Neustart** vergisst das Heimnetz (Nachfrage), danach wieder Access Point.
 
 ### WLAN-Setup
 
