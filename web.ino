@@ -3,6 +3,7 @@
 #include "config.h"
 #include "board.h"
 #include "html_pages.h"
+#include "favicon.h"
 #include "FS.h"
 #include "SD_MMC.h"
 
@@ -44,6 +45,11 @@ void webSetOfflineStudio(bool on) {
 static void sendProgmem(const char *page) {
   server.sendHeader("Cache-Control", "no-store");
   server.send_P(200, "text/html; charset=utf-8", page);
+}
+
+static void handleFavicon() {
+  server.sendHeader("Cache-Control", "public, max-age=86400");
+  server.send_P(200, "image/png", (PGM_P)FAVICON_PNG, sizeof(FAVICON_PNG));
 }
 
 static void handleRoot() {
@@ -3447,6 +3453,9 @@ void webBegin() {
   }
 
   server.on("/", HTTP_GET, handleRoot);
+  server.on("/favicon.png", HTTP_GET, handleFavicon);
+  server.on("/favicon.ico", HTTP_GET, handleFavicon);
+  server.on("/apple-touch-icon.png", HTTP_GET, handleFavicon);
   server.on("/setup", HTTP_GET, handleSetup);
   server.on("/menu", HTTP_GET, handleMenu);
   server.on("/studio", HTTP_GET, handleStudio);

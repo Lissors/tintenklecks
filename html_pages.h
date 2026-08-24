@@ -4,12 +4,13 @@
 static const char PAGE_SETUP[] PROGMEM = R"HTML(
 <!DOCTYPE html><html lang="de"><head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" type="image/png" href="/favicon.png"/><link rel="apple-touch-icon" href="/favicon.png"/>
 <title>Tintenklecks · WLAN</title>
 <style>
 :root{--bg:#1a1612;--line:#56483c;--acc:#c4966e;--txt:#f3ebe3;--dim:#a89888}
 body{font-family:system-ui,sans-serif;margin:0;background:var(--bg);color:var(--txt);min-height:100vh}
 .top{display:flex;justify-content:space-between;align-items:center;padding:.85rem 1.1rem;border-bottom:1px solid var(--line);gap:.75rem;flex-wrap:wrap}
-.brand a{color:var(--txt);text-decoration:none;font-weight:700}
+.brand,.brand a{display:inline-flex;align-items:center;gap:.45rem;color:var(--txt);text-decoration:none;font-weight:700}.brand img{width:1.55rem;height:1.55rem;border-radius:.4rem;flex:none}
 .wrap{display:flex;align-items:center;justify-content:center;padding:1.5rem 0 2rem}
 .card{max-width:420px;width:92%;background:#2a231c;border-radius:12px;padding:1.5rem}
 h1{font-size:1.4rem;margin:0 0 .35rem}
@@ -28,7 +29,7 @@ button.pri:active{filter:brightness(.78)}
 .hint{margin-top:1rem;font-size:.8rem;opacity:.65}
 a{color:#c4966e}
 </style></head><body>
-<div class="top"><div class="brand"><a href="/menu">Tintenklecks</a></div></div>
+<div class="top"><div class="brand"><a href="/menu"><img src="/favicon.png" width="28" height="28" alt=""/>Tintenklecks</a></div></div>
 <div class="wrap"><div class="card">
 <h1>WLAN</h1>
 <p>Heimnetz eintragen oder AP-Passwort festlegen. Offline im Menü bleiben.</p>
@@ -83,12 +84,13 @@ document.querySelectorAll('.eye').forEach(function(btn){
 static const char PAGE_MENU[] PROGMEM = R"HTML(
 <!DOCTYPE html><html lang="de"><head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" type="image/png" href="/favicon.png"/><link rel="apple-touch-icon" href="/favicon.png"/>
 <title>Tintenklecks</title>
 <style>
 :root{--bg:#14110f;--panel:#241e18;--line:#4a3f35;--acc:#c4966e;--txt:#f3ebe3;--dim:#a89888}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
 .top{display:flex;justify-content:space-between;align-items:center;padding:.85rem 1.1rem;border-bottom:1px solid var(--line);gap:.75rem;flex-wrap:wrap}
-.brand{font-weight:700;font-size:1.05rem}.meta{font-size:.8rem;color:var(--dim);display:flex;gap:1rem;align-items:center}
+.brand{display:inline-flex;align-items:center;gap:.45rem;font-weight:700;font-size:1.05rem}.brand img{width:1.55rem;height:1.55rem;border-radius:.4rem;flex:none}.meta{font-size:.8rem;color:var(--dim);display:flex;gap:1rem;align-items:center}
 .bat{font-variant-numeric:tabular-nums}
 .zzz{margin:0;padding:.2rem .5rem;border-radius:6px;border:1px solid var(--line);background:#1a1612;color:var(--dim);font:inherit;font-size:.78rem;font-weight:700;letter-spacing:.08em;cursor:pointer}
 main{max-width:720px;margin:0 auto;padding:1.5rem 1rem}
@@ -101,7 +103,7 @@ a.tile strong{display:block;font-size:1.05rem;margin-bottom:.25rem}
 a.tile span{font-size:.82rem;color:var(--dim);line-height:1.35}
 footer{text-align:center;padding:2rem 1rem 1.5rem;font-size:.75rem;color:var(--dim)}
 </style></head><body>
-<div class="top"><div class="brand">Tintenklecks</div><div class="meta"><button type="button" class="zzz" id="btnZzz">zzz</button><span class="bat" id="bat">Akku …</span></div></div>
+<div class="top"><div class="brand"><img src="/favicon.png" width="28" height="28" alt=""/>Tintenklecks</div><div class="meta"><button type="button" class="zzz" id="btnZzz">zzz</button><span class="bat" id="bat">Akku …</span></div></div>
 <main>
 <h1>Hauptmenü</h1>
 <p class="lead">Bild anlegen, Galerie verwalten, Live ansehen oder System prüfen.</p>
@@ -154,6 +156,7 @@ fetch('/api/list').catch(function(){});
 static const char PAGE_GALLERY[] PROGMEM = R"HTML(
 <!DOCTYPE html><html lang="de"><head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" type="image/png" href="/favicon.png"/><link rel="apple-touch-icon" href="/favicon.png"/>
 <title>Bilder · Tintenklecks</title>
 <style>
 :root{--bg:#14110f;--panel:#241e18;--line:#4a3f35;--acc:#c4966e;--txt:#f3ebe3;--dim:#a89888}
@@ -165,7 +168,7 @@ body.busy button{pointer-events:none;opacity:.55}
 .hour{width:44px;height:44px;border:3px solid var(--acc);border-top-color:transparent;border-radius:50%;animation:spin .75s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .top{display:flex;justify-content:space-between;align-items:center;padding:.85rem 1.1rem;border-bottom:1px solid var(--line);gap:.75rem;flex-wrap:wrap}
-.brand a{color:var(--txt);text-decoration:none;font-weight:700}.nav a{color:var(--acc);margin-left:.75rem;font-size:.85rem;text-decoration:none}
+.brand,.brand a{display:inline-flex;align-items:center;gap:.45rem;color:var(--txt);text-decoration:none;font-weight:700}.brand img{width:1.55rem;height:1.55rem;border-radius:.4rem;flex:none}.nav a{color:var(--acc);margin-left:.75rem;font-size:.85rem;text-decoration:none}
 .bat{font-size:.8rem;color:var(--dim)}
 .head-right{display:flex;align-items:center;gap:.5rem}
 button.zzz{width:auto;margin:0;padding:.2rem .5rem;font-size:.78rem;letter-spacing:.08em;font-weight:700;flex:none;border-radius:6px;border:1px solid var(--line);background:#1a1612;color:var(--dim);cursor:pointer;font:inherit}
@@ -210,7 +213,7 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
 </style></head><body>
 <div class="busy-ov" id="busyOv"><div class="hour"></div><div class="busy-msg" id="busyMsg">Bitte warten…</div></div>
 <div class="top">
-  <div class="brand"><a href="/menu">Tintenklecks</a></div>
+  <div class="brand"><a href="/menu"><img src="/favicon.png" width="28" height="28" alt=""/>Tintenklecks</a></div>
   <div class="head-right"><button type="button" class="zzz" id="btnZzz">zzz</button><div class="bat" id="bat">Akku …</div></div>
 </div>
 <main>
@@ -691,6 +694,7 @@ refreshStatus(); setInterval(refreshStatus,15000); loadList();
 static const char PAGE_SYSTEM[] PROGMEM = R"HTML(
 <!DOCTYPE html><html lang="de"><head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" type="image/png" href="/favicon.png"/><link rel="apple-touch-icon" href="/favicon.png"/>
 <title>System · Tintenklecks</title>
 <style>
 :root{--bg:#14110f;--panel:#241e18;--line:#4a3f35;--acc:#c4966e;--txt:#f3ebe3;--dim:#a89888}
@@ -702,7 +706,7 @@ body.busy button{pointer-events:none;opacity:.55}
 .hour{width:44px;height:44px;border:3px solid var(--acc);border-top-color:transparent;border-radius:50%;animation:spin .75s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .top{display:flex;justify-content:space-between;align-items:center;padding:.85rem 1.1rem;border-bottom:1px solid var(--line);gap:.75rem;flex-wrap:wrap}
-.brand a{color:var(--txt);text-decoration:none;font-weight:700}.nav a{color:var(--acc);margin-left:.75rem;font-size:.85rem;text-decoration:none}
+.brand,.brand a{display:inline-flex;align-items:center;gap:.45rem;color:var(--txt);text-decoration:none;font-weight:700}.brand img{width:1.55rem;height:1.55rem;border-radius:.4rem;flex:none}.nav a{color:var(--acc);margin-left:.75rem;font-size:.85rem;text-decoration:none}
 .bat{font-size:.8rem;color:var(--dim)}
 .head-right{display:flex;align-items:center;gap:.5rem}
 button.zzz{width:auto;margin:0;padding:.2rem .5rem;font-size:.78rem;letter-spacing:.08em;flex:none;border-radius:6px;border:1px solid var(--line);background:#1a1612;color:var(--dim);cursor:pointer;font:inherit}
@@ -724,7 +728,7 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
 </style></head><body>
 <div class="busy-ov" id="busyOv"><div class="hour"></div><div id="busyMsg">Bitte warten…</div></div>
 <div class="top">
-  <div class="brand"><a href="/menu">Tintenklecks</a></div>
+  <div class="brand"><a href="/menu"><img src="/favicon.png" width="28" height="28" alt=""/>Tintenklecks</a></div>
   <div class="head-right"><button type="button" class="zzz" id="btnZzz">zzz</button><div class="bat" id="bat">Akku …</div></div>
 </div>
 <main>

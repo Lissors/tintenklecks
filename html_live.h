@@ -3,6 +3,7 @@
 static const char PAGE_LIVE[] PROGMEM = R"HTML(
 <!DOCTYPE html><html lang="de"><head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" type="image/png" href="/favicon.png"/><link rel="apple-touch-icon" href="/favicon.png"/>
 <title>Live · Tintenklecks</title>
 <style>
 :root{--bg:#14110f;--panel:#241e18;--line:#4a3f35;--acc:#c4966e;--txt:#f3ebe3;--dim:#a89888;--mat:#f2efe8;--frame:9.5%}
@@ -14,7 +15,7 @@ body.busy button{pointer-events:none;opacity:.55}
 .hour{width:44px;height:44px;border:3px solid var(--acc);border-top-color:transparent;border-radius:50%;animation:spin .75s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .top{display:flex;justify-content:space-between;align-items:center;padding:.85rem 1.1rem;border-bottom:1px solid var(--line);gap:.75rem;flex-wrap:wrap}
-.brand a{color:var(--txt);text-decoration:none;font-weight:700}.nav a{color:var(--acc);margin-left:.75rem;font-size:.85rem;text-decoration:none}
+.brand,.brand a{display:inline-flex;align-items:center;gap:.45rem;color:var(--txt);text-decoration:none;font-weight:700}.brand img{width:1.55rem;height:1.55rem;border-radius:.4rem;flex:none}.nav a{color:var(--acc);margin-left:.75rem;font-size:.85rem;text-decoration:none}
 .bat{font-size:.8rem;color:var(--dim)}
 .head-right{display:flex;align-items:center;gap:.5rem}
 button.zzz{width:auto;margin:0;padding:.2rem .5rem;font-size:.78rem;letter-spacing:.08em;font-weight:700;flex:none;border-radius:6px;border:1px solid var(--line);background:#1a1612;color:var(--dim);cursor:pointer;font:inherit}
@@ -146,7 +147,7 @@ footer{text-align:center;padding:1rem;font-size:.75rem;color:var(--dim)}
 </style></head><body>
 <div class="busy-ov" id="busyOv"><div class="hour"></div><div id="busyMsg">Bitte warten…</div></div>
 <div class="top">
-  <div class="brand"><a href="/menu">Tintenklecks</a></div>
+  <div class="brand"><a href="/menu"><img src="/favicon.png" width="28" height="28" alt=""/>Tintenklecks</a></div>
   <div class="head-right"><button type="button" class="zzz" id="btnZzz">zzz</button><div class="bat" id="bat">Akku …</div></div>
 </div>
 <main>

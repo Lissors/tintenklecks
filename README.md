@@ -1,5 +1,7 @@
 # Tintenklecks
 
+<img src="docs/icon.png" width="96" height="96" alt="Tintenklecks"/>
+
 Deutsch · [English](README.en.md)
 
 Firmware für den **Waveshare ESP32-S3 PhotoPainter** (7,3″ Spectra-6 / E6, 480×800).
@@ -145,7 +147,7 @@ Im Browser die IP des Rahmens öffnen: Access Point [http://192.168.4.1](http://
 
 ### Kopfzeile (alle Seiten)
 
-Oben links **Tintenklecks**: auf Unterseiten ein Link zurück ins Hauptmenü, auf dem Menü nur der Name.
+Oben links das **Icon** und **Tintenklecks**: auf Unterseiten ein Link zurück ins Hauptmenü, auf dem Menü nur der Name. Im Browser-Tab dasselbe Icon.
 
 Rechts **Akku … %**, bei Ladung **· lädt**, oder **USB-Betrieb**. Daneben **zzz** — nur ohne USB sichtbar. Der Knopf schickt den Rahmen sofort in den Deep Sleep. Ein offener Tab (Status alle 15 s) hält den Rahmen wach.
 
