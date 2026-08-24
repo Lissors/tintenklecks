@@ -78,6 +78,7 @@ void slideshowNoteShown(const String &files);
 void slideshowForgetShown(const String &file);
 void slideshowDeckRemove(const String &file);
 void slideshowDeckAdd(const String &file);
+void slideshowDeckRefill();  // alle Zufallsbilder zurück in den Topf, neu gemischt
 String slideshowLastShown();
 bool slideshowReshowLast();
 /** Deep sleep allowed: daily mode, or interval ≥ 10 min. */

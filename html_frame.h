@@ -40,24 +40,9 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
 <h1>Rahmeneinstellung</h1>
 <p class="lead">Automatischer Wechsel. Erinnerungen (am Tag selbst, morgen oder übermorgen): ein Bild voll. Mehrere am selben Tag: eine zufällig, Hinweis unten rechts, KEY und alle 3&nbsp;Stunden die nächste — KEY nach der Runde Zufall. KEY und Jetzt wechseln sonst nur Zufall. Sonst Zufall ohne Datum, ohne Zurücklegen. USB: bleibt wach. Akku, ab 10&nbsp;Min Intervall oder 1×/Tag: ohne Client direkt nach Bildwechsel, mit Client nach 60&nbsp;s Inaktivität Deep Sleep — Aufwachen beim nächsten Wechsel, per KEY (wechseln, wieder schlafen) oder per BOOT (Web, kein Wechsel). 5&nbsp;Min: bleibt wach.</p>
 <div class="panel">
-<h2>Uhrzeit (Chip-RTC)</h2>
-<label class="field">Datum &amp; Zeit
-  <input id="clock" type="datetime-local"/>
-</label>
-<label class="field">Suchen
-  <input id="tzFilter" type="search" placeholder="Stadt…" autocomplete="off"/>
-</label>
-<label class="field">Stadt
-  <select id="tzCity" size="8"></select>
-</label>
-<p class="hint">Die Stadt setzt die Zeitzone, inklusive Sommer- und Winterzeit.</p>
-<button id="btnTz" type="button">Standort speichern</button>
-<button id="btnTime" type="button">Uhr setzen</button>
-<button id="btnPhone" type="button">Von diesem Gerät übernehmen</button>
-<p class="hint" id="clockHint">—</p>
-<p class="hint" id="ntpHint">—</p>
 <p class="hint" id="memNext">—</p>
 <p class="hint" id="potLine">—</p>
+<button id="btnPot" type="button">Alle Bilder in die Auswahl</button>
 </div>
 <div class="panel">
 <h2>Wechsel</h2>
@@ -86,6 +71,26 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
 <p class="status" id="status"></p>
 <p class="hint" id="hint">—</p>
 </div>
+<div class="panel">
+<h2>Anzeige</h2>
+<label class="field">Rahmenlage
+  <select id="hang">
+    <option value="portrait" selected>Hochkant</option>
+    <option value="landscape">Quer</option>
+  </select>
+</label>
+<button class="pri" id="btnHangSave" type="button">Lage speichern</button>
+<p class="hint">Gilt für neue Bilder in Studio, Live und am Panel. Vorhandene Bilder bleiben unverändert.</p>
+<p class="status" id="hangStatus"></p>
+<button class="pri" id="btnBlank" type="button">Panel leeren (weiß)</button>
+<button id="btnBattWarn" type="button">Akkuwarnung testen</button>
+<p class="hint">Leert das E-Paper. Bilder erneut über Galerie „Anzeigen“. Test: „Akku &lt; 10 %“ unten rechts auf dem aktuellen Bild, unabhängig vom echten Stand.</p>
+</div>
+<div class="panel">
+<h2>Index</h2>
+<p class="hint">Scannt die SD neu und sortiert alle Bilder nach Namen. Speichern, Löschen und Umbenennen ändern die Liste sofort — dieser Knopf nur, wenn Reihenfolge oder Index nicht stimmen.</p>
+<button id="btnRebuild" type="button">Index neu aufbauen</button>
+</div>
 </main>
 <footer id="foot">© 2026 Ingo Lissors</footer>
 <script>
@@ -104,20 +109,6 @@ function syncUi(){
   document.getElementById('dailyBox').style.display=mode==='2'?'block':'none';
 }
 document.getElementById('mode').onchange=syncUi;
-function ntpLine(f){
-  if(f.ntp==='hold'){
-    const m=Math.max(1, Math.ceil((f.ntpHoldSec||0)/60));
-    return 'NTP: Pause nach Handzeit, noch '+m+' min';
-  }
-  if(f.ntp==='ok'){
-    const at=(f.ntpAt||'').replace('T',' ');
-    const hm=at.length>=16?at.slice(11,16):at;
-    return 'NTP: ja'+(hm?', '+hm:'');
-  }
-  if(f.ntp==='fail') return 'NTP: fehlgeschlagen, RTC gilt';
-  if(f.ntp==='ap') return 'NTP: — (Access Point)';
-  return 'NTP: —';
-}
 function memLine(f){
   if(!f.timeOk) return 'Nächste Erinnerung: — (keine Chip-Zeit)';
   const m=f.memoryNext;
@@ -125,6 +116,14 @@ function memLine(f){
   let s='Nächste Erinnerung: '+(m.when||'')+' · '+(m.name||m.file||'');
   if((m.count||0)>1) s+=' · '+(m.count-1)+' weitere';
   return s;
+}
+function applyPot(f){
+  const pot=document.getElementById('potLine');
+  if(!pot) return;
+  const t=f.potTotal|0;
+  if(typeof f.potLeft!=='number' || t<1) pot.textContent='Zufallstopf: —';
+  else if(f.potLeft<1) pot.textContent='Zufallstopf: nächster Zug neue Runde ('+t+' Bilder)';
+  else pot.textContent='Zufallstopf noch '+f.potLeft+' von '+t;
 }
 function applyFrame(f){
   document.getElementById('mode').value=String(f.mode||0);
@@ -134,21 +133,9 @@ function applyFrame(f){
   document.getElementById('dailyTime').value=hh+':'+mm;
   document.getElementById('hint').textContent=
     'Zeit: '+(f.now||'—')+' · RTC '+(f.rtc?'OK':'fehlt')+' · sync '+(f.timeOk?'ja':'nein')+(f.last?' · zuletzt: '+f.last:'');
-  document.getElementById('clockHint').textContent=f.now?('Aktuell: '+f.now.replace('T',' ')):'Keine gültige Chip-Zeit — bitte setzen';
-  const ntp=document.getElementById('ntpHint');
-  if(ntp) ntp.textContent=ntpLine(f);
   const mem=document.getElementById('memNext');
   if(mem) mem.textContent=memLine(f);
-  const pot=document.getElementById('potLine');
-  if(pot){
-    const t=f.potTotal|0;
-    if(typeof f.potLeft!=='number' || t<1) pot.textContent='Zufallstopf: —';
-    else if(f.potLeft<1) pot.textContent='Zufallstopf: nächster Zug neue Runde ('+t+' Bilder)';
-    else pot.textContent='Zufallstopf noch '+f.potLeft+' von '+t;
-  }
-  if(f.now){
-    document.getElementById('clock').value=f.now;
-  }
+  applyPot(f);
   syncUi();
 }
 async function refreshStatus(){
@@ -162,6 +149,11 @@ async function refreshStatus(){
     const z=document.getElementById('btnZzz');
     if(z) z.hidden=!!s.usb;
     document.getElementById('foot').textContent=s.copyright||'© 2026 Ingo Lissors';
+    const hang=document.getElementById('hang');
+    if(hang && (s.hang==='portrait'||s.hang==='landscape') && document.activeElement!==hang) hang.value=s.hang;
+    const mem=document.getElementById('memNext');
+    if(mem && ('memoryNext' in s || 'timeOk' in s)) mem.textContent=memLine(s);
+    if(typeof s.potLeft==='number' || typeof s.potTotal==='number') applyPot(s);
   }catch(e){}
 }
 document.getElementById('btnZzz').onclick=()=>{
@@ -179,47 +171,6 @@ document.getElementById('btnZzz').onclick=()=>{
     }
     window.__zzz=0;
   })();
-};
-async function loadTz(){
-  try{
-    const sel=document.getElementById('tzCity');
-    const [cities,cur]=await Promise.all([
-      (await fetch('/api/tz-cities')).json(),
-      (await fetch('/api/tz')).json()
-    ]);
-    cities.sort((a,b)=>a.n.localeCompare(b.n,'de'));
-    sel.innerHTML='';
-    cities.forEach(c=>{
-      const o=document.createElement('option');
-      o.value=c.n; o.dataset.posix=c.p; o.textContent=c.n;
-      if(c.n===cur.city) o.selected=true;
-      sel.appendChild(o);
-    });
-    if(cur.city) document.getElementById('tzFilter').value=cur.city;
-  }catch(e){}
-}
-document.getElementById('tzFilter').oninput=()=>{
-  const q=document.getElementById('tzFilter').value.trim().toLowerCase();
-  const sel=document.getElementById('tzCity');
-  for(const o of sel.options){ o.hidden=q && o.textContent.toLowerCase().indexOf(q)<0; }
-};
-document.getElementById('tzCity').onchange=()=>{
-  const sel=document.getElementById('tzCity');
-  const o=sel.options[sel.selectedIndex];
-  if(o) document.getElementById('tzFilter').value=o.textContent;
-};
-document.getElementById('btnTz').onclick=async()=>{
-  const sel=document.getElementById('tzCity');
-  const o=sel.options[sel.selectedIndex];
-  if(!o) return;
-  setBusy(true,'Standort…');
-  try{
-    const r=await fetch('/api/tz',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'city='+encodeURIComponent(o.value)+'&posix='+encodeURIComponent(o.dataset.posix||'')});
-    const t=await r.text();
-    document.getElementById('clockHint').textContent=r.ok?'Standort gespeichert · NTP an':'Fehler: '+t;
-    if(r.ok) await loadFrame();
-  }catch(e){ document.getElementById('status').textContent=String(e); }
-  finally{ setBusy(false); }
 };
 async function loadFrame(){
   setBusy(true,'Laden…');
@@ -253,31 +204,61 @@ document.getElementById('btnNow').onclick=async()=>{
   }catch(e){ document.getElementById('status').textContent=String(e); }
   finally{ setBusy(false); }
 };
-document.getElementById('btnTime').onclick=async()=>{
-  const v=document.getElementById('clock').value;
-  if(!v){ document.getElementById('status').textContent='Bitte Datum/Zeit wählen'; return; }
-  setBusy(true,'Setze Uhr…');
+document.getElementById('btnHangSave').onclick=async()=>{
+  setBusy(true,'Lage…');
   try{
-    const r=await fetch('/api/time',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'iso='+encodeURIComponent(v)});
-    const t=await r.text();
-    if(!r.ok){ document.getElementById('status').textContent=t; return; }
-    document.getElementById('status').textContent='Uhr gesetzt';
-    applyFrame(JSON.parse(t));
+    const hang=document.getElementById('hang').value;
+    const r=await fetch('/api/hang',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'hang='+encodeURIComponent(hang)});
+    document.getElementById('hangStatus').textContent=r.ok?'gespeichert':await r.text();
+  }catch(e){ document.getElementById('hangStatus').textContent=String(e); }
+  finally{ setBusy(false); }
+};
+document.getElementById('btnBlank').onclick=async()=>{
+  setBusy(true,'Panel…');
+  try{
+    const r=await fetch('/api/display',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'blank=1'});
+    document.getElementById('status').textContent=await r.text();
   }catch(e){ document.getElementById('status').textContent=String(e); }
   finally{ setBusy(false); }
 };
-document.getElementById('btnPhone').onclick=async()=>{
-  setBusy(true,'Setze Uhr…');
+document.getElementById('btnBattWarn').onclick=async()=>{
+  setBusy(true,'Warnung…');
   try{
-    const r=await fetch('/api/time',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'epoch='+Math.floor(Date.now()/1000)});
-    const t=await r.text();
-    if(!r.ok){ document.getElementById('status').textContent=t; return; }
-    document.getElementById('status').textContent='Uhr vom Gerät übernommen (Standort-Zeit)';
-    applyFrame(JSON.parse(t));
+    const r=await fetch('/api/batt-warn',{method:'POST'});
+    document.getElementById('status').textContent=await r.text();
   }catch(e){ document.getElementById('status').textContent=String(e); }
   finally{ setBusy(false); }
 };
-refreshStatus(); setInterval(refreshStatus,15000); loadFrame(); loadTz();
+document.getElementById('btnPot').onclick=async()=>{
+  setBusy(true,'Topf…');
+  try{
+    const f=await (await fetch('/api/frame-pot',{method:'POST'})).json();
+    applyFrame(f);
+    document.getElementById('status').textContent='Alle Zufallsbilder wieder in der Auswahl';
+  }catch(e){ document.getElementById('status').textContent=String(e); }
+  finally{ setBusy(false); }
+};
+document.getElementById('btnRebuild').onclick=async()=>{
+  setBusy(true,'Index…');
+  try{
+    const r=await fetch('/api/list-rebuild',{method:'POST'});
+    const t=await r.text();
+    if(!r.ok){ document.getElementById('status').textContent=t||'Fehler'; return; }
+    let n=0, done=false;
+    for(let i=0;i<90;i++){
+      await new Promise(res=>setTimeout(res, i===0?300:2000));
+      const s=await (await fetch('/api/status')).json();
+      if(s.listBuilding) continue;
+      const items=await (await fetch('/api/list')).json();
+      n=Array.isArray(items)?items.length:0;
+      done=true;
+      break;
+    }
+    document.getElementById('status').textContent=done?('Index neu aufgebaut · '+n+' Bilder'):'Index wird noch gebaut';
+  }catch(e){ document.getElementById('status').textContent=String(e); }
+  finally{ setBusy(false); }
+};
+refreshStatus(); setInterval(refreshStatus,15000); loadFrame();
 </script>
 </body></html>
 )HTML";

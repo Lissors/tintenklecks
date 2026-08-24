@@ -108,8 +108,8 @@ footer{text-align:center;padding:2rem 1rem 1.5rem;font-size:.75rem;color:var(--d
 <a class="tile" href="/live"><strong>Live-Anzeige</strong><span>Rahmen mit aktuellem Bild, Text, Blättern</span></a>
 <a class="tile" href="/studio"><strong>Neues Bild</strong><span>Zuschnitt, Stil, Beschriftung, Anzeigen</span></a>
 <a class="tile" href="/gallery"><strong>Bilder</strong><span>Anzeigen, bearbeiten, löschen</span></a>
-<a class="tile" href="/frame"><strong>Rahmen</strong><span>Automatischer Bildwechsel</span></a>
-<a class="tile" href="/system"><strong>System</strong><span>Akku, Panel, Neustart, WLAN</span></a>
+<a class="tile" href="/frame"><strong>Rahmen</strong><span>Wechsel, Lage, Panel</span></a>
+<a class="tile" href="/system"><strong>System</strong><span>Uhr, Akku, ntfy, WLAN</span></a>
 <a class="tile" href="/setup"><strong>WLAN-Setup</strong><span>Zugang speichern oder ändern</span></a>
 </div>
 </main>
@@ -171,11 +171,15 @@ button.zzz{width:auto;margin:0;padding:.2rem .5rem;font-size:.78rem;letter-spaci
 main{max-width:960px;margin:0 auto;padding:1rem}
 h1{font-size:1.2rem;margin:0 0 .5rem}
 h2.sec{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin:.35rem 0 .6rem}
-.tabs{display:flex;gap:.45rem;margin:0 0 1rem}
+.tabs{display:flex;gap:.45rem;margin:0 0 .65rem}
 .tabs button{flex:1;padding:.55rem;border-radius:8px;border:1px solid var(--line);background:#1a1612;color:var(--txt);font:inherit;font-weight:700;cursor:pointer}
 .tabs button.on{background:var(--acc);color:#1a1612;border:0}
+.gal-search{display:flex;gap:.45rem;margin:0 0 1rem}
+.gal-search input{flex:1;min-width:0;box-sizing:border-box;padding:.55rem .65rem;border-radius:8px;border:1px solid var(--line);background:#1a1612;color:var(--txt);font:inherit}
+.gal-search button{flex:none;padding:.55rem .9rem;font-weight:700}
 .list{display:grid;grid-template-columns:repeat(auto-fill,144px);justify-content:center;gap:1rem}
 .card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.card[hidden]{display:none !important}
 .card.e6raw{border-color:#c45}
 .card img{width:100%;aspect-ratio:3/5;object-fit:cover;background:#0c0a09;display:block}
 .card.land img,.card.land .ph{aspect-ratio:5/3}
@@ -214,6 +218,10 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
   <button type="button" id="tabNormal" class="on">Zufall</button>
   <button type="button" id="tabMemory">Erinnerungen</button>
 </div>
+<div class="gal-search">
+  <input id="galSearch" type="search" placeholder="Suchen…" autocomplete="off"/>
+  <button type="button" id="btnGalSearch">Suche</button>
+</div>
 <div id="secNormal">
 <h2 class="sec">Zufall</h2>
 <div class="list" id="listNormal"></div>
@@ -226,6 +234,7 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
 <footer id="foot">© 2026 Ingo Lissors</footer>
 <script>
 let uiBusy=false;
+let galQuery='';
 function setBusy(on,msg){
   if(on && uiBusy) return false;
   uiBusy=!!on;
@@ -512,8 +521,8 @@ function placeCard(card, m){
 }
 function refreshCounts(){
   const status=document.getElementById('status');
-  const nN=document.getElementById('listNormal').querySelectorAll('.card').length;
-  const nM=document.getElementById('listMemory').querySelectorAll('.card').length;
+  const nN=document.getElementById('listNormal').querySelectorAll('.card:not([hidden])').length;
+  const nM=document.getElementById('listMemory').querySelectorAll('.card:not([hidden])').length;
   let pot='';
   const t=window.__potTotal|0;
   if(typeof window.__potLeft==='number' && t>0){
@@ -521,6 +530,19 @@ function refreshCounts(){
     else pot=' · Topf noch '+window.__potLeft+' von '+t;
   }
   if(status) status.textContent=nN+' Zufall · '+nM+' Erinnerung'+pot;
+}
+function applyGalleryFilter(){
+  const q=galQuery;
+  document.querySelectorAll('#listNormal .card, #listMemory .card').forEach(function(card){
+    if(!q){ card.hidden=false; return; }
+    const hay=((card.textContent||'')+' '+(card.getAttribute('data-file')||'')).toLowerCase();
+    card.hidden=hay.indexOf(q)<0;
+  });
+  refreshCounts();
+}
+function runGallerySearch(){
+  galQuery=(document.getElementById('galSearch').value||'').trim().toLowerCase();
+  applyGalleryFilter();
 }
 async function loadMetaCard(card){
   if(!card || card.dataset.metaLoaded) return;
@@ -535,6 +557,7 @@ async function loadMetaCard(card){
     }
     setOnPic(card, m);
     placeCard(card, m);
+    applyGalleryFilter();
   }catch(e){}
 }
 async function showGalleryPile(p){
@@ -582,11 +605,19 @@ async function loadList(){
     },{rootMargin:'100px'});
     nor.querySelectorAll('.card').forEach(c=>io.observe(c));
     mem.querySelectorAll('.card').forEach(c=>io.observe(c));
-    refreshCounts();
+    applyGalleryFilter();
   }catch(e){ status.textContent='Fehler: '+e; }
 }
 document.getElementById('tabNormal').onclick=function(){ showGalleryPile('normal'); };
 document.getElementById('tabMemory').onclick=function(){ showGalleryPile('memory'); };
+document.getElementById('btnGalSearch').onclick=runGallerySearch;
+document.getElementById('galSearch').onkeydown=function(e){
+  if(e.key==='Enter'){ e.preventDefault(); runGallerySearch(); }
+};
+document.getElementById('galSearch').onsearch=runGallerySearch;
+document.getElementById('galSearch').oninput=function(){
+  if(!(this.value||'').trim()) runGallerySearch();
+};
 document.querySelector('main').addEventListener('click', async e=>{
   const desc=e.target.closest('.desc');
   if(desc){
@@ -706,6 +737,21 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
 <div class="row"><span>NTP</span><b id="ntp">—</b></div>
 </div>
 <div class="panel">
+<h2>Uhrzeit (Chip-RTC)</h2>
+<label class="field">Datum &amp; Zeit
+  <input id="clock" type="datetime-local"/>
+</label>
+<label class="field">Stadt
+  <select id="tzCity"></select>
+</label>
+<p class="hint">Die Stadt setzt die Zeitzone, inklusive Sommer- und Winterzeit.</p>
+<button id="btnTz" type="button">Standort speichern</button>
+<button id="btnTime" type="button">Uhr setzen</button>
+<button id="btnPhone" type="button">Von diesem Gerät übernehmen</button>
+<p class="hint" id="clockHint">—</p>
+<p class="hint" id="ntpHint">—</p>
+</div>
+<div class="panel">
 <h2>Akku</h2>
 <div class="row"><span>PMU</span><b id="bOk">—</b></div>
 <div class="row"><span>Zelle</span><b id="bCell">—</b></div>
@@ -762,7 +808,7 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
 </label>
 <button class="pri" id="btnNtfySave">Speichern</button>
 <button id="btnNtfyTest">Probe senden</button>
-<p class="hint">Gleiches Thema, zwei Nachrichten. Warnung: „Akku … %“, unter 10&nbsp;%, einmal am Tag. Aufwachen: „Aufgewacht, Akku … %“ (Timer, KEY, BOOT), stumm. App: ntfy, Thema abonnieren.</p>
+<p class="hint">Alle Benachrichtigungen richten sich nach eingestellter Priorität.</p>
 <p class="status" id="ntfyStatus"></p>
 </div>
 <div class="panel">
@@ -771,23 +817,7 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
   <input id="vol" type="range" min="0" max="100" value="80"/>
 </label>
 <button class="pri" id="btnVolSave">Lautstärke speichern</button>
-<p class="hint">Default 80. Willkommen, WLAN, AP, Neustart.</p>
 <p class="status" id="volStatus"></p>
-</div>
-<div class="panel">
-<h2>Anzeige</h2>
-<label class="field">Rahmenlage
-  <select id="hang">
-    <option value="portrait" selected>Hochkant</option>
-    <option value="landscape">Quer</option>
-  </select>
-</label>
-<button class="pri" id="btnHangSave">Lage speichern</button>
-<p class="hint">Gilt für neue Bilder in Studio, Live und am Panel. Vorhandene Bilder bleiben unverändert.</p>
-<p class="status" id="hangStatus"></p>
-<button class="pri" id="btnBlank">Panel leeren (weiß)</button>
-<button id="btnBattWarn">Akkuwarnung testen</button>
-<p class="status">Leert das E-Paper. Bilder erneut über Galerie „Anzeigen“. Test: „Akku &lt; 10 %“ unten rechts auf dem aktuellen Bild, unabhängig vom echten Stand.</p>
 </div>
 <div class="panel">
 <h2>Sicherung</h2>
@@ -804,8 +834,6 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
 <div class="panel">
 <h2>Wartung</h2>
 <button id="btnReboot">Neustart</button>
-<button id="btnOrphans">Jetzt aufräumen</button>
-<p class="status">Löschreste (JPG/JSON ohne BMP) nur hier entfernen — nicht automatisch.</p>
 <button class="danger" id="btnWifi">WLAN-Daten löschen &amp; Neustart</button>
 <p class="status" id="status"></p>
 </div>
@@ -877,8 +905,6 @@ async function refreshStatus(){
     const z=document.getElementById('btnZzz');
     if(z) z.hidden=!!s.usb;
     document.getElementById('foot').textContent=s.copyright||'© 2026 Ingo Lissors';
-    const hang=document.getElementById('hang');
-    if(hang && (s.hang==='portrait'||s.hang==='landscape') && document.activeElement!==hang) hang.value=s.hang;
     const vol=document.getElementById('vol');
     if(vol && typeof s.vol==='number' && document.activeElement!==vol){
       vol.value=String(s.vol);
@@ -889,6 +915,8 @@ async function refreshStatus(){
     if(ichg && s.batt && typeof s.batt.ichg==='number' && s.batt.ichg>0 && document.activeElement!==ichg){
       ichg.value=String(s.batt.ichg);
     }
+    const ntpH=document.getElementById('ntpHint');
+    if(ntpH && s.ntp) ntpH.textContent=ntpLine(s);
   }catch(e){ document.getElementById('status').textContent=String(e); }
   try{
     const n=await (await fetch('/api/ntfy')).json();
@@ -914,13 +942,88 @@ document.getElementById('btnZzz').onclick=()=>{
     window.__zzz=0;
   })();
 };
-document.getElementById('btnHangSave').onclick=async()=>{
-  if(!setBusy(true,'Lage…')) return;
+function ntpLine(f){
+  if(f.ntp==='hold'){
+    const m=Math.max(1, Math.ceil((f.ntpHoldSec||0)/60));
+    return 'NTP: Pause nach Handzeit, noch '+m+' min';
+  }
+  if(f.ntp==='ok'){
+    const at=(f.ntpAt||'').replace('T',' ');
+    const hm=at.length>=16?at.slice(11,16):at;
+    return 'NTP: ja'+(hm?', '+hm:'');
+  }
+  if(f.ntp==='fail') return 'NTP: fehlgeschlagen, RTC gilt';
+  if(f.ntp==='ap') return 'NTP: — (Access Point)';
+  return 'NTP: —';
+}
+function applyClock(f){
+  const hint=document.getElementById('clockHint');
+  if(hint) hint.textContent=f.now?('Aktuell: '+f.now.replace('T',' ')):'Keine gültige Chip-Zeit — bitte setzen';
+  const ntp=document.getElementById('ntpHint');
+  if(ntp) ntp.textContent=ntpLine(f);
+  if(f.now){
+    const c=document.getElementById('clock');
+    if(c && document.activeElement!==c) c.value=f.now;
+  }
+}
+async function loadTz(){
   try{
-    const hang=document.getElementById('hang').value;
-    const r=await fetch('/api/hang',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'hang='+encodeURIComponent(hang)});
-    document.getElementById('hangStatus').textContent=r.ok?'gespeichert':await r.text();
-  }catch(e){ document.getElementById('hangStatus').textContent=String(e); }
+    const sel=document.getElementById('tzCity');
+    const [cities,cur]=await Promise.all([
+      (await fetch('/api/tz-cities')).json(),
+      (await fetch('/api/tz')).json()
+    ]);
+    cities.sort((a,b)=>a.n.localeCompare(b.n,'de'));
+    sel.innerHTML='';
+    cities.forEach(c=>{
+      const o=document.createElement('option');
+      o.value=c.n; o.dataset.posix=c.p; o.textContent=c.n;
+      if(c.n===cur.city) o.selected=true;
+      sel.appendChild(o);
+    });
+  }catch(e){}
+}
+async function loadClock(){
+  try{
+    const f=await (await fetch('/api/frame')).json();
+    applyClock(f);
+  }catch(e){}
+}
+document.getElementById('btnTz').onclick=async()=>{
+  const sel=document.getElementById('tzCity');
+  const o=sel.options[sel.selectedIndex];
+  if(!o) return;
+  if(!setBusy(true,'Standort…')) return;
+  try{
+    const r=await fetch('/api/tz',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'city='+encodeURIComponent(o.value)+'&posix='+encodeURIComponent(o.dataset.posix||'')});
+    const t=await r.text();
+    document.getElementById('clockHint').textContent=r.ok?'Standort gespeichert · NTP an':'Fehler: '+t;
+    if(r.ok) await loadClock();
+  }catch(e){ document.getElementById('status').textContent=String(e); }
+  finally{ setBusy(false); }
+};
+document.getElementById('btnTime').onclick=async()=>{
+  const v=document.getElementById('clock').value;
+  if(!v){ document.getElementById('status').textContent='Bitte Datum/Zeit wählen'; return; }
+  if(!setBusy(true,'Setze Uhr…')) return;
+  try{
+    const r=await fetch('/api/time',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'iso='+encodeURIComponent(v)});
+    const t=await r.text();
+    if(!r.ok){ document.getElementById('status').textContent=t; return; }
+    document.getElementById('status').textContent='Uhr gesetzt';
+    applyClock(JSON.parse(t));
+  }catch(e){ document.getElementById('status').textContent=String(e); }
+  finally{ setBusy(false); }
+};
+document.getElementById('btnPhone').onclick=async()=>{
+  if(!setBusy(true,'Setze Uhr…')) return;
+  try{
+    const r=await fetch('/api/time',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'epoch='+Math.floor(Date.now()/1000)});
+    const t=await r.text();
+    if(!r.ok){ document.getElementById('status').textContent=t; return; }
+    document.getElementById('status').textContent='Uhr vom Gerät übernommen (Standort-Zeit)';
+    applyClock(JSON.parse(t));
+  }catch(e){ document.getElementById('status').textContent=String(e); }
   finally{ setBusy(false); }
 };
 document.getElementById('vol').oninput=function(){
@@ -968,36 +1071,11 @@ document.getElementById('btnNtfyTest').onclick=async()=>{
   }catch(e){ document.getElementById('ntfyStatus').textContent=String(e); }
   finally{ setBusy(false); }
 };
-document.getElementById('btnBlank').onclick=async()=>{
-  if(!setBusy(true,'Panel…')) return;
-  try{
-    const r=await fetch('/api/display',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'blank=1'});
-    document.getElementById('status').textContent=await r.text();
-  }finally{ setBusy(false); }
-};
-document.getElementById('btnBattWarn').onclick=async()=>{
-  if(!setBusy(true,'Warnung…')) return;
-  try{
-    const r=await fetch('/api/batt-warn',{method:'POST'});
-    document.getElementById('status').textContent=await r.text();
-  }catch(e){ document.getElementById('status').textContent=String(e); }
-  finally{ setBusy(false); }
-};
 document.getElementById('btnReboot').onclick=async()=>{
   if(uiBusy) return;
   if(!confirm('Gerät neu starten?')) return;
   if(!setBusy(true,'Neustart…')) return;
   await fetch('/api/reboot',{method:'POST'});
-};
-document.getElementById('btnOrphans').onclick=async()=>{
-  if(uiBusy) return;
-  if(!confirm('Reste gelöschter Bilder sofort entfernen? Löscht JPG/PNG/_src/_thumb/JSON/WAV in /pic, zu denen keine .bmp mehr existiert.')) return;
-  if(!setBusy(true,'Aufräumen…')) return;
-  try{
-    const r=await fetch('/api/cleanup-orphans',{method:'POST'});
-    document.getElementById('status').textContent=await r.text();
-  }catch(e){ document.getElementById('status').textContent=String(e); }
-  finally{ setBusy(false); }
 };
 document.getElementById('btnWifi').onclick=async()=>{
   if(uiBusy) return;
@@ -1156,7 +1234,7 @@ document.getElementById('btnRestore').onclick=async()=>{
   }catch(e){ st.textContent=String(e); }
   finally{ setBusy(false); }
 };
-refreshStatus(); setInterval(refreshStatus,10000);
+refreshStatus(); setInterval(refreshStatus,10000); loadTz(); loadClock();
 </script>
 </body></html>
 )HTML";

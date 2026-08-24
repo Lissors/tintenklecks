@@ -175,8 +175,8 @@ Six tiles:
 | Live-Anzeige | current picture in the wooden frame, text, browse (Zufall / Erinnerungen) |
 | Neues Bild | Studio: photo, crop, method, captions |
 | Bilder | gallery: Zufall and Erinnerungen, show, edit, rename, delete |
-| Rahmen | clock, interval or daily; timer takes memories first |
-| System | status, ntfy, hang, panel, restart, forget Wi-Fi |
+| Rahmen | change, hang, panel, pot; timer takes memories first |
+| System | clock, status, ntfy, sound, backup, restart, forget Wi-Fi |
 | WLAN-Setup | home network and AP password |
 
 ### Neues Bild (Studio)
@@ -187,7 +187,7 @@ Two stages: left **Zuschnitt**, right **E6 Vorschau**. Drop a photo onto the das
 
 **Gerendertes BMP an E6** skips Studio: a finished 24-bit BMP at panel size (480×800 or 800×480) goes straight to the e-paper.
 
-While **Bearbeiten** from the gallery, **Bearbeitung beenden · neues Bild** is shown. Until you end the edit, the drop field will not take a new photo.
+While **Bearbeiten** from the gallery, **Bearbeitung beenden · neues Bild** is shown. Until you end the edit, the drop field will not take a new photo. **E6 Vorschau** shows the stored picture unchanged, including text. Lab sliders and free texts come back as last saved. The picture is only re-rendered if crop or Lab values change.
 
 #### Verfahren (method)
 
@@ -201,7 +201,7 @@ E-Paper / Dither (Lab only): Helligkeit, Kontrast, Wärme, Dither %, algorithm A
 
 #### Format and output
 
-**Lage (System):** Hochkant 480×800 or Quer 800×480 — under System → Anzeige (**Rahmenlage**); Studio only displays it. New photos follow that hang, loaded gallery pictures keep theirs. Existing BMPs are not converted. **Zoom** 10–400.
+**Lage (Rahmen):** Hochkant 480×800 or Quer 800×480 — under Rahmen → Anzeige (**Rahmenlage**); Studio only displays it. New photos follow that hang, loaded gallery pictures keep theirs. Existing BMPs are not converted. **Zoom** 10–400.
 
 **Anzeigen am Rahmen** writes to the panel only, not the gallery. **Speichern in Galerie** stores BMP, crop and thumbnail on the SD card. If you change only text or person data on a saved picture, the frame stores the metadata without dithering again.
 
@@ -229,22 +229,22 @@ Checkbox **Beschriftung anzeigen** (off: name, dates and free texts hidden). Fie
 
 ![Gallery](docs/galerie.png)
 
-Two tabs: **Zufall** and **Erinnerungen**. At the top: counts and the **Zufallstopf** (still *n* of *m*; if the pot is empty: next draw starts a new round). Cards sorted by person name. Preview with captions as in Studio, then name, `*` birth, `†` death, occasion plus special date, description (tap to expand), filename.
+Two tabs: **Zufall** and **Erinnerungen**. Below that **Suchen** (name, date, filename) — only after **Enter** or the **Suche** button; everything else is hidden. The **X** in the field clears the search and shows all pictures again. At the top: counts and the **Zufallstopf** (still *n* of *m*; if the pot is empty: next draw starts a new round). Cards sorted by person name. Preview with captions as in Studio, then name, `*` birth, `†` death, occasion plus special date, description (tap to expand), filename.
 
 | Button | Effect |
 | --- | --- |
-| Bearbeiten | Studio with crop and saved values |
+| Bearbeiten | Studio: stored E6 picture, Lab values and text |
 | Anzeigen | this BMP on the panel |
 | Umbenennen | filename without `.bmp` |
 | Löschen | BMP plus JSON, thumbnails and related sound (asks first). If that picture is on the panel, the next one is shown — same as KEY / Jetzt wechseln |
 
-Missing preview: **Kein Vorschaubild · neu speichern**. Without a crop file: red border and **Kein Zuschnitt**. The index is a file on the SD card and is updated immediately on save, delete or rename — Zufall and Erinnerungen without a full rescan. Only if the file is missing (or after restore) is it rebuilt; then the page waits (**Galerie-Index wird gebaut…**). The page tries to rebuild missing thumbnails itself.
+Missing preview: **Kein Vorschaubild · neu speichern**. Without a crop file: red border and **Kein Zuschnitt**. The index is a file on the SD card and is updated immediately on save, delete or rename — Zufall and Erinnerungen without a full rescan. Only if the file is missing (or after restore) is it rebuilt; then the page waits (**Galerie-Index wird gebaut…**). Leftovers without a picture (JPG/JSON without a BMP) are removed when the index is rebuilt. The page tries to rebuild missing thumbnails itself.
 
 ### Live-Anzeige
 
 ![Live display](docs/live.png)
 
-Wooden-frame preview of the chosen picture, including text on the image (thumbnail; the crop is already in it). Below: name, dates, description, free texts, then a line **Nächste Erinnerung** (not inside the wooden frame). Tabs **Zufall** / **Erinnerungen**, **‹** / **›** browse, counter in the middle. The mock-up follows the picture’s hang (Hochkant or Quer).
+Wooden-frame preview of the chosen picture, including text on the image (thumbnail; the crop is already in it). Below: name, dates, description, free texts, then a line **Nächste Erinnerung** (not inside the wooden frame). Tabs **Zufall** / **Erinnerungen**, **‹** / **›** browse, counter in the middle. Memories are sorted by name, as in the gallery. The mock-up follows the picture’s hang (Hochkant or Quer).
 
 ![Live with person](docs/live_person.png)
 
@@ -256,9 +256,11 @@ Empty list: **Kein Bild**.
 
 ![Frame](docs/rahmen.png)
 
-Clock first. **Suchen** filters the city list. Pick a city, **Standort speichern** (daylight saving, then NTP). Time: **Datum & Zeit** and **Uhr setzen**, or **Von diesem Gerät übernehmen**. A hand-set clock is left alone for 10 minutes, then NTP fetches network time — only if a time server actually answered, not because the RTC already holds some valid time. NTP also runs on wake. Access point: no network time. Below the clock: NTP status, **Nächste Erinnerung** (today, tomorrow or the day after: date · name) and **Zufallstopf still n of m**. Without a valid chip time, there is no daily switch.
+**Nächste Erinnerung** (today, tomorrow or the day after: date · name) and **Zufallstopf still n of m**. **Alle Bilder in die Auswahl** reshuffles the random pot (all Zufall pictures back in). **Index neu aufbauen** rescans the SD and sorts by name — save, delete and rename otherwise update the list immediately. Leftovers without a picture go away then too. Without a valid chip time, there is no daily switch.
 
 **Wechsel:** mode **Aus**, **Im Intervall** (5 / 10 / 30 / 60 minutes) or **1× pro Tag** (time of day, default 08:00). **Speichern** keeps the mode. **Jetzt wechseln** immediately — Zufall only, no memories. **Aus** = no timer.
+
+**Anzeige:** **Rahmenlage** Hochkant or Quer, **Lage speichern**. Applies to new pictures in Studio, Live and on the panel; existing pictures stay as they are. Hang the device to match. **Panel leeren (weiß)** — show pictures again from the gallery with **Anzeigen**. **Akkuwarnung testen** puts “Akku < 10 %” at the bottom right of the current picture, regardless of the real level (and sends the ntfy probe if a topic is set).
 
 **Timer (interval / clock / wake for a change):** if a memory’s birth, death or special date is **today, tomorrow or the day after**, **one** such picture comes first (full size, type as in Studio). Several due: hint bottom right, next one every 3 hours (KEY likewise). Otherwise only Zufall, without replacement, until the pot is empty, then reshuffle. If there is no due memory and no Zufall picture, the panel stays. USB stays awake. Battery sleeps as under “USB and battery”.
 
@@ -268,17 +270,17 @@ Clock first. **Suchen** filters the city list. Pick a city, **Standort speichern
 
 **Status:** device, IP, mode (AP or home network), SD, heap, NTP.
 
+**Uhrzeit (Chip-RTC):** city in the dropdown, **Standort speichern** (daylight saving, then NTP). Time: **Datum & Zeit** and **Uhr setzen**, or **Von diesem Gerät übernehmen**. A hand-set clock is left alone for 10 minutes, then NTP fetches network time — only if a time server actually answered, not because the RTC already holds some valid time. NTP also runs on wake. Access point: no network time.
+
 **Akku:** everything the AXP2101 reports — also on USB: cell present, percent, battery voltage, USB yes/no and USB voltage, system voltage, path (charge/discharge/standby), charge stage, charge-current and end-current setpoints, USB current limit, PMU temperature, thermal and input limiting, chip warning and shutdown thresholds. No measured current, no mAh. **Ladestrom** 100–1000 mA (chip default 300, maximum 1000) goes into the cell, not the ESP. USB must supply the frame plus charging.
 
-**ntfy:** topic or full URL (empty = off), priority Min / Niedrig / Normal / Hoch / Dringend. **Speichern**, **Probe senden**. Same topic, two messages: warning “Akku … %” once per calendar day under 10 %; wake “Aufgewacht, Akku … %” (timer, KEY, BOOT), silent. App [ntfy](https://ntfy.sh/), subscribe to the same topic.
+**ntfy:** topic or full URL (empty = off), priority Min / Niedrig / Normal / Hoch / Dringend. **Speichern**, **Probe senden**. All notifications use the chosen priority. App [ntfy](https://ntfy.sh/).
 
-**Ton:** volume of the notice sounds 0–100, default 80. **Lautstärke speichern**. Applies to Willkommen, WLAN, AP, Neustart.
-
-**Anzeige:** **Rahmenlage** Hochkant or Quer, **Lage speichern**. Applies to new pictures in Studio, Live and on the panel; existing pictures stay as they are. Hang the device to match. **Panel leeren (weiß)** — show pictures again from the gallery with **Anzeigen**. **Akkuwarnung testen** puts “Akku < 10 %” at the bottom right of the current picture, regardless of the real level (and sends the ntfy probe if a topic is set).
+**Ton:** volume of the notice sounds 0–100, default 80. **Lautstärke speichern**.
 
 **Sicherung:** **Sicherung als .txt** fetches `pic/` and `sound/` as one file (`tintenklecks-YYYY-MM-DD.txt`) — works in Chrome over HTTP. **Sicherung als .zip** the same, uncompressed; Chrome may block zip over HTTP, then use Firefox/Edge or the `.txt`. Leave USB plugged in. **Wiederherstellen:** `.txt` and uncompressed `.zip` in one go. Compressed zip still file by file. Same name overwrites, everything else stays. Firmware backup is the GitHub release.
 
-**Wartung:** **Neustart** (plays `neustart.wav`). **Jetzt aufräumen** removes leftovers of deleted pictures (JPG/JSON without a BMP) — only when you press the button, not automatically. **WLAN-Daten löschen & Neustart** forgets the home network (asks first), then access point again.
+**Wartung:** **Neustart** (plays `neustart.wav`). **WLAN-Daten löschen & Neustart** forgets the home network (asks first), then access point again.
 
 ### WLAN-Setup
 

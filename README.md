@@ -173,8 +173,8 @@ Sechs Kacheln:
 | Live-Anzeige | aktuelles Bild im Holzrahmen, Text, blättern (Zufall / Erinnerungen) |
 | Neues Bild | Studio: Foto, Zuschnitt, Verfahren, Beschriftung |
 | Bilder | Galerie: Zufall und Erinnerungen, anzeigen, bearbeiten, umbenennen, löschen |
-| Rahmen | Uhr, Intervall oder täglich; Timer nimmt Erinnerungen zuerst |
-| System | Status, ntfy, Rahmenlage, Panel, Neustart, WLAN vergessen |
+| Rahmen | Wechsel, Lage, Panel, Topf; Timer nimmt Erinnerungen zuerst |
+| System | Uhr, Status, ntfy, Ton, Sicherung, Neustart, WLAN vergessen |
 | WLAN-Setup | Heimnetz und AP-Passwort |
 
 ### Neues Bild (Studio)
@@ -185,7 +185,7 @@ Zwei Bühnen: links **Zuschnitt**, rechts **E6 Vorschau**. Das Foto in das gestr
 
 **Gerendertes BMP an E6** umgeht das Studio: eine schon fertige 24-Bit-BMP in Panelgröße (480×800 oder 800×480) direkt aufs E-Paper.
 
-Beim **Bearbeiten** aus der Galerie steht **Bearbeitung beenden · neues Bild**. Solange die Bearbeitung läuft, nimmt das Drop-Feld kein neues Foto.
+Beim **Bearbeiten** aus der Galerie steht **Bearbeitung beenden · neues Bild**. Solange die Bearbeitung läuft, nimmt das Drop-Feld kein neues Foto. Die **E6 Vorschau** zeigt das gespeicherte Bild unverändert, inklusive Text. Lab-Schieber und Freitexte stehen wie zuletzt gespeichert. Neu gerechnet wird erst, wenn Zuschnitt oder Lab-Werte sich ändern.
 
 #### Verfahren
 
@@ -199,7 +199,7 @@ E-Paper / Dither (nur Lab): Helligkeit, Kontrast, Wärme, Dither %, Algorithmus 
 
 #### Format und Ausgabe
 
-**Lage (System):** Hochkant 480×800 oder Quer 800×480 — steht unter System → Anzeige (**Rahmenlage**), im Studio nur Anzeige. Neue Fotos folgen der Lage, geladene Galeriebilder behalten ihre. Vorhandene BMP werden nicht umgerechnet. **Zoom** 10–400.
+**Lage (Rahmen):** Hochkant 480×800 oder Quer 800×480 — steht unter Rahmen → Anzeige (**Rahmenlage**), im Studio nur Anzeige. Neue Fotos folgen der Lage, geladene Galeriebilder behalten ihre. Vorhandene BMP werden nicht umgerechnet. **Zoom** 10–400.
 
 **Anzeigen am Rahmen** schreibt nur aufs Panel, nicht in die Galerie. **Speichern in Galerie** legt BMP, Zuschnitt und Vorschaubild auf der SD ab. Ändert man an einem gespeicherten Bild nur Text oder Person, speichert der Rahmen die Metadaten, ohne neu zu dithern.
 
@@ -227,22 +227,22 @@ Häkchen **Beschriftung anzeigen** (aus: Name, Daten und Freitexte unsichtbar). 
 
 ![Galerie](docs/galerie.png)
 
-Zwei Reiter: **Zufall** und **Erinnerungen**. Oben die Zähler und der **Zufallstopf** (noch *n* von *m*; ist der Topf leer: nächster Zug neue Runde). Karten nach Personenname. Vorschau mit Beschriftung wie im Studio, darunter Name, `*` Geburt, `†` Tod, Anlass plus besonderes Datum, Beschreibung (Tipp klappt den ganzen Text auf), Dateiname.
+Zwei Reiter: **Zufall** und **Erinnerungen**. Darunter **Suchen** (Name, Datum, Dateiname) — erst mit **Enter** oder Knopf **Suche**, alles andere wird ausgeblendet. Das **X** im Feld leert die Suche und zeigt wieder alle Bilder. Oben die Zähler und der **Zufallstopf** (noch *n* von *m*; ist der Topf leer: nächster Zug neue Runde). Karten nach Personenname. Vorschau mit Beschriftung wie im Studio, darunter Name, `*` Geburt, `†` Tod, Anlass plus besonderes Datum, Beschreibung (Tipp klappt den ganzen Text auf), Dateiname.
 
 | Knopf | Wirkung |
 | --- | --- |
-| Bearbeiten | Studio mit Zuschnitt und gespeicherten Werten |
+| Bearbeiten | Studio: gespeichertes E6-Bild, Lab-Werte und Text |
 | Anzeigen | dieses BMP aufs Panel |
 | Umbenennen | Dateiname ohne `.bmp` |
 | Löschen | BMP plus JSON, Vorschauen und zugehörigen Ton (Nachfrage). Hängt genau dieses Bild am Panel, kommt danach das nächste — wie KEY / Jetzt wechseln |
 
-Fehlt die Vorschau: **Kein Vorschaubild · neu speichern**. Ohne Zuschnitt-Datei ein roter Rand und **Kein Zuschnitt**. Der Index liegt als Datei auf der SD und wird beim Speichern, Löschen oder Umbennen sofort mitgeführt — Zufall und Erinnerungen ohne Vollscan. Nur wenn die Datei fehlt (oder nach Wiederherstellen), wird sie neu gebaut; dann wartet die Seite (**Galerie-Index wird gebaut…**). Fehlende Vorschaubilder versucht die Seite selbst nachzuziehen.
+Fehlt die Vorschau: **Kein Vorschaubild · neu speichern**. Ohne Zuschnitt-Datei ein roter Rand und **Kein Zuschnitt**. Der Index liegt als Datei auf der SD und wird beim Speichern, Löschen oder Umbenennen sofort mitgeführt — Zufall und Erinnerungen ohne Vollscan. Nur wenn die Datei fehlt (oder nach Wiederherstellen), wird sie neu gebaut; dann wartet die Seite (**Galerie-Index wird gebaut…**). Reste ohne Bild (JPG/JSON ohne BMP) gehen mit, wenn der Index neu aufgebaut wird. Fehlende Vorschaubilder versucht die Seite selbst nachzuziehen.
 
 ### Live-Anzeige
 
 ![Live-Anzeige](docs/live.png)
 
-Holzrahmen-Vorschau des gewählten Bildes samt Text auf dem Bild (Vorschaubild / Thumb, Zuschnitt schon drin). Darunter Name, Daten, Bildbeschreibung, Freitexte, dann eine Zeile **Nächste Erinnerung** (nicht im Holzrahmen). Reiter **Zufall** / **Erinnerungen**, **‹** / **›** blättern, Zähler in der Mitte. Die Attrappe folgt der Lage des Bildes (Hochkant oder Quer).
+Holzrahmen-Vorschau des gewählten Bildes samt Text auf dem Bild (Vorschaubild / Thumb, Zuschnitt schon drin). Darunter Name, Daten, Bildbeschreibung, Freitexte, dann eine Zeile **Nächste Erinnerung** (nicht im Holzrahmen). Reiter **Zufall** / **Erinnerungen**, **‹** / **›** blättern, Zähler in der Mitte. Erinnerungen stehen wie in der Galerie nach Namen. Die Attrappe folgt der Lage des Bildes (Hochkant oder Quer).
 
 ![Live mit Person](docs/live_person.png)
 
@@ -254,9 +254,11 @@ Leere Liste: **Kein Bild**.
 
 ![Rahmen](docs/rahmen.png)
 
-Zuerst die Uhr. **Suchen** filtert die Stadtliste. Stadt wählen, **Standort speichern** (Sommerzeit, danach NTP). Zeit: Feld **Datum & Zeit** und **Uhr setzen**, oder **Von diesem Gerät übernehmen**. Handgestellte Uhr bleibt 10 Minuten stehen, dann holt NTP die Netzzeit — aber nur, wenn ein Zeitserver wirklich geantwortet hat, nicht schon weil die RTC irgendetwas Gültiges hat. Beim Aufwachen ebenfalls NTP. Access Point: keine Netzzeit. Darunter: NTP-Status, **Nächste Erinnerung** (heute, morgen oder übermorgen: Datum · Name) und **Zufallstopf noch n von m**. Ohne gültige Chip-Zeit kein Tageswechsel.
+**Nächste Erinnerung** (heute, morgen oder übermorgen: Datum · Name) und **Zufallstopf noch n von m**. **Alle Bilder in die Auswahl** mischt den Zufallstopf neu (alle Zufallsbilder wieder drin). **Index neu aufbauen** scannt die SD und sortiert nach Namen — Speichern, Löschen und Umbenennen ändern die Liste sonst sofort. Dabei gehen auch Reste ohne Bild mit. Ohne gültige Chip-Zeit kein Tageswechsel.
 
 **Wechsel:** Modus **Aus**, **Im Intervall** (5 / 10 / 30 / 60 Minuten) oder **1× pro Tag** (Uhrzeit, Vorgabe 08:00). **Speichern** merkt den Modus. **Jetzt wechseln** sofort — nur Zufall, keine Erinnerungen. **Aus** = kein Timer.
+
+**Anzeige:** **Rahmenlage** Hochkant oder Quer, **Lage speichern**. Gilt für neue Bilder in Studio, Live und am Panel; vorhandene Bilder bleiben unverändert. Der Rahmen muss physisch so hängen. **Panel leeren (weiß)** — Bilder danach wieder über Galerie **Anzeigen**. **Akkuwarnung testen** legt „Akku < 10 %“ unten rechts auf das aktuelle Bild, unabhängig vom echten Stand (und sendet die ntfy-Probe, wenn ein Thema gesetzt ist).
 
 **Timer (Intervall / Uhr / Aufwachen zum Wechsel):** Ist bei einer Erinnerung Geburt, Tod oder ein besonderes Datum **heute, morgen oder übermorgen**, kommt zuerst **ein** solches Bild (voll, Schrift wie im Studio). Mehrere fällig: Hinweis unten rechts, alle 3 Stunden das nächste (KEY ebenso). Sonst nur Zufall, ohne Zurücklegen, bis der Topf leer ist, dann neu mischen. Gibt es gerade keine fällige Erinnerung und keinen Zufall, bleibt das Panel. USB bleibt wach. Akku schläft wie unter „USB und Akku“.
 
@@ -266,17 +268,17 @@ Zuerst die Uhr. **Suchen** filtert die Stadtliste. Stadt wählen, **Standort spe
 
 **Status:** Gerät, IP, Modus (AP oder Heimnetz), SD, Heap, NTP.
 
+**Uhrzeit (Chip-RTC):** Stadt im Dropdown, **Standort speichern** (Sommerzeit, danach NTP). Zeit: Feld **Datum & Zeit** und **Uhr setzen**, oder **Von diesem Gerät übernehmen**. Handgestellte Uhr bleibt 10 Minuten stehen, dann holt NTP die Netzzeit — aber nur, wenn ein Zeitserver wirklich geantwortet hat, nicht schon weil die RTC irgendetwas Gültiges hat. Beim Aufwachen ebenfalls NTP. Access Point: keine Netzzeit.
+
 **Akku:** alles, was der AXP2101 hergibt — auch bei USB: Zelle, Prozent, Akkuspannung, USB ja/nein und USB-Spannung, Systemspannung, Pfad (laden/entladen/standby), Ladestufe, Ladestrom- und Ende-Strom-Vorgabe, USB-Limit, PMU-Temperatur, Wärme- und Eingangsbegrenzung, Chip-Warn- und Abschaltschwelle. Kein gemessener Strom, keine mAh. **Ladestrom** 100–1000 mA (Chip-Default 300, Maximum 1000) geht in die Zelle, nicht in den ESP. USB muss Rahmen plus Laden tragen.
 
-**ntfy:** Thema oder volle URL (leer = aus), Priorität Min / Niedrig / Normal / Hoch / Dringend. **Speichern**, **Probe senden**. Gleiches Thema, zwei Nachrichten: Warnung „Akku … %“ einmal am Kalendertag unter 10 %; Aufwachen „Aufgewacht, Akku … %“ (Timer, KEY, BOOT), stumm. App [ntfy](https://ntfy.sh/), dasselbe Thema abonnieren.
+**ntfy:** Thema oder volle URL (leer = aus), Priorität Min / Niedrig / Normal / Hoch / Dringend. **Speichern**, **Probe senden**. Alle Benachrichtigungen richten sich nach der eingestellten Priorität. App [ntfy](https://ntfy.sh/).
 
-**Ton:** Lautstärke der Hinweise 0–100, Vorgabe 80. **Lautstärke speichern**. Gilt für Willkommen, WLAN, AP, Neustart.
-
-**Anzeige:** **Rahmenlage** Hochkant oder Quer, **Lage speichern**. Gilt für neue Bilder in Studio, Live und am Panel; vorhandene Bilder bleiben unverändert. Der Rahmen muss physisch so hängen. **Panel leeren (weiß)** — Bilder danach wieder über Galerie **Anzeigen**. **Akkuwarnung testen** legt „Akku < 10 %“ unten rechts auf das aktuelle Bild, unabhängig vom echten Stand (und sendet die ntfy-Probe, wenn ein Thema gesetzt ist).
+**Ton:** Lautstärke der Hinweise 0–100, Vorgabe 80. **Lautstärke speichern**.
 
 **Sicherung:** **Sicherung als .txt** holt `pic/` und `sound/` in einer Datei (`tintenklecks-JJJJ-MM-TT.txt`) — geht in Chrome über HTTP. **Sicherung als .zip** dasselbe unkomprimiert; Chrome kann Zip über HTTP sperren, dann Firefox/Edge oder die `.txt`. USB stecken. **Wiederherstellen:** `.txt` und unkomprimiertes `.zip` in einem Rutsch. Komprimiertes Zip noch Datei für Datei. Gleicher Name überschreibt, sonst bleibt alles. Firmware-Backup ist das GitHub-Release.
 
-**Wartung:** **Neustart** (spielt `neustart.wav`). **Jetzt aufräumen** entfernt Reste gelöschter Bilder (JPG/JSON ohne BMP) — nur auf Knopf, nicht automatisch. **WLAN-Daten löschen & Neustart** vergisst das Heimnetz (Nachfrage), danach wieder Access Point.
+**Wartung:** **Neustart** (spielt `neustart.wav`). **WLAN-Daten löschen & Neustart** vergisst das Heimnetz (Nachfrage), danach wieder Access Point.
 
 ### WLAN-Setup
 

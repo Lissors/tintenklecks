@@ -303,6 +303,9 @@ static void listCacheUpsert(const String &bmpName, const String &meta);
 static void listCacheRemove(const String &bmpName);
 static void listCacheRename(const String &fromBmp, const String &toBmp);
 static int jsonObjectEnd(const String &s, int open);
+static void jsonQuotedInObj(const String &s, int open, int close, const char *key, char *out,
+                            size_t outLen);
+static void stemFromBmpFile(const char *file, char *stem, size_t stemLen);
 static bool patchListJsonBool(const String &bmpName, const char *key, bool on);
 
 static void invalidateListCache() {
@@ -921,20 +924,78 @@ static void memoriesUpsert(const String &bmpName, const String &meta) {
   if (s.length() < 2 || s.charAt(0) != '[') {
     s = "[]";
   }
-  int from = 0, to = 0;
-  if (findMemoryObj(s, bmp, from, to)) {
-    s = s.substring(0, from) + rec + s.substring(to + 1);
-  } else if (s == "[]") {
-    s = "[" + rec + "]";
-  } else {
-    int end = s.lastIndexOf(']');
-    if (end < 0) {
-      s = "[" + rec + "]";
-    } else {
-      s = s.substring(0, end) + "," + rec + "]";
-    }
+
+  char newName[64];
+  {
+    String nm = jsonGetQuoted(meta, "name");
+    strncpy(newName, nm.c_str(), sizeof(newName) - 1);
+    newName[sizeof(newName) - 1] = 0;
+    utf8Trunc(newName);
   }
-  writeWholeFile(MEMORIES_PATH, s);
+  char newStem[56];
+  stemFromBmpFile(bmp.c_str(), newStem, sizeof(newStem));
+
+  String out = "[";
+  bool first = true;
+  bool inserted = false;
+  int pos = 0;
+  const int n = (int)s.length();
+  while (pos < n) {
+    while (pos < n) {
+      char c = s.charAt(pos);
+      if (c == '{') {
+        break;
+      }
+      if (c == ']') {
+        pos = n;
+        break;
+      }
+      pos++;
+    }
+    if (pos >= n || s.charAt(pos) != '{') {
+      break;
+    }
+    int open = pos;
+    int close = jsonObjectEnd(s, open);
+    if (close < 0) {
+      break;
+    }
+    pos = close + 1;
+
+    char file[80];
+    jsonQuotedInObj(s, open, close, "file", file, sizeof(file));
+    if (file[0] && strcmp(file, bmp.c_str()) == 0) {
+      continue;
+    }
+
+    char objName[64];
+    char objStem[56];
+    jsonQuotedInObj(s, open, close, "name", objName, sizeof(objName));
+    utf8Trunc(objName);
+    stemFromBmpFile(file, objStem, sizeof(objStem));
+
+    if (!inserted && cmpNameThenStem(newName, newStem, objName, objStem) <= 0) {
+      if (!first) {
+        out += ',';
+      }
+      out += rec;
+      first = false;
+      inserted = true;
+    }
+    if (!first) {
+      out += ',';
+    }
+    out += s.substring(open, close + 1);
+    first = false;
+  }
+  if (!inserted) {
+    if (!first) {
+      out += ',';
+    }
+    out += rec;
+  }
+  out += ']';
+  writeWholeFile(MEMORIES_PATH, out);
 }
 
 static void memoriesRename(const String &fromBmp, const String &toBmp) {
@@ -984,6 +1045,58 @@ static String listObjectJson(const String &bmp, const String &meta) {
   return o;
 }
 
+static void jsonQuotedInObj(const String &s, int open, int close, const char *key, char *out,
+                            size_t outLen) {
+  out[0] = 0;
+  if (!key || outLen == 0 || open < 0 || close < open) {
+    return;
+  }
+  char needle[40];
+  snprintf(needle, sizeof(needle), "\"%s\":\"", key);
+  int at = s.indexOf(needle, open);
+  if (at < 0 || at > close) {
+    return;
+  }
+  int i = at + (int)strlen(needle);
+  size_t o = 0;
+  while (i <= close && o + 1 < outLen) {
+    char c = s.charAt(i++);
+    if (c == '"') {
+      break;
+    }
+    if (c == '\\' && i <= close) {
+      char e = s.charAt(i++);
+      if (e == 'n' || e == 'r' || e == 't' || e == 'b' || e == 'f') {
+        c = ' ';
+      } else {
+        c = e;
+      }
+    }
+    out[o++] = c;
+  }
+  out[o] = 0;
+}
+
+static void stemFromBmpFile(const char *file, char *stem, size_t stemLen) {
+  stem[0] = 0;
+  if (!file || stemLen == 0) {
+    return;
+  }
+  size_t n = strlen(file);
+  if (n >= 4) {
+    const char *e = file + n - 4;
+    if (e[0] == '.' && (e[1] == 'b' || e[1] == 'B') && (e[2] == 'm' || e[2] == 'M') &&
+        (e[3] == 'p' || e[3] == 'P')) {
+      n -= 4;
+    }
+  }
+  if (n >= stemLen) {
+    n = stemLen - 1;
+  }
+  memcpy(stem, file, n);
+  stem[n] = 0;
+}
+
 static void listCacheCommit() {
   g_listCacheValid = true;
   writeWholeFile(LIST_CACHE_PATH, g_listCache);
@@ -998,20 +1111,101 @@ static void listCacheUpsert(const String &bmpName, const String &meta) {
   String bmp = safeBmpName(bmpName);
   listCacheLoad();
   String rec = listObjectJson(bmp, meta);
-  int from = 0, to = 0;
-  if (findMemoryObj(g_listCache, bmp, from, to)) {
-    g_listCache = g_listCache.substring(0, from) + rec + g_listCache.substring(to + 1);
-  } else if (g_listCache == "[]") {
-    g_listCache = "[" + rec + "]";
-  } else {
-    int end = g_listCache.lastIndexOf(']');
-    if (end < 0) {
-      g_listCache = "[" + rec + "]";
-    } else {
-      g_listCache = g_listCache.substring(0, end) + "," + rec + "]";
-    }
+
+  char newName[64];
+  {
+    String nm = jsonGetQuoted(meta, "name");
+    strncpy(newName, nm.c_str(), sizeof(newName) - 1);
+    newName[sizeof(newName) - 1] = 0;
+    utf8Trunc(newName);
   }
-  listCacheCommit();
+  char newStem[56];
+  stemFromBmpFile(bmp.c_str(), newStem, sizeof(newStem));
+
+  const char *tmpPath = "/pic/_gallery.tmp";
+  if (SD_MMC.exists(tmpPath)) {
+    SD_MMC.remove(tmpPath);
+  }
+  File out = SD_MMC.open(tmpPath, FILE_WRITE);
+  if (!out) {
+    return;
+  }
+
+  out.print('[');
+  bool first = true;
+  bool inserted = false;
+  int pos = 0;
+  const int n = (int)g_listCache.length();
+  const char *src = g_listCache.c_str();
+  while (pos < n) {
+    while (pos < n) {
+      char c = g_listCache.charAt(pos);
+      if (c == '{') {
+        break;
+      }
+      if (c == ']') {
+        pos = n;
+        break;
+      }
+      pos++;
+    }
+    if (pos >= n || g_listCache.charAt(pos) != '{') {
+      break;
+    }
+    int open = pos;
+    int close = jsonObjectEnd(g_listCache, open);
+    if (close < 0) {
+      break;
+    }
+    pos = close + 1;
+
+    char file[80];
+    jsonQuotedInObj(g_listCache, open, close, "file", file, sizeof(file));
+    if (file[0] && strcmp(file, bmp.c_str()) == 0) {
+      continue;
+    }
+
+    char objName[64];
+    char objStem[56];
+    jsonQuotedInObj(g_listCache, open, close, "name", objName, sizeof(objName));
+    utf8Trunc(objName);
+    stemFromBmpFile(file, objStem, sizeof(objStem));
+
+    if (!inserted && cmpNameThenStem(newName, newStem, objName, objStem) <= 0) {
+      if (!first) {
+        out.print(',');
+      }
+      out.print(rec);
+      first = false;
+      inserted = true;
+    }
+    if (!first) {
+      out.print(',');
+    }
+    out.write((const uint8_t *)(src + open), (size_t)(close - open + 1));
+    first = false;
+  }
+  if (!inserted) {
+    if (!first) {
+      out.print(',');
+    }
+    out.print(rec);
+  }
+  out.print(']');
+  out.close();
+
+  if (SD_MMC.exists(LIST_CACHE_PATH)) {
+    SD_MMC.remove(LIST_CACHE_PATH);
+  }
+  if (!SD_MMC.rename(tmpPath, LIST_CACHE_PATH)) {
+    SD_MMC.remove(tmpPath);
+    return;
+  }
+  g_listCache = "";
+  loadListCacheFromSd();
+  g_listCacheValid = true;
+  slideshowInvalidatePot();
+  slideshowInvalidateMemPreview();
 }
 
 static void listCacheRemove(const String &bmpName) {
@@ -1365,6 +1559,7 @@ static void listBuildTask(void *arg) {
 }
 
 static void kickListBuild() {
+  g_orphanSweepWanted = true;
   if (g_listBuilding || !sdOk()) {
     return;
   }
@@ -1409,11 +1604,6 @@ static void handleListRebuild() {
   if (g_listBuilding) {
     server.send(200, "text/plain", "BUSY");
     return;
-  }
-  g_listCacheValid = false;
-  g_listCache = "";
-  if (SD_MMC.exists(LIST_CACHE_PATH)) {
-    SD_MMC.remove(LIST_CACHE_PATH);
   }
   kickListBuild();
   server.send(200, "text/plain", "OK rebuild started");
@@ -1523,25 +1713,20 @@ static int cleanupOrphansPass(bool *more) {
         break;
       }
     }
-    bool leftoverSidecar = (suf == 4 && (strcasecmp(base + len - 4, ".jpg") == 0 ||
-                                         strcasecmp(base + len - 4, ".wav") == 0)) ||
-                           (suf == 5 && strcasecmp(base + len - 5, ".jpeg") == 0);
-    if (known && !leftoverSidecar) {
+    if (known) {
       continue;
     }
-    if (!known) {
-      if (SD_MMC.exists(String(PIC_DIR) + "/" + String(base).substring(0, len - (size_t)suf) +
-                        ".bmp")) {
-        continue;
-      }
-      size_t dot = len - 1;
-      while (dot > 0 && base[dot] != '.') {
-        dot--;
-      }
-      if (dot > 0 && dot != len - (size_t)suf &&
-          SD_MMC.exists(String(PIC_DIR) + "/" + String(base).substring(0, dot) + ".bmp")) {
-        continue;
-      }
+    if (SD_MMC.exists(String(PIC_DIR) + "/" + String(base).substring(0, len - (size_t)suf) +
+                      ".bmp")) {
+      continue;
+    }
+    size_t dot = len - 1;
+    while (dot > 0 && base[dot] != '.') {
+      dot--;
+    }
+    if (dot > 0 && dot != len - (size_t)suf &&
+        SD_MMC.exists(String(PIC_DIR) + "/" + String(base).substring(0, dot) + ".bmp")) {
+      continue;
     }
     if (nKill < KILL_MAX) {
       kill[nKill++] = String(base);
@@ -1636,27 +1821,6 @@ static int cleanupOrphansRun() {
     }
   }
   return total;
-}
-
-static void handleCleanupOrphans() {
-  powerNoteActivity();
-  if (!sdOk()) {
-    server.send(500, "text/plain", "no SD");
-    return;
-  }
-  if (g_listBuilding) {
-    server.send(200, "text/plain", "Index wird gerade gebaut — später nochmal aufräumen.");
-    return;
-  }
-  int gone = cleanupOrphansRun();
-  if (gone < 0) {
-    server.send(500, "text/plain", "Aufräumen fehlgeschlagen");
-    return;
-  }
-  if (gone > 0) {
-    invalidateListCacheHard();
-  }
-  server.send(200, "text/plain", "OK " + String(gone) + " Fragmente entfernt");
 }
 
 static void sendFileCached(File &f, const char *mime) {
@@ -2323,6 +2487,8 @@ static void handleStatus() {
   ntpAppendJson(j);
   slideshowAppendMemoryJson(j);
   slideshowAppendPotJson(j);
+  j += ",\"listBuilding\":";
+  j += g_listBuilding ? "true" : "false";
   j += "}";
   server.send(200, "application/json", j);
 }
@@ -2416,6 +2582,14 @@ static void handleFrameNow() {
   powerNoteBusy(true);
   slideshowForceNow();
   powerNoteBusy(false);
+}
+
+static void handleFramePot() {
+  powerNoteActivity();
+  slideshowDeckRefill();
+  String out;
+  slideshowGetJson(out);
+  server.send(200, "application/json", out);
 }
 
 static void handleTzGet() {
@@ -3299,6 +3473,7 @@ void webBegin() {
   server.on("/api/frame", HTTP_GET, handleFrameGet);
   server.on("/api/frame", HTTP_POST, handleFramePost);
   server.on("/api/frame-now", HTTP_POST, handleFrameNow);
+  server.on("/api/frame-pot", HTTP_POST, handleFramePot);
   server.on("/api/time", HTTP_GET, handleTimeGet);
   server.on("/api/time", HTTP_POST, handleTimePost);
   server.on("/api/tz", HTTP_GET, handleTzGet);
@@ -3307,7 +3482,6 @@ void webBegin() {
   server.on("/api/palette", HTTP_GET, handlePalette);
   server.on("/api/list", HTTP_GET, handleList);
   server.on("/api/list-rebuild", HTTP_POST, handleListRebuild);
-  server.on("/api/cleanup-orphans", HTTP_POST, handleCleanupOrphans);
   server.on("/api/pic", HTTP_GET, handlePic);
   server.on("/api/thumb", HTTP_GET, handleThumb);
   server.on("/api/src", HTTP_GET, handleSrc);

@@ -162,7 +162,7 @@ bool ntfySendWake() {
     body += String(bat);
     body += " %";
   }
-  return ntfyPost(body, "min", "battery");
+  return ntfyPost(body, nullptr, "battery");
 }
 
 void ntfyBatteryWatch() {

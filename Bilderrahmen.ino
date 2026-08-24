@@ -26,8 +26,8 @@
  * Power: USB = kein Deep Sleep. Akku: nur bei Wechsel ≥ 10 min oder täglich,
  *        ohne Client direkt nach Bildwechsel, mit Client 60 s Inaktivität.
  *        Wecken: Timer (Bildwechsel), KEY (Bildwechsel, dann wieder schlafen)
- *        oder BOOT-Taste (Web an, kein Bildwechsel). ntfy: stumm mit Akkustand bei jedem
- *        Aufwachen; Warnung nur Akku < 10 %, einmal am Tag.
+ *        oder BOOT-Taste (Web an, kein Bildwechsel). ntfy: Akkustand bei jedem
+ *        Aufwachen und Warnung Akku < 10 % einmal am Tag, Priorität wie eingestellt.
  */
 
 #include "config.h"

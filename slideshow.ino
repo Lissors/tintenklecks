@@ -35,7 +35,6 @@ static uint32_t g_memNextMs = 0;
 static bool g_memNextValid = false;
 static int g_potLeft = -1;
 static int g_potTotal = -1;
-static uint32_t g_potMs = 0;
 
 void slideshowInvalidatePot() {
   g_potLeft = -1;
@@ -491,6 +490,61 @@ void slideshowDeckAdd(const String &file) {
   delete[] deck;
 }
 
+static int loadNormalPool(String *pool, int maxN) {
+  int poolN = 0;
+  if (!pool || maxN < 1 || !sdOk()) {
+    return 0;
+  }
+  String g = readSdWhole(LIST_CACHE_PATH);
+  if (g.length() < 2 || g.charAt(0) != '[') {
+    return 0;
+  }
+  int pos = 0;
+  while (poolN < maxN) {
+    int open = g.indexOf('{', pos);
+    if (open < 0) {
+      break;
+    }
+    int close = jsonObjEnd(g, open);
+    if (close < 0) {
+      break;
+    }
+    pos = close + 1;
+    String rec = g.substring(open, close + 1);
+    if (jsonField(rec, "kind") != "normal") {
+      continue;
+    }
+    String file = jsonField(rec, "file");
+    if (file.length()) {
+      pool[poolN++] = file;
+    }
+  }
+  return poolN;
+}
+
+void slideshowDeckRefill() {
+  if (!sdOk()) {
+    return;
+  }
+  String *pool = new String[SLIDE_MAX];
+  if (!pool) {
+    return;
+  }
+  int n = loadNormalPool(pool, SLIDE_MAX);
+  shuffleStrings(pool, n);
+  String avoid = lastShownOne();
+  if (n > 1 && avoid.length() > 0 && pool[n - 1] == avoid) {
+    int j = random(n - 1);
+    String tmp = pool[n - 1];
+    pool[n - 1] = pool[j];
+    pool[j] = tmp;
+  }
+  deckSave(pool, n);
+  g_potLeft = n;
+  g_potTotal = n;
+  delete[] pool;
+}
+
 static bool pickFromPot(const String *pool, int poolN, const String &avoid, String &picked) {
   if (poolN < 1) {
     return false;
@@ -888,52 +942,26 @@ void slideshowAppendMemoryJson(String &out) {
 }
 
 void slideshowAppendPotJson(String &j) {
-  if (g_potLeft < 0 || (millis() - g_potMs) > 8000UL) {
+  if (g_potLeft < 0) {
     g_potLeft = 0;
     g_potTotal = 0;
-    g_potMs = millis();
-    if (sdOk()) {
-      String g = readSdWhole(LIST_CACHE_PATH);
-      if (g.length() >= 2 && g.charAt(0) == '[') {
-        String *pool = new String[SLIDE_MAX];
-        int poolN = 0;
-        if (pool) {
-          int pos = 0;
-          while (poolN < SLIDE_MAX) {
-            int open = g.indexOf('{', pos);
-            if (open < 0) {
-              break;
-            }
-            int close = jsonObjEnd(g, open);
-            if (close < 0) {
-              break;
-            }
-            pos = close + 1;
-            String rec = g.substring(open, close + 1);
-            if (jsonField(rec, "kind") != "normal") {
-              continue;
-            }
-            String file = jsonField(rec, "file");
-            if (file.length()) {
-              pool[poolN++] = file;
-            }
+    String *pool = new String[SLIDE_MAX];
+    if (pool) {
+      int poolN = loadNormalPool(pool, SLIDE_MAX);
+      g_potTotal = poolN;
+      String *deck = new String[SLIDE_MAX];
+      int left = 0;
+      if (deck) {
+        int dn = deckLoad(deck, SLIDE_MAX);
+        for (int i = 0; i < dn; i++) {
+          if (nameIn(pool, poolN, deck[i])) {
+            left++;
           }
-          g_potTotal = poolN;
-          String *deck = new String[SLIDE_MAX];
-          int left = 0;
-          if (deck) {
-            int dn = deckLoad(deck, SLIDE_MAX);
-            for (int i = 0; i < dn; i++) {
-              if (nameIn(pool, poolN, deck[i])) {
-                left++;
-              }
-            }
-            delete[] deck;
-          }
-          g_potLeft = left;
-          delete[] pool;
         }
+        delete[] deck;
       }
+      g_potLeft = left;
+      delete[] pool;
     }
   }
   j += ",\"potLeft\":";

@@ -368,9 +368,7 @@ function showLocal(i){
   renderCaps(it);
   updateNav();
   const st=document.getElementById('status');
-  if(panelFile && it.file===panelFile) st.textContent='Am Rahmen: '+panelFile;
-  else if(panelFile) st.textContent='Vorschau · am Rahmen: '+panelFile;
-  else st.textContent='Vorschau';
+  if(st) st.textContent='';
   if(!it._metaTried){
     it._metaTried=true;
     fetch('/api/meta?name='+encodeURIComponent(it.file)).then(r=>r.json()).then(m=>{
@@ -404,7 +402,7 @@ async function showOnPanel(){
     if(r.ok){
       panelFile=it.file;
       updateNav();
-      st.textContent='Am Rahmen: '+panelFile;
+      st.textContent='Am Rahmen angezeigt';
     }else{
       st.textContent=t||('Fehler '+r.status);
     }
@@ -471,16 +469,18 @@ async function load(){
       allItems=names;
       try{
         const mem=await (await fetch('/api/erinnerungen')).json();
-        const byFile={};
-        allItems.forEach(function(it){ byFile[it.file]=it; });
-        memItems=(Array.isArray(mem)?mem:[]).map(function(it){
-          const src=byFile[it.file]||{};
+        const memByFile={};
+        (Array.isArray(mem)?mem:[]).forEach(function(it){ if(it&&it.file) memByFile[it.file]=it; });
+        memItems=allItems.filter(function(it){
+          return it.kind==='memory' || memByFile[it.file];
+        }).map(function(it){
+          const src=memByFile[it.file]||{};
           return {
             file:it.file,
-            name:it.name,
+            name:it.name||src.name,
             kind:'memory',
-            thumb:src.thumb, src:src.src, ct:src.ct,
-            meta:src.meta||{name:it.name,birth:it.birth,death:it.death,special:it.special,specialKind:it.specialKind,kind:'memory'}
+            thumb:it.thumb, src:it.src, ct:it.ct,
+            meta:it.meta||{name:it.name||src.name,birth:src.birth,death:src.death,special:src.special,specialKind:src.specialKind,kind:'memory'}
           };
         });
       }catch(e){ memItems=[]; }

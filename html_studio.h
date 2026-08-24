@@ -80,13 +80,13 @@ footer{text-align:center;padding:1rem;font-size:.75rem;color:var(--dim)}
   <button class="primary" id="btnSierra2" type="button" disabled>In E6 konvertieren</button>
   <button class="primary" id="btnTuneStyle" type="button" hidden disabled>Automatik</button>
   <h2>Format</h2>
-  <label class="row">Lage (System)
+  <label class="row">Lage (Rahmen)
     <select id="orient" disabled>
       <option value="portrait" selected>Hochkant 480×800</option>
       <option value="landscape">Quer 800×480</option>
     </select>
   </label>
-  <p class="status" style="margin:.2rem 0 .45rem">Ändern unter System. Neue Fotos folgen der Lage, geladene Galeriebilder behalten ihre.</p>
+  <p class="status" style="margin:.2rem 0 .45rem">Ändern unter Rahmen. Neue Fotos folgen der Lage, geladene Galeriebilder behalten ihre.</p>
   <label class="row">Zoom <input id="zoom" type="range" min="10" max="400" value="100"/><span class="val" data-for="zoom">100</span></label>
   <button class="primary" id="btnShow" disabled>Anzeigen am Rahmen</button>
   <button class="primary" id="btnSave" disabled>Speichern in Galerie</button>
@@ -194,6 +194,7 @@ let labels=[], dragLab=-1, selectedLab=-1, labDragMode=false, lastDither=null, l
 let lastDitherSig='';
 let loadedPicSig='';
 let pictureDirty=false;
+let holdSavedE6=false;
 let editName=null;
 let srcOriginal=null;
 let srcNeedsRewrite=false;
@@ -941,6 +942,14 @@ async function renderOut(){
     status.textContent='E6-BMP unverändert · '+sandboxRawFile.name;
     return;
   }
+  if(holdSavedE6 && lastDither){
+    drawCrop();
+    const wh=target(), w=wh[0], h=wh[1];
+    lastCrop=cctx.getImageData(0,0,w,h);
+    drawLabels(cctx,w,h,true);
+    octx.putImageData(lastDither,0,0);
+    return;
+  }
   drawCrop();
   const wh=target(), w=wh[0], h=wh[1];
   lastCrop=cctx.getImageData(0,0,w,h);
@@ -1156,6 +1165,7 @@ function loadFile(f){
     img=im; srcOriginal=f; editName=null; picKind.value='normal'; syncKindUi(); metaName.value=metaBirth.value=metaDeath.value=metaSpecial.value=metaSpecialKind.value=metaDesc.value='';
     labels=[]; selectedLab=-1; updateLabList(); orient.value=hang||'portrait'; zoom.value=zoomFitPct(); panX=panY=0.5;
     styleId='portrait';
+    holdSavedE6=false;
     applyPrepDefaults();
     if(isSierra2()){
       sierra2Done=false; sierra2Sig='';
@@ -1206,7 +1216,7 @@ drop.addEventListener('drop',function(e){
 });
 btnNewPic.onclick=function(){
   if(uiBusy) return;
-  img=null; srcOriginal=null; srcNeedsRewrite=false; sandboxRawFile=null; sierra2Done=false; sierra2Sig=''; editName=null; loadedPicSig=''; pictureDirty=false; lastDitherSig=''; paintMode.value='sierra2'; swOnly.checked=false; picKind.value='normal'; syncVerfahrenUi(); syncKindUi(); metaName.value=metaBirth.value=metaDeath.value=metaSpecial.value=metaSpecialKind.value=metaDesc.value=''; labels=[]; selectedLab=-1; updateLabList(); orient.value=hang||'portrait'; zoom.value=100; panX=panY=0.5; imgSeq++; tunedSig=null; tunePromise=null; lastDither=null; syncEditUi(); syncStage(); status.textContent='Neues Bild · Foto wählen';
+  img=null; srcOriginal=null; srcNeedsRewrite=false; sandboxRawFile=null; sierra2Done=false; sierra2Sig=''; editName=null; loadedPicSig=''; pictureDirty=false; holdSavedE6=false; lastDitherSig=''; paintMode.value='sierra2'; swOnly.checked=false; picKind.value='normal'; syncVerfahrenUi(); syncKindUi(); metaName.value=metaBirth.value=metaDeath.value=metaSpecial.value=metaSpecialKind.value=metaDesc.value=''; labels=[]; selectedLab=-1; updateLabList(); orient.value=hang||'portrait'; zoom.value=100; panX=panY=0.5; imgSeq++; tunedSig=null; tunePromise=null; lastDither=null; syncEditUi(); syncStage(); status.textContent='Neues Bild · Foto wählen';
 };
 
 document.getElementById('btnAddLab').onclick=function(){
@@ -1304,11 +1314,12 @@ document.getElementById('labRotNum').addEventListener('input', function(){ setRo
 document.getElementById('labRotNum').addEventListener('change', function(){ setRotation(this.value); });
 
 [orient,zoom,bright,contrast,warmth,dither,algo,prepExp,prepSat,prepScurve,prepHi,prepShadow,prepMid].forEach(function(el){
-  el.addEventListener('input', function(){ pictureDirty=true; syncSliderVals(); schedule(); });
+  el.addEventListener('input', function(){ pictureDirty=true; holdSavedE6=false; syncSliderVals(); schedule(); });
 });
-prepCdr.addEventListener('change', function(){ pictureDirty=true; schedule(); });
+prepCdr.addEventListener('change', function(){ pictureDirty=true; holdSavedE6=false; schedule(); });
 paintMode.addEventListener('change', function(){
   pictureDirty=true;
+  holdSavedE6=false;
   sierra2Done=false; sierra2Sig=''; lastDither=null; lastDitherSig='';
   tunedSig=null;
   syncVerfahrenUi();
@@ -1317,19 +1328,21 @@ paintMode.addEventListener('change', function(){
 });
 picKind.addEventListener('change', function(){
   pictureDirty=true;
+  holdSavedE6=false;
   syncKindUi();
   schedule();
 });
 swOnly.addEventListener('change', function(){
   pictureDirty=true;
+  holdSavedE6=false;
   sierra2Done=false; sierra2Sig=''; lastDither=null; lastDitherSig='';
   tunedSig=null;
   syncVerfahrenUi();
   schedule(isSierra2()?(isSwOnly()?'Sierra · S/W':'Sierra · Zuschnitt'):'Lab — S/W');
 });
 syncSliderVals();
-orient.addEventListener('change', function(){ pictureDirty=true; syncStage(); });
-stage.addEventListener('wheel',function(e){e.preventDefault(); pictureDirty=true; zoom.value=clamp(+zoom.value+(e.deltaY<0?2:-2),10,400); syncSliderVals(); schedule();},{passive:false});
+orient.addEventListener('change', function(){ pictureDirty=true; holdSavedE6=false; syncStage(); });
+stage.addEventListener('wheel',function(e){e.preventDefault(); pictureDirty=true; holdSavedE6=false; zoom.value=clamp(+zoom.value+(e.deltaY<0?2:-2),10,400); syncSliderVals(); schedule();},{passive:false});
 stage.addEventListener('pointerdown',function(e){drag=true; labDragMode=false; lx=e.clientX; ly=e.clientY; stage.setPointerCapture(e.pointerId);});
 stage.addEventListener('pointerup',function(){drag=false;});
 stage.addEventListener('pointermove',function(e){
@@ -1337,7 +1350,7 @@ stage.addEventListener('pointermove',function(e){
   const wh=target(), tw=wh[0], th=wh[1]; const z=coverBase()*(+zoom.value/100); const dw=img.width*z, dh=img.height*z;
   panX=clamp(panX-(e.clientX-lx)/Math.max(1,Math.abs(tw-dw)||tw),0,1);
   panY=clamp(panY-(e.clientY-ly)/Math.max(1,Math.abs(th-dh)||th),0,1);
-  lx=e.clientX; ly=e.clientY; pictureDirty=true; drawCrop(); schedule();
+  lx=e.clientX; ly=e.clientY; pictureDirty=true; holdSavedE6=false; drawCrop(); schedule();
 });
 
 stageOut.addEventListener('pointerdown',function(e){
@@ -1366,7 +1379,7 @@ function toBmp(){
   const tctx=tmp.getContext('2d');
   if(lastDither){
     tctx.putImageData(lastDither,0,0);
-    drawLabels(tctx,w,h,false);
+    if(!holdSavedE6) drawLabels(tctx,w,h,false);
   } else {
     tctx.drawImage(out,0,0);
   }
@@ -1537,7 +1550,6 @@ function applyMeta(m){
   metaSpecialKind.value=m.specialKind||'';
   if(m.kind==='memory'||m.kind==='normal') picKind.value=m.kind;
   else picKind.value=((m.birth||'')+(m.death||'')+(m.special||'')).trim()?'memory':'normal';
-  syncKindUi();
   metaDesc.value=m.description||m.beschreibung||'';
   if(typeof m.showName==='boolean') showName.checked=m.showName;
   if(typeof m.showBirth==='boolean') showBirth.checked=m.showBirth;
@@ -1557,7 +1569,6 @@ function applyMeta(m){
   else if(m.paintMode==='sierra2'||m.paintMode==='saved') paintMode.value=m.paintMode;
   else paintMode.value='saved';
   if(typeof m.swOnly==='boolean') swOnly.checked=m.swOnly;
-  syncVerfahrenUi();
   writePrep(m);
   if(m.zoom!=null) zoom.value=m.zoom;
   if(typeof m.panX==='number') panX=m.panX;
@@ -1569,8 +1580,21 @@ function applyMeta(m){
   } else {
     labels=[];
   }
-  syncPersonLabels();
+  syncKindUi();
+  syncVerfahrenUi();
   selectedLab=-1;
+  const customs=labels.filter(function(L){return !L.role||L.role==='custom';});
+  if(customs.length){
+    const L=customs[customs.length-1];
+    document.getElementById('labText').value=L.text||'';
+    document.getElementById('labSize').value=L.size||28;
+    document.getElementById('labFont').value=L.font||'serif';
+    document.getElementById('labColor').value=L.color||'#FFFFFF';
+    document.getElementById('labAlign').value=L.align||'center';
+    document.getElementById('labBold').checked=!!L.bold;
+    document.getElementById('labRot').value=L.rotate||0;
+    document.getElementById('labRotNum').value=L.rotate||0;
+  }
   updateLabList();
   syncSliderVals();
 }
@@ -1616,12 +1640,35 @@ async function loadEdit(name){
     imgSeq++;
     sierra2Done=false; sierra2Sig=''; lastDither=null; lastDitherSig='';
     pictureDirty=false;
+    holdSavedE6=false;
     syncEditUi();
-    syncStage();
+    syncStage(true);
     tunedSig=cropSig();
     loadedPicSig=picSig();
-    schedule('Wiederhergestellt…');
-    status.textContent=note || ('Bearbeiten: '+name);
+    drawCrop();
+    const wh=target(), w=wh[0], h=wh[1];
+    lastCrop=cctx.getImageData(0,0,w,h);
+    drawLabels(cctx,w,h,true);
+    let shownSaved=false;
+    try{
+      const panelIm=await loadImgUrl('/api/pic?name='+enc+'&t='+Date.now());
+      octx.imageSmoothingEnabled=false;
+      octx.fillStyle='#111';
+      octx.fillRect(0,0,w,h);
+      octx.drawImage(panelIm, 0, 0, w, h);
+      lastDither=octx.getImageData(0,0,w,h);
+      lastDitherSig=picSig();
+      if(isSierra2()){ sierra2Done=true; sierra2Sig=cropSig(); }
+      holdSavedE6=true;
+      shownSaved=true;
+    }catch(e){ shownSaved=false; }
+    if(shownSaved){
+      status.textContent=note || ('Bearbeiten: '+name);
+      syncActionButtons();
+    }else{
+      schedule('Wiederhergestellt…');
+      status.textContent=note || ('Bearbeiten: '+name);
+    }
   }catch(e){ status.textContent=String(e.message||e); editName=null; syncEditUi(); }
   finally{ setBusy(false); }
 }
@@ -1666,6 +1713,7 @@ async function runAutotune(){
   if(isSierra2()){ status.textContent='Sierra: In E6 konvertieren'; return; }
   tuning=true;
   pictureDirty=true;
+  holdSavedE6=false;
   setBusy(true, 'Automatik…');
   try{
     applyPrepDefaults();
@@ -1784,6 +1832,7 @@ syncEditUi();
       if(!isSierra2()){ paintMode.value='sierra2'; syncVerfahrenUi(); }
       sierra2Done=true;
       pictureDirty=true;
+      holdSavedE6=false;
       lastDither=null;
       sierra2Sig='';
       setBusy(true, isSwOnly()?'Sierra S/W …':'LUT + Sierra…');
