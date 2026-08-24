@@ -143,7 +143,7 @@ With Wi-Fi: the IP from the router, or later [http://tintenklecks.local](http://
 
 ## Using the web UI
 
-Open the frame’s IP in the browser: access point [http://192.168.4.1](http://192.168.4.1), on the home network the router IP, or later [http://tintenklecks.local](http://tintenklecks.local). Long jobs (show, save, switch) display **Bitte warten…** — buttons are locked until they finish.
+Open the frame’s IP in the browser: access point [http://192.168.4.1](http://192.168.4.1), on the home network the router IP, or later [http://tintenklecks.local](http://tintenklecks.local). Long jobs (show, save, switch) display **Bitte warten…** — buttons are locked until they finish. Action buttons are tan; they darken briefly when pressed. **Zufall** / **Erinnerungen** in gallery and Live are switches. **Löschen** stays red.
 
 ### Header (every page)
 
@@ -185,9 +185,7 @@ Six tiles:
 
 Two stages: left **Zuschnitt**, right **E6 Vorschau**. Drop a photo onto the dashed field, or tap (JPG, PNG, BMP). Mouse wheel zooms; drag on the left stage to pan the crop — the picture follows the mouse (including vertically).
 
-**Gerendertes BMP an E6** skips Studio: a finished 24-bit BMP at panel size (480×800 or 800×480) goes straight to the e-paper.
-
-While **Bearbeiten** from the gallery, **Bearbeitung beenden · neues Bild** is shown. Until you end the edit, the drop field will not take a new photo. **E6 Vorschau** shows the stored picture unchanged, including text. Lab sliders and free texts come back as last saved. The picture is only re-rendered if crop or Lab values change.
+While **Bearbeiten** from the gallery, **Bearbeitung beenden** is shown. Until you end the edit, the drop field will not take a new photo. **E6 Vorschau** shows the stored picture unchanged, including text. Lab sliders and free texts come back as last saved. The picture is only re-rendered if crop or Lab values change.
 
 #### Verfahren (method)
 
@@ -244,7 +242,7 @@ Missing preview: **Kein Vorschaubild · neu speichern**. Without a crop file: re
 
 ![Live display](docs/live.png)
 
-Wooden-frame preview of the chosen picture, including text on the image (thumbnail; the crop is already in it). Below: name, dates, description, free texts, then a line **Nächste Erinnerung** (not inside the wooden frame). Tabs **Zufall** / **Erinnerungen**, **‹** / **›** browse, counter in the middle. Memories are sorted by name, as in the gallery. The mock-up follows the picture’s hang (Hochkant or Quer).
+Wooden-frame preview of the chosen picture, including text on the image (thumbnail; the crop is already in it). Below: name, dates, description, free texts, then a line **Nächste Erinnerung** (not inside the wooden frame). No filename — that is in the gallery. Tabs **Zufall** / **Erinnerungen**, **‹** / **›** browse, counter in the middle. Memories are sorted by name, as in the gallery. The mock-up follows the picture’s hang (Hochkant or Quer).
 
 ![Live with person](docs/live_person.png)
 

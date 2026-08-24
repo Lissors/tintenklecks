@@ -141,7 +141,7 @@ Mit WLAN: IP aus dem Router oder später [http://tintenklecks.local](http://tint
 
 ## Bedienung
 
-Im Browser die IP des Rahmens öffnen: Access Point [http://192.168.4.1](http://192.168.4.1), im Heimnetz die IP aus dem Router oder später [http://tintenklecks.local](http://tintenklecks.local). Lange Vorgänge (Anzeigen, Speichern, Wechsel) zeigen **Bitte warten…** — in der Zeit sind die Knöpfe gesperrt.
+Im Browser die IP des Rahmens öffnen: Access Point [http://192.168.4.1](http://192.168.4.1), im Heimnetz die IP aus dem Router oder später [http://tintenklecks.local](http://tintenklecks.local). Lange Vorgänge (Anzeigen, Speichern, Wechsel) zeigen **Bitte warten…** — in der Zeit sind die Knöpfe gesperrt. Taster sind hellbraun; beim Drücken kurz dunkler. **Zufall** / **Erinnerungen** in Galerie und Live sind Umschalter. **Löschen** bleibt rot.
 
 ### Kopfzeile (alle Seiten)
 
@@ -183,9 +183,7 @@ Sechs Kacheln:
 
 Zwei Bühnen: links **Zuschnitt**, rechts **E6 Vorschau**. Das Foto in das gestrichelte Feld ziehen oder tippen (JPG, PNG, BMP). Mausrad zoomt, Ziehen auf der linken Bühne verschiebt den Ausschnitt — das Bild folgt der Maus (auch senkrecht).
 
-**Gerendertes BMP an E6** umgeht das Studio: eine schon fertige 24-Bit-BMP in Panelgröße (480×800 oder 800×480) direkt aufs E-Paper.
-
-Beim **Bearbeiten** aus der Galerie steht **Bearbeitung beenden · neues Bild**. Solange die Bearbeitung läuft, nimmt das Drop-Feld kein neues Foto. Die **E6 Vorschau** zeigt das gespeicherte Bild unverändert, inklusive Text. Lab-Schieber und Freitexte stehen wie zuletzt gespeichert. Neu gerechnet wird erst, wenn Zuschnitt oder Lab-Werte sich ändern.
+Beim **Bearbeiten** aus der Galerie steht **Bearbeitung beenden**. Solange die Bearbeitung läuft, nimmt das Drop-Feld kein neues Foto. Die **E6 Vorschau** zeigt das gespeicherte Bild unverändert, inklusive Text. Lab-Schieber und Freitexte stehen wie zuletzt gespeichert. Neu gerechnet wird erst, wenn Zuschnitt oder Lab-Werte sich ändern.
 
 #### Verfahren
 
@@ -242,7 +240,7 @@ Fehlt die Vorschau: **Kein Vorschaubild · neu speichern**. Ohne Zuschnitt-Datei
 
 ![Live-Anzeige](docs/live.png)
 
-Holzrahmen-Vorschau des gewählten Bildes samt Text auf dem Bild (Vorschaubild / Thumb, Zuschnitt schon drin). Darunter Name, Daten, Bildbeschreibung, Freitexte, dann eine Zeile **Nächste Erinnerung** (nicht im Holzrahmen). Reiter **Zufall** / **Erinnerungen**, **‹** / **›** blättern, Zähler in der Mitte. Erinnerungen stehen wie in der Galerie nach Namen. Die Attrappe folgt der Lage des Bildes (Hochkant oder Quer).
+Holzrahmen-Vorschau des gewählten Bildes samt Text auf dem Bild (Vorschaubild / Thumb, Zuschnitt schon drin). Darunter Name, Daten, Bildbeschreibung, Freitexte, dann eine Zeile **Nächste Erinnerung** (nicht im Holzrahmen). Kein Dateiname — der steht in der Galerie. Reiter **Zufall** / **Erinnerungen**, **‹** / **›** blättern, Zähler in der Mitte. Erinnerungen stehen wie in der Galerie nach Namen. Die Attrappe folgt der Lage des Bildes (Hochkant oder Quer).
 
 ![Live mit Person](docs/live_person.png)
 

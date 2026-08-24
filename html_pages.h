@@ -24,6 +24,7 @@ input{width:100%;box-sizing:border-box;padding:.65rem .75rem;border-radius:8px;b
 .eye[aria-pressed="true"] .eye-on{display:none}
 .eye[aria-pressed="true"] .eye-off{display:block}
 button.pri{margin-top:1rem;width:100%;padding:.75rem;border:0;border-radius:8px;background:#c4966e;color:#1a1612;font-weight:700}
+button.pri:active{filter:brightness(.78)}
 .hint{margin-top:1rem;font-size:.8rem;opacity:.65}
 a{color:#c4966e}
 </style></head><body>
@@ -51,7 +52,7 @@ a{color:#c4966e}
 </div>
 <button class="pri" type="submit">Speichern &amp; neu starten</button>
 </form>
-<form method="POST" action="/offline"><button type="submit" style="margin-top:.65rem;width:100%;padding:.75rem;border:0;border-radius:8px;background:#56483c;color:#f3ebe3;font-weight:700">Offline · Menü öffnen</button></form>
+<form method="POST" action="/offline"><button class="pri" type="submit">Offline · Menü öffnen</button></form>
 <p class="hint">AP-Passwort mindestens 8 Zeichen (WPA2). Gilt nach dem Neustart. Hotspot heißt Tintenklecks. Später <a href="http://tintenklecks.local">tintenklecks.local</a></p>
 </div></div>
 <script>
@@ -167,7 +168,7 @@ body.busy button{pointer-events:none;opacity:.55}
 .brand a{color:var(--txt);text-decoration:none;font-weight:700}.nav a{color:var(--acc);margin-left:.75rem;font-size:.85rem;text-decoration:none}
 .bat{font-size:.8rem;color:var(--dim)}
 .head-right{display:flex;align-items:center;gap:.5rem}
-button.zzz{width:auto;margin:0;padding:.2rem .5rem;font-size:.78rem;letter-spacing:.08em;font-weight:700;flex:none}
+button.zzz{width:auto;margin:0;padding:.2rem .5rem;font-size:.78rem;letter-spacing:.08em;font-weight:700;flex:none;border-radius:6px;border:1px solid var(--line);background:#1a1612;color:var(--dim);cursor:pointer;font:inherit}
 main{max-width:960px;margin:0 auto;padding:1rem}
 h1{font-size:1.2rem;margin:0 0 .5rem}
 h2.sec{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin:.35rem 0 .6rem}
@@ -200,9 +201,10 @@ h2.sec{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(-
 .info .desc.open{display:block;-webkit-line-clamp:unset;overflow:visible}
 .info .file{font-size:.7rem;color:var(--dim);word-break:break-all}
 .actions{display:flex;flex-wrap:wrap;gap:.35rem;padding:0 .75rem .75rem}
-button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:#1a1612;color:var(--txt);padding:.4rem .55rem;font-size:.78rem}
+button{font:inherit;cursor:pointer;border-radius:8px;border:0;background:var(--acc);color:#1a1612;padding:.4rem .55rem;font-size:.78rem;font-weight:700}
 button.pri{background:var(--acc);color:#1a1612;border:0;font-weight:700}
-button.danger{border-color:#8a4030;color:#e8a090}
+button.danger{border:1px solid #8a4030;background:#1a1612;color:#e8a090;font-weight:700}
+button:not(.zzz):active:not(:disabled){filter:brightness(.78)}
 .status{font-size:.85rem;color:var(--dim);margin-bottom:1rem}
 footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
 </style></head><body>
@@ -703,7 +705,7 @@ body.busy button{pointer-events:none;opacity:.55}
 .brand a{color:var(--txt);text-decoration:none;font-weight:700}.nav a{color:var(--acc);margin-left:.75rem;font-size:.85rem;text-decoration:none}
 .bat{font-size:.8rem;color:var(--dim)}
 .head-right{display:flex;align-items:center;gap:.5rem}
-button.zzz{width:auto;margin:0;padding:.2rem .5rem;font-size:.78rem;letter-spacing:.08em;flex:none}
+button.zzz{width:auto;margin:0;padding:.2rem .5rem;font-size:.78rem;letter-spacing:.08em;flex:none;border-radius:6px;border:1px solid var(--line);background:#1a1612;color:var(--dim);cursor:pointer;font:inherit}
 main{max-width:520px;margin:0 auto;padding:1.25rem 1rem}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1rem;margin-bottom:1rem}
 h1{font-size:1.2rem;margin:0 0 1rem}h2{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin:0 0 .75rem}
@@ -711,11 +713,11 @@ h1{font-size:1.2rem;margin:0 0 1rem}h2{font-size:.72rem;letter-spacing:.1em;text
 .row:last-child{border:0}.row span{color:var(--dim)}
 label.field{display:block;margin:.55rem 0;font-size:.8rem;color:var(--dim)}
 label.field input,label.field select{width:100%;margin-top:.3rem;box-sizing:border-box;padding:.55rem .65rem;border-radius:8px;border:1px solid var(--line);background:#1a1612;color:var(--txt);font:inherit}
-button{width:100%;margin-top:.55rem;padding:.7rem;border-radius:8px;border:1px solid var(--line);background:#1a1612;color:var(--txt);font:inherit;font-weight:700;cursor:pointer}
+button{width:100%;margin-top:.55rem;padding:.7rem;border-radius:8px;border:0;background:var(--acc);color:#1a1612;font:inherit;font-weight:700;cursor:pointer}
 button.pri{background:var(--acc);color:#1a1612;border:0}
-a.pri{display:block;width:100%;margin-top:.55rem;padding:.7rem;border-radius:8px;background:var(--acc);color:#1a1612;font:inherit;font-weight:700;text-align:center;text-decoration:none}
-a.sec{display:block;width:100%;margin-top:.55rem;padding:.7rem;border-radius:8px;border:1px solid var(--line);background:#1a1612;color:var(--txt);font:inherit;font-weight:700;text-align:center;text-decoration:none;box-sizing:border-box}
-button.danger{border-color:#8a4030;color:#e8a090}
+a.pri,a.sec{display:block;width:100%;margin-top:.55rem;padding:.7rem;border-radius:8px;background:var(--acc);color:#1a1612;font:inherit;font-weight:700;text-align:center;text-decoration:none;box-sizing:border-box}
+button.danger{border:1px solid #8a4030;background:#1a1612;color:#e8a090}
+button:not(.zzz):active:not(:disabled),a.pri:active,a.sec:active{filter:brightness(.78)}
 .status{font-size:.85rem;color:var(--dim);min-height:1.2em;margin-top:.5rem}
 .hint{font-size:.78rem;color:var(--dim);line-height:1.4;margin:.5rem 0 0}
 footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}

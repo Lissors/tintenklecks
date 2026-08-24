@@ -123,7 +123,6 @@ h1{font-size:1.2rem;margin:0 0 1rem}
 .caps .labs{margin:.75rem 0 0;padding:0;list-style:none}
 .caps .labs li{font-size:.85rem;color:var(--dim);padding:.25rem 0;border-top:1px solid #2e2720}
 .caps .labs li:first-child{border-top:0;padding-top:0}
-.caps .file{margin:.75rem 0 0;font-size:.7rem;color:var(--dim);word-break:break-all}
 .caps .muted{color:var(--dim);font-size:.88rem;margin:0}
 .memnext{font-size:.85rem;color:var(--dim);line-height:1.4;margin:.15rem 0 1rem}
 .navrow{display:flex;align-items:center;justify-content:center;gap:1rem;margin-bottom:.75rem}
@@ -131,7 +130,7 @@ h1{font-size:1.2rem;margin:0 0 1rem}
 .tabs button{flex:1;padding:.55rem;border-radius:8px;border:1px solid var(--line);background:#1a1612;color:var(--txt);font:inherit;font-weight:700;cursor:pointer}
 .tabs button.on{background:var(--acc);color:#1a1612;border:0}
 .navrow button{
-  width:64px;height:64px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--txt);
+  width:64px;height:64px;border-radius:50%;border:0;background:var(--acc);color:#1a1612;
   font-size:1.6rem;line-height:1;cursor:pointer;font-weight:700;
 }
 .navrow button:disabled{opacity:.35;cursor:default}
@@ -141,6 +140,7 @@ button.pri{
   font:inherit;font-weight:700;cursor:pointer;
 }
 button.pri:disabled{opacity:.45;cursor:default}
+button:not(.zzz):active:not(:disabled){filter:brightness(.78)}
 .status{font-size:.82rem;color:var(--dim);text-align:center;min-height:1.2em;margin-top:.85rem}
 footer{text-align:center;padding:1rem;font-size:.75rem;color:var(--dim)}
 </style></head><body>
@@ -282,7 +282,6 @@ function renderCaps(it){
   if(!m.name && !d.length && !desc && !texts.length){
     parts.push('<p class="muted">Keine Beschriftung</p>');
   }
-  parts.push('<p class="file">'+esc(it.file)+'</p>');
   caps.innerHTML=parts.join('');
 }
 function fontCss(font){

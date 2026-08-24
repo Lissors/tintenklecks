@@ -17,15 +17,16 @@ body.busy button{pointer-events:none;opacity:.55}
 .brand a{color:var(--txt);text-decoration:none;font-weight:700}.nav a{color:var(--acc);margin-left:.75rem;font-size:.85rem;text-decoration:none}
 .bat{font-size:.8rem;color:var(--dim)}
 .head-right{display:flex;align-items:center;gap:.5rem}
-button.zzz{width:auto;margin:0;padding:.2rem .5rem;font-size:.78rem;letter-spacing:.08em;flex:none}
+button.zzz{width:auto;margin:0;padding:.2rem .5rem;font-size:.78rem;letter-spacing:.08em;flex:none;border-radius:6px;border:1px solid var(--line);background:#1a1612;color:var(--dim);cursor:pointer;font:inherit}
 main{max-width:520px;margin:0 auto;padding:1.25rem 1rem}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1rem;margin-bottom:1rem}
 h1{font-size:1.2rem;margin:0 0 .35rem}h2{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin:0 0 .75rem}
 .lead{color:var(--dim);font-size:.88rem;line-height:1.45;margin:0 0 1rem}
 label.field{display:block;margin:.55rem 0;font-size:.8rem;color:var(--dim)}
 label.field select,label.field input{width:100%;margin-top:.3rem;box-sizing:border-box;padding:.55rem .65rem;border-radius:8px;border:1px solid var(--line);background:#1a1612;color:var(--txt);font:inherit}
-button{width:100%;margin-top:.55rem;padding:.7rem;border-radius:8px;border:1px solid var(--line);background:#1a1612;color:var(--txt);font:inherit;font-weight:700;cursor:pointer}
+button{width:100%;margin-top:.55rem;padding:.7rem;border-radius:8px;border:0;background:var(--acc);color:#1a1612;font:inherit;font-weight:700;cursor:pointer}
 button.pri{background:var(--acc);color:#1a1612;border:0}
+button:not(.zzz):active:not(:disabled){filter:brightness(.78)}
 .status{font-size:.85rem;color:var(--dim);min-height:1.2em;margin-top:.65rem;line-height:1.4}
 .hint{font-size:.78rem;color:var(--dim);line-height:1.4;margin:.5rem 0 0}
 footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}

@@ -41,13 +41,11 @@ label.field textarea{min-height:5.5rem;resize:vertical;line-height:1.4}
 .lab-list .lab-item{display:flex;align-items:center;gap:.4rem;padding:.4rem .5rem;border:1px solid var(--line);border-radius:8px;background:#1a1612;font-size:.78rem}
 .lab-list .lab-item.active{border-color:var(--acc)}
 .lab-list .lab-item span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dim);cursor:pointer}
-.lab-list .lab-item button{flex:none;padding:.25rem .45rem;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--txt);cursor:pointer;font:inherit;font-size:.72rem}
-.lab-list .lab-item button:hover{border-color:#c45;color:#f88}
+.lab-list .lab-item button{flex:none;padding:.25rem .45rem;border-radius:6px;border:1px solid #8a4030;background:#1a1612;color:#e8a090;cursor:pointer;font:inherit;font-size:.72rem}
 .lab-empty{font-size:.75rem;color:var(--dim);margin:.35rem 0}
-button.primary,button.ghost{width:100%;margin-top:.45rem;padding:.7rem;border-radius:8px;border:0;cursor:pointer;font-weight:700;font:inherit}
-button.primary{background:var(--acc);color:#1a1612}
-button.ghost{background:transparent;border:1px solid var(--line);color:var(--txt)}
+button.primary,button.ghost{width:100%;margin-top:.45rem;padding:.7rem;border-radius:8px;border:0;cursor:pointer;font-weight:700;font:inherit;background:var(--acc);color:#1a1612}
 button.primary:disabled,button.ghost:disabled{opacity:.4;cursor:default;pointer-events:none}
+button:not(.zzz):active:not(:disabled){filter:brightness(.78)}
 .status{font-size:.8rem;color:var(--dim);min-height:1.2em;margin-top:.55rem;line-height:1.35}
 footer{text-align:center;padding:1rem;font-size:.75rem;color:var(--dim)}
 </style></head><body>
@@ -66,9 +64,7 @@ footer{text-align:center;padding:1rem;font-size:.75rem;color:var(--dim)}
 <aside class="panel">
   <div class="drop" id="drop"><span id="dropTitle">Foto hierher · JPG/PNG/BMP</span><br/><small id="dropSub">oder tippen zum Auswählen</small></div>
   <input id="file" type="file" accept="image/*" hidden/>
-  <button class="ghost" id="btnNewPic" type="button" hidden>Bearbeitung beenden · neues Bild</button>
-  <button class="ghost" id="btnRawE6" type="button">Gerendertes BMP an E6</button>
-  <input id="fileRawE6" type="file" accept=".bmp,image/bmp" hidden/>
+  <button class="ghost" id="btnNewPic" type="button" hidden>Bearbeitung beenden</button>
   <h2>Verfahren</h2>
   <label class="row">Methode
     <select id="paintMode">
@@ -198,7 +194,6 @@ let holdSavedE6=false;
 let editName=null;
 let srcOriginal=null;
 let srcNeedsRewrite=false;
-let sandboxRawFile=null;
 let sierra2Done=false;
 let sierra2Sig='';
 let specLut=null;
@@ -929,19 +924,6 @@ async function ditherSwKw(imgData, statusEl){
 async function renderOut(){
   try{
   if(!img) return;
-  if(sandboxRawFile){
-    const wh=target(), w=wh[0], h=wh[1];
-    cctx.fillStyle='#111'; cctx.fillRect(0,0,w,h);
-    octx.fillStyle='#111'; octx.fillRect(0,0,w,h);
-    cctx.imageSmoothingEnabled=false;
-    octx.imageSmoothingEnabled=false;
-    cctx.drawImage(img,0,0,w,h);
-    octx.drawImage(img,0,0,w,h);
-    lastCrop=cctx.getImageData(0,0,w,h);
-    lastDither=octx.getImageData(0,0,w,h);
-    status.textContent='E6-BMP unverändert · '+sandboxRawFile.name;
-    return;
-  }
   if(holdSavedE6 && lastDither){
     drawCrop();
     const wh=target(), w=wh[0], h=wh[1];
@@ -1066,7 +1048,6 @@ function syncKindUi(){
 function isSierra2(){ return paintMode.value==='sierra2'; }
 function isSwOnly(){ return !!(swOnly && swOnly.checked); }
 function e6Ready(){
-  if(sandboxRawFile) return true;
   if(!img) return false;
   if(isSierra2()) return !!(sierra2Done && lastDither && sierra2Sig===cropSig());
   return !!(lastDither && lastDitherSig===picSig() && tunedSig===cropSig());
@@ -1075,7 +1056,7 @@ function canSaveMetaOnly(){
   return !!(editName && !pictureDirty && picSig()===loadedPicSig);
 }
 function syncActionButtons(){
-  const hasSrc=!!img && !sandboxRawFile;
+  const hasSrc=!!img;
   const ready=e6Ready();
   const btnS=document.getElementById('btnSierra2');
   const btnT=document.getElementById('btnTuneStyle');
@@ -1106,58 +1087,12 @@ function syncEditUi(){
   dropSub.textContent=editName?'Kein neues Foto — erst „Bearbeitung beenden“':(isSierra2()?'Sierra, kein Automatik-Start':'oder tippen zum Auswählen');
   btnNewPic.hidden=!editName;
 }
-function readBmpWh(file){
-  return file.slice(0, 26).arrayBuffer().then(function(buf){
-    const v=new DataView(buf);
-    if(v.byteLength<26 || v.getUint8(0)!==0x42 || v.getUint8(1)!==0x4D) return null;
-    return {w:Math.abs(v.getInt32(18,true)), h:Math.abs(v.getInt32(22,true))};
-  });
-}
-function isPanelBmp(wh){
-  return !!wh && ((wh.w===480 && wh.h===800) || (wh.w===800 && wh.h===480));
-}
-async function postRawBmp(file){
-  const fd=new FormData();
-  fd.append('file', file, '_preview.bmp');
-  const r=await fetch('/api/show-bmp',{method:'POST',body:fd});
-  if(!r.ok) throw new Error(await r.text());
-}
-async function sendRawPanelBmp(file, wh){
-  if(uiBusy) return;
-  setBusy(true, 'BMP an E6…');
-  try{
-    sandboxRawFile=file;
-    srcOriginal=null;
-    editName=null;
-    orient.value=(wh.w===800 && wh.h===480)?'landscape':'portrait';
-    zoom.value=100; panX=panY=0.5;
-    labels=[]; selectedLab=-1; updateLabList();
-    const url=URL.createObjectURL(file);
-    await new Promise(function(resolve,reject){
-      const im=new Image();
-      im.onload=function(){
-        img=im; imgSeq++; tunedSig=cropSig(); appliedSeq=imgSeq;
-        syncStage(true);
-        renderOut().then(resolve).catch(resolve);
-      };
-      im.onerror=function(){ reject(new Error('BMP konnte nicht gelesen werden')); };
-      im.src=url;
-    });
-    URL.revokeObjectURL(url);
-    await postRawBmp(file);
-    status.textContent=file.name+' · unverändert an E6 (kein Dither)';
-  }catch(e){
-    sandboxRawFile=null;
-    status.textContent=String(e.message||e);
-  }finally{ setBusy(false); }
-}
 function pickFile(f){
   if(!f) return;
   loadFile(f);
 }
 function loadFile(f){
   if(!f) return;
-  sandboxRawFile=null;
   if(editName){ file.value=''; status.textContent='Bearbeitung: '+editName+' — neues Foto erst nach „Bearbeitung beenden“'; return; }
   status.textContent='Lade '+f.name+'…';
   const url=URL.createObjectURL(f); const im=new Image();
@@ -1216,7 +1151,7 @@ drop.addEventListener('drop',function(e){
 });
 btnNewPic.onclick=function(){
   if(uiBusy) return;
-  img=null; srcOriginal=null; srcNeedsRewrite=false; sandboxRawFile=null; sierra2Done=false; sierra2Sig=''; editName=null; loadedPicSig=''; pictureDirty=false; holdSavedE6=false; lastDitherSig=''; paintMode.value='sierra2'; swOnly.checked=false; picKind.value='normal'; syncVerfahrenUi(); syncKindUi(); metaName.value=metaBirth.value=metaDeath.value=metaSpecial.value=metaSpecialKind.value=metaDesc.value=''; labels=[]; selectedLab=-1; updateLabList(); orient.value=hang||'portrait'; zoom.value=100; panX=panY=0.5; imgSeq++; tunedSig=null; tunePromise=null; lastDither=null; syncEditUi(); syncStage(); status.textContent='Neues Bild · Foto wählen';
+  img=null; srcOriginal=null; srcNeedsRewrite=false; sierra2Done=false; sierra2Sig=''; editName=null; loadedPicSig=''; pictureDirty=false; holdSavedE6=false; lastDitherSig=''; paintMode.value='sierra2'; swOnly.checked=false; picKind.value='normal'; syncVerfahrenUi(); syncKindUi(); metaName.value=metaBirth.value=metaDeath.value=metaSpecial.value=metaSpecialKind.value=metaDesc.value=''; labels=[]; selectedLab=-1; updateLabList(); orient.value=hang||'portrait'; zoom.value=100; panX=panY=0.5; imgSeq++; tunedSig=null; tunePromise=null; lastDither=null; syncEditUi(); syncStage(); status.textContent='Neues Bild · Foto wählen';
 };
 
 document.getElementById('btnAddLab').onclick=function(){
@@ -1465,28 +1400,6 @@ async function saveMetaOnly(fname){
 }
 async function send(show){
   if(busyDepth>0 && busy) return;
-  if(sandboxRawFile){
-    setBusy(true, show?'Anzeigen…':'Speichern…');
-    try{
-      if(show){
-        await postRawBmp(sandboxRawFile);
-        status.textContent='Am Rahmen · BMP unverändert';
-        return;
-      }
-      const fname=editName || ('studio_'+Date.now()+'.bmp');
-      const fd=new FormData();
-      fd.append('file', sandboxRawFile, fname);
-      fd.append('show','0');
-      fd.append('meta', JSON.stringify(buildMeta()));
-      const r=await fetch('/api/upload',{method:'POST',body:fd});
-      const msg=await r.text();
-      if(!r.ok) throw new Error(msg);
-      status.textContent=msg+' · gespeichert';
-      window.location.href='/gallery';
-    }catch(e){ status.textContent=String(e.message||e); }
-    finally{ setBusy(false); }
-    return;
-  }
   if(!img){ status.textContent='Kein Bild'; return; }
   if(isMemoryKind() && !metaBirth.value.trim() && !metaDeath.value.trim() && !metaSpecial.value.trim()){
     status.textContent='Erinnerung: ein Datum eintragen';
@@ -1810,20 +1723,6 @@ syncVerfahrenUi();
 syncKindUi();
 syncEditUi();
 (function(){
-  const btnRaw=document.getElementById('btnRawE6');
-  const fileRaw=document.getElementById('fileRawE6');
-  if(btnRaw && fileRaw){
-    btnRaw.onclick=function(){ fileRaw.click(); };
-    fileRaw.addEventListener('change', function(e){
-      const f=e.target.files && e.target.files[0];
-      if(!f) return;
-      readBmpWh(f).then(function(wh){
-        if(isPanelBmp(wh)) sendRawPanelBmp(f, wh);
-        else status.textContent='Nur 480×800 oder 800×480 BMP';
-      }).catch(function(){ status.textContent='BMP konnte nicht gelesen werden'; });
-      fileRaw.value='';
-    });
-  }
   const btnS=document.getElementById('btnSierra2');
   if(btnS){
     btnS.onclick=async function(){
