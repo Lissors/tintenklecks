@@ -18,6 +18,8 @@ void pmuAppendJson(String &j);  // /api/status: all AXP2101 battery fields
 int pmuChargeMa();              // setpoint 100…1000, or -1
 bool pmuSetChargeMa(int ma);    // exact AXP step
 bool pmuEnableAudioRail();  // ALDO3 for ES8311, on demand
+void pmuSleepRails();       // ALDO4 (EPD) off; ALDO3 stays (I2C)
+float pmuTemperature();     // °C, NAN if unknown
 
 bool bmpShowFromMemory(const uint8_t *data, size_t len);
 bool bmpShowFromSd(const char *path);
@@ -39,6 +41,9 @@ bool rtcGet(struct tm *out);
 bool rtcSet(const struct tm *in);
 bool rtcApplyToSystem();
 bool rtcSyncFromSystem();
+bool rtcEpoch(time_t *out);  // PCF85063 → local epoch
+
+void powerSleepCalOnWake();  // after rtcApply: ESP-timer ppm vs quartz
 
 // WiFi / web
 bool wifiBringUp();   // true = STA, false = AP
@@ -129,6 +134,7 @@ bool audioEnsureReady();  // lazy init on first speak
 bool audioReady();
 bool audioBusy();
 void audioStop();
+void audioPowerDown();  // PA off (before sleep / ALDO3 cut)
 uint8_t audioVolume();  // 0…100, default 80
 bool audioSetVolume(uint8_t pct);
 /** Play WAV from SD path (async). Returns false if missing/busy/bad. */

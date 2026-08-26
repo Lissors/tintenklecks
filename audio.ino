@@ -7,6 +7,7 @@
 #include <Wire.h>
 #include <math.h>
 #include <driver/i2s_std.h>
+#include <driver/gpio.h>
 #include <esp_heap_caps.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -247,6 +248,8 @@ static bool i2sStart(uint32_t sampleRate) {
 }
 
 static void audioPa(bool on) {
+  gpio_hold_dis((gpio_num_t)PIN_AUDIO_PA);
+  gpio_reset_pin((gpio_num_t)PIN_AUDIO_PA);
   pinMode(PIN_AUDIO_PA, OUTPUT);
   digitalWrite(PIN_AUDIO_PA, on ? HIGH : LOW);
 }
@@ -260,9 +263,16 @@ bool audioInit() {
   }
   audioPa(false);
 
-  delay(50);
-  Wire.beginTransmission(ES8311_ADDR);
-  if (Wire.endTransmission() != 0) {
+  bool found = false;
+  for (int i = 0; i < 8; i++) {
+    delay(50);
+    Wire.beginTransmission(ES8311_ADDR);
+    if (Wire.endTransmission() == 0) {
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
     Serial.println(F("WARN ES8311 not found — speak disabled"));
     g_audioOk = false;
     return false;
@@ -303,6 +313,11 @@ void audioStop() {
   if (g_audioMu) {
     xSemaphoreGive(g_audioMu);
   }
+}
+
+void audioPowerDown() {
+  audioStop();
+  audioPa(false);
 }
 
 static bool parseWav(const uint8_t *buf, size_t len, size_t *dataOff, size_t *dataLen) {
@@ -424,6 +439,7 @@ static bool audioStartPcm(uint8_t *pcm, size_t dataLen, uint32_t rate, uint16_t 
   g_channels = channels ? channels : 1;
 
   if (!i2sStart(g_rate) || !es8311Init(g_rate)) {
+    Serial.println(F("audio: I2S/ES8311 init fail"));
     free(pcm);
     return false;
   }
@@ -515,14 +531,23 @@ bool audioPlaySd(const char *path) {
 }
 
 bool audioPlayClip(const char *clip) {
-  if (!clip || !clip[0] || !sdOk()) {
+  if (!clip || !clip[0]) {
+    return false;
+  }
+  if (!sdOk()) {
+    Serial.println(F("audio: SD not ready"));
     return false;
   }
   String path = String("/sound/") + clip + ".wav";
   if (!SD_MMC.exists(path)) {
+    Serial.printf("audio: missing %s\n", path.c_str());
     return false;
   }
-  return audioPlaySd(path.c_str());
+  if (!audioPlaySd(path.c_str())) {
+    Serial.printf("audio: play fail %s\n", path.c_str());
+    return false;
+  }
+  return true;
 }
 
 void audioWaitIdle(uint32_t maxMs) {

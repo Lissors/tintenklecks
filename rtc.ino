@@ -47,6 +47,16 @@ bool rtcInit() {
     return false;
   }
   rtcOk = true;
+  // INT/AIE off: on this board INT is not GPIO6 (stays 1). AIE would
+  // pulse AXP PWRON → reset + Willkommen, also at 03:00.
+  uint8_t c2 = 0;
+  rtcReadRegs(0x01, &c2, 1);
+  rtcWriteReg(0x01, c2 & 0x07);
+  rtcWriteReg(0x0B, 0x80);
+  rtcWriteReg(0x0C, 0x80);
+  rtcWriteReg(0x0D, 0x80);
+  rtcWriteReg(0x0E, 0x80);
+  rtcWriteReg(0x0F, 0x80);
   Serial.println(F("PCF85063 RTC OK"));
   return true;
 }
@@ -121,6 +131,20 @@ bool rtcApplyToSystem() {
   slideshowSetTimeOk(true);
   Serial.printf("RTC → system %04d-%02d-%02d %02d:%02d\n", t.tm_year + 1900, t.tm_mon + 1,
                 t.tm_mday, t.tm_hour, t.tm_min);
+  return true;
+}
+
+bool rtcEpoch(time_t *out) {
+  struct tm t;
+  if (!out || !rtcGet(&t)) {
+    return false;
+  }
+  t.tm_isdst = -1;
+  time_t e = mktime(&t);
+  if (e < 1700000000) {
+    return false;
+  }
+  *out = e;
   return true;
 }
 

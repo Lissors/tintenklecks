@@ -68,7 +68,7 @@ Die vier WAV-Dateien liegen im Ordner `sound/` dieses Downloads. Nach `sound/` a
 
 | Datei | Wann |
 | --- | --- |
-| `willkommen.wav` | jeder Reset/Reboot (nicht nach Deep Sleep) |
+| `willkommen.wav` | jeder Reset/Reboot (nicht nach Aufwachen aus dem Deep Sleep) |
 | `wlan.wav` | Heimnetz verbunden |
 | `ap.wav` | kein WLAN, Access Point |
 | `neustart.wav` | kurz vor Software-Neustart |
@@ -162,7 +162,9 @@ Rechts **Akku … %**, bei Ladung **· lädt**, oder **USB-Betrieb**. Daneben **
 
 USB: der Rahmen bleibt wach.
 
-Akku und Wechsel **≥ 10 Minuten** oder **1× pro Tag**: ohne offenes Web direkt nach dem Bildwechsel Deep Sleep, mit Browser nach 60 Sekunden Pause. **5 Minuten**-Intervall: bleibt wach. Wecken: nächster Timer, KEY oder BOOT.
+Akku und Wechsel **≥ 10 Minuten** oder **1× pro Tag**: ohne offenes Web direkt nach dem Bildwechsel Deep Sleep, mit Browser nach 60 Sekunden Pause. **5 Minuten**-Intervall oder **Aus**: bleibt wach. Ping allein hält ihn nicht wach, ein offener Tab schon. Wecken: nächster Timer, KEY oder BOOT.
+
+Im Sleep: Panel-Spannung und Lautsprecher aus. Der Weck-Zähler (ESP) wird an der Chip-Uhr (Quarz) nachgezogen, damit der Wechsel nicht wegläuft.
 
 ### Hauptmenü
 

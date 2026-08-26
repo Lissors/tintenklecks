@@ -25,7 +25,9 @@
  * Bilder: /pic/ BMPs + JSON + Thumb
  * Power: USB = kein Deep Sleep. Akku: nur bei Wechsel ≥ 10 min oder täglich,
  *        ohne Client direkt nach Bildwechsel, mit Client 60 s Inaktivität.
- *        Wecken: Timer (Bildwechsel), KEY (Bildwechsel, dann wieder schlafen)
+ *        Sleep: PA und ALDO4 aus. ALDO3 bleibt (sonst klemmt der Codec I2C).
+ *        Wecken: Timer (Bildwechsel; ESP-Zähler gegen PCF85063 kalibriert),
+ *        KEY (Bildwechsel, dann wieder schlafen)
  *        oder BOOT-Taste (Web an, kein Bildwechsel). ntfy: Akkustand bei jedem
  *        Aufwachen und Warnung Akku < 10 % einmal am Tag, Priorität wie eingestellt.
  */
@@ -35,6 +37,7 @@
 
 #include <WiFi.h>  // localIP in setup log
 #include <esp_sleep.h>
+#include <esp_system.h>
 
 static bool g_epdOk = false;
 
@@ -68,6 +71,7 @@ void setup() {
   rtcInit();
   tzBegin();
   rtcApplyToSystem();
+  powerSleepCalOnWake();
 
   Serial.println(F("boot: wifi"));
   Serial.flush();
@@ -114,8 +118,9 @@ void setup() {
 
   ledsOff();
 
-  // Reset / ESP.restart only — not timer, KEY, or BOOT wake.
-  if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_UNDEFINED) {
+  // Reset / ESP.restart / USB — not a real deep-sleep wake.
+  // Wake cause can linger in RTC after a button reset; use reset reason.
+  if (esp_reset_reason() != ESP_RST_DEEPSLEEP) {
     audioPlayClip("willkommen");
     audioWaitIdle(12000);
     if (sta) {

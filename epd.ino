@@ -9,12 +9,17 @@
 
 static SPIClass epdSpi(FSPI);
 static uint8_t *epdBuffer = nullptr;
+static bool g_epdAlive = true;
 
 static bool epdWaitBusy(uint32_t timeout_ms = 60000) {
+  if (!g_epdAlive) {
+    return false;
+  }
   uint32_t start = millis();
   while (digitalRead(PIN_EPD_BUSY) == LOW) {
     if (millis() - start > timeout_ms) {
       Serial.println(F("EPD BUSY timeout"));
+      g_epdAlive = false;
       return false;
     }
     delay(5);
@@ -35,6 +40,9 @@ static bool epdSendCommand(uint8_t cmd) {
 }
 
 static void epdSendData(uint8_t data) {
+  if (!g_epdAlive) {
+    return;
+  }
   digitalWrite(PIN_EPD_DC, HIGH);
   digitalWrite(PIN_EPD_CS, LOW);
   epdSpi.transfer(data);
@@ -50,16 +58,27 @@ static void epdEndData() {
   digitalWrite(PIN_EPD_CS, HIGH);
 }
 
-static void epdHardwareReset() {
+static bool epdHardwareReset() {
+  g_epdAlive = true;
   digitalWrite(PIN_EPD_RST, LOW);
   delay(20);
   digitalWrite(PIN_EPD_RST, HIGH);
-  delay(50);
-  epdWaitBusy();
+  delay(80);
+  if (epdWaitBusy(3000)) {
+    return true;
+  }
+  g_epdAlive = true;
+  digitalWrite(PIN_EPD_RST, LOW);
+  delay(20);
+  digitalWrite(PIN_EPD_RST, HIGH);
+  delay(80);
+  return epdWaitBusy(3000);
 }
 
-static void epdPortInit() {
-  epdHardwareReset();
+static bool epdPortInit() {
+  if (!epdHardwareReset()) {
+    return false;
+  }
   delay(50);
 
   epdSendCommand(0xAA);
@@ -125,6 +144,7 @@ static void epdPortInit() {
 
   epdSendCommand(0x04);
   epdWaitBusy();
+  return g_epdAlive;
 }
 
 static void epdDeepSleep() {
@@ -136,7 +156,7 @@ void epdPanelSleep() {
   epdDeepSleep();
 }
 
-static void epdTurnOnDisplay() {
+static bool epdTurnOnDisplay() {
   epdSendCommand(0x04);
   epdWaitBusy();
 
@@ -153,6 +173,7 @@ static void epdTurnOnDisplay() {
   epdSendCommand(0x02);
   epdSendData(0x00);
   epdWaitBusy();
+  return g_epdAlive;
 }
 
 void epdClear(uint8_t color) {
@@ -461,9 +482,15 @@ void epdDisplayCurrentBuffer() {
     epdDrawBatteryWarn();
   }
   Serial.println(F("EPD refresh…"));
-  epdPortInit();
+  if (!epdPortInit()) {
+    Serial.println(F("EPD init failed"));
+    return;
+  }
   epdWriteBuffer();
-  epdTurnOnDisplay();
+  if (!epdTurnOnDisplay()) {
+    Serial.println(F("EPD display failed"));
+    return;
+  }
   epdDeepSleep();
   Serial.println(F("EPD done"));
 }

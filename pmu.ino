@@ -46,10 +46,36 @@ static void pmuEnsureSnap();
 static int pmuTargetMv(uint8_t opt);
 static int pmuVbusLimMa(uint8_t opt);
 
+static void i2cBusRecover() {
+  pinMode(I2C_SDA, INPUT_PULLUP);
+  pinMode(I2C_SCL, OUTPUT);
+  for (int i = 0; i < 16; i++) {
+    digitalWrite(I2C_SCL, HIGH);
+    delayMicroseconds(5);
+    digitalWrite(I2C_SCL, LOW);
+    delayMicroseconds(5);
+  }
+  digitalWrite(I2C_SCL, HIGH);
+  delayMicroseconds(5);
+  pinMode(I2C_SDA, OUTPUT);
+  digitalWrite(I2C_SDA, HIGH);
+  delayMicroseconds(5);
+  pinMode(I2C_SDA, INPUT_PULLUP);
+  pinMode(I2C_SCL, INPUT_PULLUP);
+}
+
 bool pmuInit() {
+  i2cBusRecover();
   Wire.begin(I2C_SDA, I2C_SCL);
-  Wire.setTimeOut(100);
-  if (!pmu.begin(Wire, AXP2101_SLAVE_ADDRESS, I2C_SDA, I2C_SCL)) {
+  Wire.setTimeOut(250);
+  bool axp = pmu.begin(Wire, AXP2101_SLAVE_ADDRESS, I2C_SDA, I2C_SCL);
+  if (!axp) {
+    i2cBusRecover();
+    Wire.begin(I2C_SDA, I2C_SCL);
+    Wire.setTimeOut(250);
+    axp = pmu.begin(Wire, AXP2101_SLAVE_ADDRESS, I2C_SDA, I2C_SCL);
+  }
+  if (!axp) {
     Serial.println(F("WARN AXP2101 not found — EPD may stay blank"));
     pmuOk = false;
     return false;
@@ -59,8 +85,13 @@ bool pmuInit() {
   pmu.enableBattVoltageMeasure();
   pmu.enableVbusVoltageMeasure();
   pmu.enableTemperatureMeasure();
+  pmu.setDC1Voltage(3300);
+  pmu.enableDC1();
+  pmu.setALDO3Voltage(3300);
+  pmu.enableALDO3();
   pmu.setALDO4Voltage(3300);
   pmu.enableALDO4();
+  delay(200);
   pmuOk = true;
   {
     Preferences p;
@@ -74,7 +105,7 @@ bool pmuInit() {
       }
     }
   }
-  Serial.println(F("AXP2101 OK — ALDO4 EPD (Audio ALDO3 deferred)"));
+  Serial.println(F("AXP2101 OK — ALDO3 audio + ALDO4 EPD"));
   return true;
 }
 
@@ -84,8 +115,23 @@ bool pmuEnableAudioRail() {
   }
   pmu.setALDO3Voltage(3300);
   pmu.enableALDO3();
-  delay(100);
+  delay(200);
   return true;
+}
+
+float pmuTemperature() {
+  if (!pmuOk) {
+    return NAN;
+  }
+  return pmu.getTemperature();
+}
+
+void pmuSleepRails() {
+  if (!pmuOk) {
+    return;
+  }
+  pmu.disableALDO4();
+  Serial.println(F("PMU sleep: ALDO4 off"));
 }
 
 bool pmuReady() {

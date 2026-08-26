@@ -70,7 +70,7 @@ The four WAV files are in the `sound/` folder of this download. Copy them into `
 
 | File | When |
 | --- | --- |
-| `willkommen.wav` | every reset/reboot (not after deep sleep) |
+| `willkommen.wav` | every reset/reboot (not after waking from deep sleep) |
 | `wlan.wav` | home Wi-Fi connected |
 | `ap.wav` | no Wi-Fi, access point |
 | `neustart.wav` | just before a software restart |
@@ -164,7 +164,9 @@ Right: **Akku … %**, while charging **· lädt**, or **USB-Betrieb**. Next to 
 
 USB: the frame stays awake.
 
-Battery and change interval **≥ 10 minutes** or **1× per day**: without an open web page, deep sleep right after the picture change; with a browser, after 60 seconds idle. **5 minute** interval: stays awake. Wake: next timer, KEY or BOOT.
+Battery and change interval **≥ 10 minutes** or **1× per day**: without an open web page, deep sleep right after the picture change; with a browser, after 60 seconds idle. **5 minute** interval or **Off**: stays awake. Ping alone does not keep it awake; an open tab does. Wake: next timer, KEY or BOOT.
+
+In sleep: panel rail and speaker off. The wake timer (ESP) is calibrated against the chip RTC (quartz) so the change time does not drift.
 
 ### Hauptmenü (main menu)
 
