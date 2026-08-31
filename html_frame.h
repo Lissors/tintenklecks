@@ -19,6 +19,13 @@ body.busy button{pointer-events:none;opacity:.55}
 .bat{font-size:.8rem;color:var(--dim)}
 .head-right{display:flex;align-items:center;gap:.5rem}
 button.zzz{width:auto;margin:0;padding:.2rem .5rem;font-size:.78rem;letter-spacing:.08em;flex:none;border-radius:6px;border:1px solid var(--line);background:#1a1612;color:var(--dim);cursor:pointer;font:inherit}
+.stay{display:inline-flex;align-items:center;gap:.4rem;margin:0;position:relative;font:inherit;font-size:.78rem;color:var(--dim);cursor:pointer;user-select:none;flex:none;white-space:nowrap}
+.stay[hidden]{display:none !important}
+.stay input{position:absolute;opacity:0;pointer-events:none}
+.stay-sw{width:1.9rem;height:1.05rem;border-radius:999px;background:#1a1612;border:1px solid var(--line);position:relative;flex:none}
+.stay-sw:before{content:'';position:absolute;top:1px;left:1px;width:.8rem;height:.8rem;border-radius:50%;background:var(--dim)}
+.stay input:checked+.stay-sw{background:var(--acc);border-color:var(--acc)}
+.stay input:checked+.stay-sw:before{left:auto;right:1px;background:#1a1612}
 main{max-width:520px;margin:0 auto;padding:1.25rem 1rem}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1rem;margin-bottom:1rem}
 h1{font-size:1.2rem;margin:0 0 .35rem}h2{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin:0 0 .75rem}
@@ -36,11 +43,11 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
 <div class="busy-ov" id="busyOv"><div class="hour"></div><div id="busyMsg">Bitte warten…</div></div>
 <div class="top">
   <div class="brand"><a href="/menu"><img src="/favicon.png" width="28" height="28" alt=""/>Tintenklecks</a></div>
-  <div class="head-right"><button type="button" class="zzz" id="btnZzz">zzz</button><div class="bat" id="bat">Akku …</div></div>
+  <div class="head-right"><label class="stay" id="btnWach"><input type="checkbox" id="chkWach"/><span class="stay-sw"></span>Wach bleiben</label><button type="button" class="zzz" id="btnZzz">zzz</button><div class="bat" id="bat">Akku …</div></div>
 </div>
 <main>
 <h1>Rahmeneinstellung</h1>
-<p class="lead">Automatischer Wechsel. Erinnerungen (am Tag selbst, morgen oder übermorgen): ein Bild voll. Mehrere am selben Tag: eine zufällig, Hinweis unten rechts, KEY und alle 3&nbsp;Stunden die nächste — KEY nach der Runde Zufall. KEY und Jetzt wechseln sonst nur Zufall. Sonst Zufall ohne Datum, ohne Zurücklegen. USB: bleibt wach. Akku, ab 10&nbsp;Min Intervall oder 1×/Tag: ohne Client direkt nach Bildwechsel, mit Client nach 60&nbsp;s Inaktivität Deep Sleep — Aufwachen beim nächsten Wechsel, per KEY (wechseln, wieder schlafen) oder per BOOT (Web, kein Wechsel). 5&nbsp;Min: bleibt wach.</p>
+<p class="lead">Automatischer Wechsel. Erinnerungen (am Tag selbst, morgen oder übermorgen): ein Bild voll. Mehrere am selben Tag: eine zufällig, Pfeil unten rechts, KEY und alle 3&nbsp;Stunden die nächste — KEY nach der Runde Zufall. KEY und Jetzt wechseln sonst nur Zufall. Sonst Zufall ohne Datum, ohne Zurücklegen. USB: bleibt wach. Akku, ab 10&nbsp;Min Intervall oder 1×/Tag: ohne Client direkt nach Bildwechsel, mit Client nach 60&nbsp;s Inaktivität Deep Sleep — Aufwachen beim nächsten Wechsel, per KEY (wechseln, wieder schlafen) oder per BOOT (Web, kein Wechsel). 5&nbsp;Min: bleibt wach.</p>
 <div class="panel">
 <p class="hint" id="memNext">—</p>
 <p class="hint" id="potLine">—</p>
@@ -84,9 +91,6 @@ footer{text-align:center;padding:1.5rem;font-size:.75rem;color:var(--dim)}
 <button class="pri" id="btnHangSave" type="button">Lage speichern</button>
 <p class="hint">Gilt für neue Bilder in Studio, Live und am Panel. Vorhandene Bilder bleiben unverändert.</p>
 <p class="status" id="hangStatus"></p>
-<button class="pri" id="btnBlank" type="button">Panel leeren (weiß)</button>
-<button id="btnBattWarn" type="button">Akkuwarnung testen</button>
-<p class="hint">Leert das E-Paper. Bilder erneut über Galerie „Anzeigen“. Test: „Akku &lt; 10 %“ unten rechts auf dem aktuellen Bild, unabhängig vom echten Stand.</p>
 </div>
 <div class="panel">
 <h2>Index</h2>
@@ -150,6 +154,10 @@ async function refreshStatus(){
     else bat.textContent='Akku '+s.battery+'%'+(s.charging?' · lädt':'');
     const z=document.getElementById('btnZzz');
     if(z) z.hidden=!!s.usb;
+    const w=document.getElementById('btnWach');
+    const c=document.getElementById('chkWach');
+    if(w) w.hidden=!!s.usb;
+    if(c) c.checked=!!s.stayAwake;
     document.getElementById('foot').textContent=s.copyright||'© 2026 Ingo Lissors';
     const hang=document.getElementById('hang');
     if(hang && (s.hang==='portrait'||s.hang==='landscape') && document.activeElement!==hang) hang.value=s.hang;
@@ -158,6 +166,12 @@ async function refreshStatus(){
     if(typeof s.potLeft==='number' || typeof s.potTotal==='number') applyPot(s);
   }catch(e){}
 }
+document.getElementById('chkWach').onchange=()=>{
+  if(window.__zzz){ const c=document.getElementById('chkWach'); if(c) c.checked=!c.checked; return; }
+  const on=document.getElementById('chkWach').checked;
+  fetch('/api/stayawake',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'on='+(on?'1':'0')})
+    .catch(function(){});
+};
 document.getElementById('btnZzz').onclick=()=>{
   if(window.__zzz) return;
   window.__zzz=1;
@@ -213,22 +227,6 @@ document.getElementById('btnHangSave').onclick=async()=>{
     const r=await fetch('/api/hang',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'hang='+encodeURIComponent(hang)});
     document.getElementById('hangStatus').textContent=r.ok?'gespeichert':await r.text();
   }catch(e){ document.getElementById('hangStatus').textContent=String(e); }
-  finally{ setBusy(false); }
-};
-document.getElementById('btnBlank').onclick=async()=>{
-  setBusy(true,'Panel…');
-  try{
-    const r=await fetch('/api/display',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'blank=1'});
-    document.getElementById('status').textContent=await r.text();
-  }catch(e){ document.getElementById('status').textContent=String(e); }
-  finally{ setBusy(false); }
-};
-document.getElementById('btnBattWarn').onclick=async()=>{
-  setBusy(true,'Warnung…');
-  try{
-    const r=await fetch('/api/batt-warn',{method:'POST'});
-    document.getElementById('status').textContent=await r.text();
-  }catch(e){ document.getElementById('status').textContent=String(e); }
   finally{ setBusy(false); }
 };
 document.getElementById('btnPot').onclick=async()=>{

@@ -35,6 +35,7 @@ static uint32_t g_memNextMs = 0;
 static bool g_memNextValid = false;
 static int g_potLeft = -1;
 static int g_potTotal = -1;
+static bool g_holdDue = false;
 
 void slideshowInvalidatePot() {
   g_potLeft = -1;
@@ -1155,6 +1156,11 @@ void slideshowForceNow() {
   doSwitch(false);
 }
 
+void slideshowHoldDue() {
+  g_holdDue = true;
+  g_lastSwitchMs = millis();
+}
+
 void slideshowOnTimer() {
   doSwitch(true);
   if (g_mode == 2) {
@@ -1163,7 +1169,7 @@ void slideshowOnTimer() {
 }
 
 void slideshowLoop() {
-  if (!sdOk()) {
+  if (!sdOk() || g_holdDue) {
     return;
   }
 

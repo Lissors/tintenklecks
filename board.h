@@ -6,7 +6,7 @@ void epdClear(uint8_t color);
 void epdSetPixel(int x, int y, uint8_t color);
 void epdDisplayCurrentBuffer();
 void epdForceBatteryWarn(bool on);  // test: overlay even if battery ≥ 10 %
-void epdSetMoreMemoriesHint(int extra);  // 0 = aus; sonst „N weitere Erinnerung(en)“ unten rechts
+void epdSetMoreMemoriesHint(int extra);  // 0 = aus; sonst Pfeil unten rechts
 
 bool pmuInit();
 bool pmuReady();
@@ -18,7 +18,8 @@ void pmuAppendJson(String &j);  // /api/status: all AXP2101 battery fields
 int pmuChargeMa();              // setpoint 100…1000, or -1
 bool pmuSetChargeMa(int ma);    // exact AXP step
 bool pmuEnableAudioRail();  // ALDO3 for ES8311, on demand
-void pmuSleepRails();       // ALDO4 (EPD) off; ALDO3 stays (I2C)
+void pmuSleepRails();       // AXP sleep + unused rails; ALDO3 last
+void shtc3Sleep();          // SHTC3 sleep command (NACK = absent)
 float pmuTemperature();     // °C, NAN if unknown
 
 bool bmpShowFromMemory(const uint8_t *data, size_t len);
@@ -27,6 +28,7 @@ bool bmpShowFromSd(const char *path);
 bool bmpShowCompositeFromSd(const char *const *paths, int count);
 
 bool sdInit();
+void sdDeinit();  // unmount before PMIC sleep
 bool sdOk();
 
 struct PicCand {
@@ -74,6 +76,7 @@ void slideshowInvalidatePot();
 bool slideshowSet(int mode, int intervalMin, int dailyHour, int dailyMin);
 void slideshowForceNow();  // KEY / Jetzt wechseln: Zufall; bei mehreren fälligen Erinnerungen die nächste
 void slideshowOnTimer();   // Intervall / Uhr: Erinnerungen zuerst (eine, alle 3 h die nächste), sonst Zufall
+void slideshowHoldDue();   // BOOT-Wake: fälligen Wechsel nicht nachholen; KEY bleibt
 void slideshowForgetMemoryCycle();  // Galerie/Studio-Anzeige: 3-Stunden-Runde aus
 const char *hangValue();   // "portrait" | "landscape" — System, gilt für neue Bilder
 bool hangSet(const char *v);
@@ -97,15 +100,19 @@ void powerNoteActivity();
 void powerNoteBusy(bool on);
 bool powerBusy();
 bool powerClientHere();
+void powerCaptureWake();  // Tasten + Wake-Grund sofort nach Sleep (vor WLAN)
 void powerOnBoot();  // after SD/EPD/slideshow — timer-wake may switch image
 void powerLoop();
-void powerSleepNow();  // zzz — now, next picture or BOOT wakes
+void powerSleepNow();     // auto: skipped if USB or stay-awake
+void powerSleepForced();  // zzz — sleeps even if stay-awake
+bool powerStayAwake();
+void powerSetStayAwake(bool on);
 void ledsAfterWake();  // Hold von Grün/Rot lösen
 void ledsOff();        // beide aus (aktiv low)
 
 void keyBegin();
 void keyLoop();
-void keyPrepareSleepWake();  // KEY as ext1 wake (active low)
+void keyPrepareSleepWake();  // KEY+BOOT as ext1 wake (active low)
 
 void tzBegin();
 void tzApply();
@@ -134,7 +141,7 @@ bool audioEnsureReady();  // lazy init on first speak
 bool audioReady();
 bool audioBusy();
 void audioStop();
-void audioPowerDown();  // PA off (before sleep / ALDO3 cut)
+void audioPowerDown();  // stop, PA off, codec suspend (before ALDO3 cut)
 uint8_t audioVolume();  // 0…100, default 80
 bool audioSetVolume(uint8_t pct);
 /** Play WAV from SD path (async). Returns false if missing/busy/bad. */

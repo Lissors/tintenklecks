@@ -6,32 +6,53 @@
 
 #include <esp_sleep.h>
 #include "driver/rtc_io.h"
+#include <driver/gpio.h>
 
 static bool g_armed = false;
 static uint32_t g_downMs = 0;
+static uint32_t g_ignoreUntil = 0;
 
 void keyBegin() {
   rtc_gpio_deinit((gpio_num_t)PIN_KEY);
-  pinMode(PIN_KEY, INPUT_PULLUP);
-  g_armed = digitalRead(PIN_KEY) == HIGH;
-  g_downMs = 0;
-}
-
-void keyPrepareSleepWake() {
   pinMode(PIN_KEY, INPUT_PULLUP);
   uint32_t t0 = millis();
   while (digitalRead(PIN_KEY) == LOW && (millis() - t0) < 2000) {
     delay(10);
   }
-  rtc_gpio_init((gpio_num_t)PIN_KEY);
-  rtc_gpio_set_direction((gpio_num_t)PIN_KEY, RTC_GPIO_MODE_INPUT_ONLY);
-  rtc_gpio_pullup_en((gpio_num_t)PIN_KEY);
-  rtc_gpio_pulldown_dis((gpio_num_t)PIN_KEY);
-  esp_sleep_enable_ext1_wakeup(1ULL << PIN_KEY, ESP_EXT1_WAKEUP_ALL_LOW);
+  delay(30);
+  g_armed = digitalRead(PIN_KEY) == HIGH;
+  g_downMs = 0;
+  g_ignoreUntil = millis() + 400;
+}
+
+void keyPrepareSleepWake() {
+  // GPIO0 is a strapping pin: global deep-sleep hold latches it high, BOOT
+  // then cannot pull it down. Keep RTC IO domain on so EXT1 sees the pad.
+  esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
+
+  pinMode(PIN_KEY, INPUT_PULLUP);
+  gpio_reset_pin((gpio_num_t)PIN_BOOT);
+  pinMode(PIN_BOOT, INPUT_PULLUP);
+  uint32_t t0 = millis();
+  while ((digitalRead(PIN_KEY) == LOW || digitalRead(PIN_BOOT) == LOW) &&
+         (millis() - t0) < 2000) {
+    delay(10);
+  }
+  const gpio_num_t pins[] = {(gpio_num_t)PIN_BOOT, (gpio_num_t)PIN_KEY};
+  for (int i = 0; i < 2; i++) {
+    gpio_hold_dis(pins[i]);
+    rtc_gpio_init(pins[i]);
+    rtc_gpio_set_direction(pins[i], RTC_GPIO_MODE_INPUT_ONLY);
+    rtc_gpio_pullup_en(pins[i]);
+    rtc_gpio_pulldown_dis(pins[i]);
+    rtc_gpio_hold_dis(pins[i]);
+  }
+  esp_sleep_enable_ext1_wakeup((1ULL << PIN_BOOT) | (1ULL << PIN_KEY),
+                               ESP_EXT1_WAKEUP_ANY_LOW);
 }
 
 void keyLoop() {
-  if (powerBusy()) {
+  if (powerBusy() || (int32_t)(millis() - g_ignoreUntil) < 0) {
     return;
   }
   const bool down = digitalRead(PIN_KEY) == LOW;

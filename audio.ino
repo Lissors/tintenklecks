@@ -284,6 +284,9 @@ bool audioInit() {
 }
 
 bool audioEnsureReady() {
+  if (!pmuUsbPowered()) {
+    return false;
+  }
   if (g_audioOk) {
     return true;
   }
@@ -318,6 +321,26 @@ void audioStop() {
 void audioPowerDown() {
   audioStop();
   audioPa(false);
+  Wire.beginTransmission(ES8311_ADDR);
+  if (Wire.endTransmission() == 0) {
+    es8311Write(0x32, 0x00);
+    es8311Write(0x0E, 0xFF);
+    es8311Write(0x0D, 0xFA);
+    es8311Write(0x00, 0x1F);
+  }
+  Wire.beginTransmission(ES7210_ADDR);
+  if (Wire.endTransmission() == 0) {
+    Wire.beginTransmission(ES7210_ADDR);
+    Wire.write(0x06);
+    Wire.write(0x04);
+    Wire.endTransmission();
+  }
+  if (g_tx) {
+    i2s_channel_disable(g_tx);
+    i2s_del_channel(g_tx);
+    g_tx = nullptr;
+  }
+  g_audioOk = false;
 }
 
 static bool parseWav(const uint8_t *buf, size_t len, size_t *dataOff, size_t *dataLen) {

@@ -5,7 +5,7 @@
 [Deutsch](README.md) · English
 
 Firmware for the **Waveshare ESP32-S3 PhotoPainter** (7.3″ Spectra-6 / E6, 480×800).
-The frame exists so **special days are not forgotten**: birthdays, death days and other anniversaries (wedding, first meeting …). Two pots: **Zufall** (random) and **Erinnerungen** (memories). Memories come up on their own when the day is **today, tomorrow or the day after** — one full picture; if several are due, a hint at the bottom right. Crop, rendering and captions run in the browser on the frame. The gallery lives on the SD card. No ESP-IDF — Arduino IDE only.
+The frame exists so **special days are not forgotten**: birthdays, death days and other anniversaries (wedding, first meeting …). Two pots: **Zufall** (random) and **Erinnerungen** (memories). Memories come up on their own when the day is **today, tomorrow or the day after** — one full picture; if several are due, an arrow at the bottom right. Crop, rendering and captions run in the browser on the frame. The gallery lives on the SD card. No ESP-IDF — Arduino IDE only.
 
 © 2026 Ingo Lissors · Origin and licenses: [CREDITS.txt](CREDITS.txt) · [LICENSE](LICENSE)
 
@@ -18,11 +18,11 @@ The web UI is German. Button and field names below match the screen.
 
 ## Reminders — birth, death, special date, captions
 
-In Studio under **Bildart** choose **Normal** or **Erinnerung**. Normal stays in the random pot. Erinnerung leaves the random pot — whether or not a date is filled in yet. With **Geburtsdatum**, **Sterbedatum** or **Besonderes Datum** (`TT.MM.JJJJ`) it is tied to that anniversary: the timer shows it **on the day, tomorrow or the day after**, **one** full picture at a time. If several are due: one at random, hint bottom right e.g. **2 weitere Erinnerungen**, **KEY** and every **3 hours** the next. A special date has an **Anlass** (e.g. Hochzeitstag, Kennenlerntag). The chip clock must be valid, and under Rahmen a change mode (**Im Intervall** or **1× pro Tag**) must be on.
+In Studio under **Bildart** choose **Normal** or **Erinnerung**. Normal stays in the random pot. Erinnerung leaves the random pot — whether or not a date is filled in yet. With **Geburtsdatum**, **Sterbedatum** or **Besonderes Datum** (`TT.MM.JJJJ`) it is tied to that anniversary: the timer shows it **on the day, tomorrow or the day after**, **one** full picture at a time. If several are due: one at random, **arrow bottom right**, **KEY** and every **3 hours** the next. Occasion and special date are **two separate lines** on the picture. The chip clock must be valid, and under Rahmen a change mode (**Im Intervall** or **1× pro Tag**) must be on.
 
 **KEY** and **Jetzt wechseln** otherwise take only Zufall. Only when several memories are due does KEY step through those not yet shown; after the last, Zufall again. Old JSON without a `kind` field: a date present means Erinnerung, otherwise Zufall.
 
-On the picture itself: name, `*` birth, `†` death, occasion plus date, plus free notes (e.g. “In Erinnerung”). The **Bildbeschreibung** appears only in Live-Anzeige, not on the panel.
+On the picture itself: name, `*` birth, `†` death, occasion and date on separate lines, plus free notes (e.g. “In Erinnerung”). The **Bildbeschreibung** appears only in Live-Anzeige, not on the panel.
 
 ![Captions in Studio](docs/beschriftung.png)
 
@@ -30,7 +30,7 @@ Name, dates, checkboxes **Name auf Bild** / **Geburt auf Bild** / **Tod auf Bild
 
 ![Free text and notes](docs/hinweistexte.png)
 
-Free texts, typeface, **Fett**, rotation, colour. The list shows name, birth, death, special date and notes.
+Free texts, typeface, **Fett**, rotation, colour. The list shows name, birth, death, occasion, date and notes.
 
 ![Live with person, dates and note](docs/live_person.png)
 
@@ -151,7 +151,7 @@ Open the frame’s IP in the browser: access point [http://192.168.4.1](http://1
 
 Top left the **icon** and **Tintenklecks**: on subpages this is a link back to the main menu; on the menu it is only the name. The same icon is in the browser tab.
 
-Right: **Akku … %**, while charging **· lädt**, or **USB-Betrieb**. Next to that **zzz** — visible only without USB. The button puts the frame into deep sleep immediately. An open tab (status every 15 s) keeps the frame awake.
+Right: **Akku … %**, while charging **· lädt**, or **USB-Betrieb**. Next to that, only without USB: **Wach bleiben** (frame will not sleep) and **zzz** (deep sleep immediately, even if Wach bleiben is on). An open tab (status every 15 s) keeps the frame awake.
 
 ### Buttons on the device
 
@@ -162,11 +162,11 @@ Right: **Akku … %**, while charging **· lädt**, or **USB-Betrieb**. Next to 
 
 ### USB and battery
 
-USB: the frame stays awake.
+USB: the frame stays awake. Sound (welcome, WLAN, AP, restart) only on USB.
 
-Battery and change interval **≥ 10 minutes** or **1× per day**: without an open web page, deep sleep right after the picture change; with a browser, after 60 seconds idle. **5 minute** interval or **Off**: stays awake. Ping alone does not keep it awake; an open tab does. Wake: next timer, KEY or BOOT.
+Battery and change interval **≥ 10 minutes** or **1× per day**: without an open web page, deep sleep right after the picture change; with a browser, after 60 seconds idle. **5 minute** interval or **Off**: stays awake. **Wach bleiben** in the header prevents sleep. Ping alone does not keep it awake; an open tab does. Wake: next timer, KEY or BOOT.
 
-In sleep: panel rail and speaker off. The wake timer (ESP) is calibrated against the chip RTC (quartz) so the change time does not drift.
+In sleep: unused AXP rails, panel (ALDO4), codec (ALDO3), speaker, sensor and SD off. The wake timer (ESP) is calibrated against the chip RTC (quartz) so the change time does not drift.
 
 ### Hauptmenü (main menu)
 
@@ -179,7 +179,7 @@ Six tiles:
 | Live-Anzeige | current picture in the wooden frame, text, browse (Zufall / Erinnerungen) |
 | Neues Bild | Studio: photo, crop, method, captions |
 | Bilder | gallery: Zufall and Erinnerungen, show, edit, rename, delete |
-| Rahmen | change, hang, panel, pot; timer takes memories first |
+| Rahmen | change, hang, pot; timer takes memories first |
 | System | clock, status, ntfy, sound, backup, restart, forget Wi-Fi |
 | WLAN-Setup | home network and AP password |
 
@@ -187,7 +187,7 @@ Six tiles:
 
 ![Studio](docs/studio.png)
 
-Two stages: left **Zuschnitt**, right **E6 Vorschau**. Drop a photo onto the dashed field, or tap (JPG, PNG, BMP). Mouse wheel zooms; drag on the left stage to pan the crop — the picture follows the mouse (including vertically).
+Two stages: left **Zuschnitt**, right **E6 Vorschau**. Drop a photo onto the dashed field, or tap (JPG, PNG, BMP). Or **Blanko-Seite einfügen**: one of the six e-paper colours, size from the frame hang — a placeholder without a photo, with text and dates. Mouse wheel zooms; drag on the left stage to pan the crop — the picture follows the mouse (including vertically).
 
 While **Bearbeiten** from the gallery, **Bearbeitung beenden** is shown. Until you end the edit, the drop field will not take a new photo. **E6 Vorschau** shows the stored picture unchanged, including text. Lab sliders and free texts come back as last saved. The picture is only re-rendered if crop or Lab values change.
 
@@ -203,7 +203,7 @@ E-Paper / Dither (Lab only): Helligkeit, Kontrast, Wärme, Dither %, algorithm A
 
 #### Format and output
 
-**Lage (Rahmen):** Hochkant 480×800 or Quer 800×480 — under Rahmen → Anzeige (**Rahmenlage**); Studio only displays it. New photos follow that hang, loaded gallery pictures keep theirs. Existing BMPs are not converted. **Zoom** 10–400.
+Hochkant 480×800 or Quer 800×480 is under Rahmen → Anzeige (**Rahmenlage**). New photos and blank pages follow that hang, loaded gallery pictures keep theirs. Existing BMPs are not converted. **Zoom** 10–400.
 
 **Anzeigen am Rahmen** writes to the panel only, not the gallery. **Speichern in Galerie** stores BMP, crop and thumbnail on the SD card. If you change only text or person data on a saved picture, the frame stores the metadata without dithering again.
 
@@ -211,7 +211,7 @@ E-Paper / Dither (Lab only): Helligkeit, Kontrast, Wärme, Dither %, algorithm A
 
 ![Captions in Studio](docs/beschriftung.png)
 
-**Art:** **Normal** (random pot) or **Erinnerung** (out of the random pot). Date fields only for Erinnerung: birth date, death date, special date (`TT.MM.JJJJ`) and occasion (Hochzeitstag, Kennenlerntag …). Checkboxes **Name auf Bild**, **Geburt auf Bild**, **Tod auf Bild**, **Besonderes auf Bild** and sliders **Größe Name** / **Größe Daten**. Name and dates can be dragged on the crop.
+**Art:** **Normal** (random pot) or **Erinnerung** (out of the random pot). Date fields only for Erinnerung: birth date, death date, special date (`TT.MM.JJJJ`) and occasion (Hochzeitstag, Kennenlerntag …). On the picture two lines: occasion first, then the date. Checkboxes **Name auf Bild**, **Geburt auf Bild**, **Tod auf Bild**, **Besonderes auf Bild** and sliders **Größe Name** / **Größe Daten**. Name and dates can be dragged on the crop.
 
 Without a matching anniversary (today / tomorrow / day after) a memory stays off the panel — the timer then falls back to Zufall. KEY and **Jetzt wechseln** do that too, except when several memories are due: those not yet shown, then Zufall again.
 
@@ -231,7 +231,7 @@ Checkbox **Beschriftung anzeigen** (off: name, dates and free texts hidden). Fie
 
 ![Gallery](docs/galerie.png)
 
-Two tabs: **Zufall** and **Erinnerungen**. Below that **Suchen** (name, date, filename) — only after **Enter** or the **Suche** button; everything else is hidden. The **X** in the field clears the search and shows all pictures again. At the top: counts and the **Zufallstopf** (still *n* of *m*; if the pot is empty: next draw starts a new round). Cards sorted by person name. Preview with captions as in Studio, then name, `*` birth, `†` death, occasion plus special date, description (tap to expand), filename.
+Two tabs: **Zufall** and **Erinnerungen**. Below that **Suchen** (name, date, filename) — only after **Enter** or the **Suche** button; everything else is hidden. The **X** in the field clears the search and shows all pictures again. At the top: counts and the **Zufallstopf** (still *n* of *m*; if the pot is empty: next draw starts a new round). Cards sorted by person name. Preview with captions as in Studio, then name, `*` birth, `†` death, occasion and special date on separate lines, description (tap to expand), filename.
 
 | Button | Effect |
 | --- | --- |
@@ -262,9 +262,11 @@ Empty list: **Kein Bild**.
 
 **Wechsel:** mode **Aus**, **Im Intervall** (5 / 10 / 30 / 60 minutes) or **1× pro Tag** (time of day, default 08:00). **Speichern** keeps the mode. **Jetzt wechseln** immediately — Zufall only, no memories. **Aus** = no timer.
 
-**Anzeige:** **Rahmenlage** Hochkant or Quer, **Lage speichern**. Applies to new pictures in Studio, Live and on the panel; existing pictures stay as they are. Hang the device to match. **Panel leeren (weiß)** — show pictures again from the gallery with **Anzeigen**. **Akkuwarnung testen** puts “Akku < 10 %” at the bottom right of the current picture, regardless of the real level (and sends the ntfy probe if a topic is set).
+**Anzeige:** **Rahmenlage** Hochkant or Quer, **Lage speichern**. Applies to new pictures in Studio, Live and on the panel; existing pictures stay as they are. Hang the device to match.
 
-**Timer (interval / clock / wake for a change):** if a memory’s birth, death or special date is **today, tomorrow or the day after**, **one** such picture comes first (full size, type as in Studio). Several due: hint bottom right, next one every 3 hours (KEY likewise). Otherwise only Zufall, without replacement, until the pot is empty, then reshuffle. If there is no due memory and no Zufall picture, the panel stays. USB stays awake. Battery sleeps as under “USB and battery”.
+**Timer (interval / clock / wake for a change):** if a memory’s birth, death or special date is **today, tomorrow or the day after**, **one** such picture comes first (full size, type as in Studio). Several due: arrow bottom right, next one every 3 hours (KEY likewise). Otherwise only Zufall, without replacement, until the pot is empty, then reshuffle. If there is no due memory and no Zufall picture, the panel stays. USB stays awake. Battery sleeps as under “USB and battery”.
+
+On the panel itself there is no hint text: **battery under 10 %** as an icon bottom left, **more memories** as an arrow bottom right (white squares, black outline).
 
 ### System
 
@@ -278,7 +280,7 @@ Empty list: **Kein Bild**.
 
 **ntfy:** topic or full URL (empty = off), priority Min / Niedrig / Normal / Hoch / Dringend. **Speichern**, **Probe senden**. All notifications use the chosen priority. App [ntfy](https://ntfy.sh/).
 
-**Ton:** volume of the notice sounds 0–100, default 80. **Lautstärke speichern**.
+**Ton:** USB only. Volume of the notice sounds 0–100, default 80. **Lautstärke speichern**. On battery the amplifier stays off.
 
 **Sicherung:** **Sicherung als .txt** fetches `pic/` and `sound/` as one file (`tintenklecks-YYYY-MM-DD.txt`) — works in Chrome over HTTP. **Sicherung als .zip** the same, uncompressed; Chrome may block zip over HTTP, then use Firefox/Edge or the `.txt`. Leave USB plugged in. **Wiederherstellen:** `.txt` and uncompressed `.zip` in one go. Compressed zip still file by file. Same name overwrites, everything else stays. Firmware backup is the GitHub release.
 

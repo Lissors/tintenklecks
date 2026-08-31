@@ -18,6 +18,11 @@ static const int PIN_I2S_DOUT = 17;  // ESP → ES8311 DSDIN
 static const int PIN_I2S_DIN = 18;   // mic
 static const int PIN_AUDIO_PA = 7;
 static const uint8_t ES8311_ADDR = 0x18;
+static const uint8_t ES7210_ADDR = 0x40;
+static const uint8_t SHTC3_ADDR = 0x70;
+
+// AXP2101 IRQ (wake PMIC after enableSleep; >16 ms low)
+static const int PIN_AXP_IRQ = 21;
 
 // SDIO 4-bit
 static const int SD_CLK = 39;

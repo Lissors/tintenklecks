@@ -19,6 +19,13 @@ body.busy button{pointer-events:none;opacity:.55}
 .bat{font-size:.8rem;color:var(--dim)}
 .head-right{display:flex;align-items:center;gap:.5rem}
 button.zzz{width:auto;margin:0;padding:.2rem .5rem;font-size:.78rem;letter-spacing:.08em;font-weight:700;flex:none;border-radius:6px;border:1px solid var(--line);background:#1a1612;color:var(--dim);cursor:pointer;font:inherit}
+.stay{display:inline-flex;align-items:center;gap:.4rem;margin:0;position:relative;font:inherit;font-size:.78rem;color:var(--dim);cursor:pointer;user-select:none;flex:none;white-space:nowrap}
+.stay[hidden]{display:none !important}
+.stay input{position:absolute;opacity:0;pointer-events:none}
+.stay-sw{width:1.9rem;height:1.05rem;border-radius:999px;background:#1a1612;border:1px solid var(--line);position:relative;flex:none}
+.stay-sw:before{content:'';position:absolute;top:1px;left:1px;width:.8rem;height:.8rem;border-radius:50%;background:var(--dim)}
+.stay input:checked+.stay-sw{background:var(--acc);border-color:var(--acc)}
+.stay input:checked+.stay-sw:before{left:auto;right:1px;background:#1a1612}
 main{max-width:440px;margin:0 auto;padding:1.25rem 1rem 2rem}
 h1{font-size:1.2rem;margin:0 0 1rem}
 .stage{display:flex;justify-content:center;margin:0 0 1.1rem}
@@ -148,7 +155,7 @@ footer{text-align:center;padding:1rem;font-size:.75rem;color:var(--dim)}
 <div class="busy-ov" id="busyOv"><div class="hour"></div><div id="busyMsg">Bitte warten…</div></div>
 <div class="top">
   <div class="brand"><a href="/menu"><img src="/favicon.png" width="28" height="28" alt=""/>Tintenklecks</a></div>
-  <div class="head-right"><button type="button" class="zzz" id="btnZzz">zzz</button><div class="bat" id="bat">Akku …</div></div>
+  <div class="head-right"><label class="stay" id="btnWach"><input type="checkbox" id="chkWach"/><span class="stay-sw"></span>Wach bleiben</label><button type="button" class="zzz" id="btnZzz">zzz</button><div class="bat" id="bat">Akku …</div></div>
 </div>
 <main>
 <h1>Live-Anzeige</h1>
@@ -263,10 +270,9 @@ function renderCaps(it){
   if(m.birth) d.push('* '+esc(m.birth));
   if(m.death) d.push('† '+esc(m.death));
   const sp=(m.special||'').trim();
-  if(sp){
-    const k=(m.specialKind||'').trim();
-    d.push(esc(k?(k+' '+sp):sp));
-  }
+  const k=(m.specialKind||'').trim();
+  if(k) d.push(esc(k));
+  if(sp) d.push(esc(sp));
   if(d.length) parts.push('<p class="dates">'+d.join('<br/>')+'</p>');
   const desc=(m.description||m.beschreibung||'').trim();
   if(desc) parts.push('<p class="desc">'+esc(desc)+'</p>');
@@ -274,7 +280,7 @@ function renderCaps(it){
   const texts=labs.filter(function(L){
     if(!L||!L.text) return false;
     const role=L.role||'';
-    if(role==='name'||role==='birth'||role==='death'||role==='special') return false;
+    if(role==='name'||role==='birth'||role==='death'||role==='special'||role==='specialKind') return false;
     return String(L.text).trim().length>0;
   }).map(function(L){ return String(L.text).trim(); });
   if(texts.length){
@@ -427,12 +433,22 @@ async function refreshStatus(){
     else bat.textContent='Akku '+s.battery+'%'+(s.charging?' · lädt':'');
     const z=document.getElementById('btnZzz');
     if(z) z.hidden=!!s.usb;
+    const w=document.getElementById('btnWach');
+    const c=document.getElementById('chkWach');
+    if(w) w.hidden=!!s.usb;
+    if(c) c.checked=!!s.stayAwake;
     document.getElementById('foot').textContent=s.copyright||'© 2026 Ingo Lissors';
     if(s.hang==='portrait'||s.hang==='landscape') hang=s.hang;
     const mem=document.getElementById('memNext');
     if(mem) mem.textContent=memLine(s);
   }catch(e){}
 }
+document.getElementById('chkWach').onchange=()=>{
+  if(window.__zzz){ const c=document.getElementById('chkWach'); if(c) c.checked=!c.checked; return; }
+  const on=document.getElementById('chkWach').checked;
+  fetch('/api/stayawake',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'on='+(on?'1':'0')})
+    .catch(function(){});
+};
 document.getElementById('btnZzz').onclick=()=>{
   if(window.__zzz) return;
   window.__zzz=1;

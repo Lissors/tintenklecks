@@ -4,8 +4,7 @@
 #include "board.h"
 #include <SPI.h>
 #include <string.h>
-#include <stdio.h>
-#include <pgmspace.h>
+#include <driver/gpio.h>
 
 static SPIClass epdSpi(FSPI);
 static uint8_t *epdBuffer = nullptr;
@@ -218,6 +217,12 @@ static void epdWriteBuffer() {
 }
 
 bool epdInit() {
+  gpio_reset_pin((gpio_num_t)PIN_EPD_DC);
+  gpio_reset_pin((gpio_num_t)PIN_EPD_CS);
+  gpio_reset_pin((gpio_num_t)PIN_EPD_SCK);
+  gpio_reset_pin((gpio_num_t)PIN_EPD_MOSI);
+  gpio_reset_pin((gpio_num_t)PIN_EPD_RST);
+  gpio_reset_pin((gpio_num_t)PIN_EPD_BUSY);
   pinMode(PIN_EPD_DC, OUTPUT);
   pinMode(PIN_EPD_CS, OUTPUT);
   pinMode(PIN_EPD_RST, OUTPUT);
@@ -239,85 +244,6 @@ bool epdInit() {
   return true;
 }
 
-// 5×7, bit0 = top. Glyphs for "Akku < 10 %"
-static const uint8_t FONT5X7[][5] PROGMEM = {
-    {0x00, 0x00, 0x00, 0x00, 0x00},  // space
-    {0x23, 0x13, 0x08, 0x64, 0x62},  // %
-    {0x08, 0x08, 0x08, 0x08, 0x08},  // -
-    {0x08, 0x14, 0x22, 0x41, 0x00},  // <
-    {0x3E, 0x51, 0x49, 0x45, 0x3E},  // 0
-    {0x00, 0x42, 0x7F, 0x40, 0x00},  // 1
-    {0x42, 0x61, 0x51, 0x49, 0x46},  // 2
-    {0x21, 0x41, 0x45, 0x4B, 0x31},  // 3
-    {0x18, 0x14, 0x12, 0x7F, 0x10},  // 4
-    {0x27, 0x45, 0x45, 0x45, 0x39},  // 5
-    {0x3C, 0x4A, 0x49, 0x49, 0x30},  // 6
-    {0x01, 0x71, 0x09, 0x05, 0x03},  // 7
-    {0x36, 0x49, 0x49, 0x49, 0x36},  // 8
-    {0x06, 0x49, 0x49, 0x29, 0x1E},  // 9
-    {0x7E, 0x11, 0x11, 0x11, 0x7E},  // A
-    {0x00, 0x00, 0x00, 0x00, 0x00},  // 15 k → FONT_K
-    {0x00, 0x00, 0x00, 0x00, 0x00},  // 16 u → FONT_U
-    {0x7F, 0x49, 0x49, 0x49, 0x41},  // E
-    {0x38, 0x54, 0x54, 0x54, 0x18},  // e
-    {0x08, 0x54, 0x54, 0x54, 0x3C},  // g
-    {0x00, 0x44, 0x7D, 0x40, 0x00},  // i
-    {0x7C, 0x08, 0x04, 0x04, 0x78},  // n
-    {0x7C, 0x08, 0x04, 0x04, 0x08},  // r
-    {0x04, 0x3F, 0x44, 0x40, 0x20},  // t
-    {0x3C, 0x40, 0x30, 0x40, 0x3C},  // w
-};
-
-static int epdFontIndex(char c) {
-  if (c == ' ') {
-    return 0;
-  }
-  if (c == '%') {
-    return 1;
-  }
-  if (c == '-') {
-    return 2;
-  }
-  if (c == '<') {
-    return 3;
-  }
-  if (c >= '0' && c <= '9') {
-    return 4 + (c - '0');
-  }
-  if (c == 'A') {
-    return 14;
-  }
-  if (c == 'E') {
-    return 17;
-  }
-  if (c == 'e') {
-    return 18;
-  }
-  if (c == 'g') {
-    return 19;
-  }
-  if (c == 'i') {
-    return 20;
-  }
-  if (c == 'n') {
-    return 21;
-  }
-  if (c == 'r') {
-    return 22;
-  }
-  if (c == 't') {
-    return 23;
-  }
-  if (c == 'w') {
-    return 24;
-  }
-  return 0;
-}
-
-// k and u as 5×7
-static const uint8_t FONT_K[5] PROGMEM = {0x7F, 0x08, 0x14, 0x22, 0x41};
-static const uint8_t FONT_U[5] PROGMEM = {0x3C, 0x40, 0x40, 0x40, 0x7C};
-
 static bool epdHangLandscape() {
   const char *h = hangValue();
   return h && h[0] == 'l';
@@ -333,10 +259,8 @@ static void epdVisSize(int &w, int &h) {
   }
 }
 
-static bool g_hintCoords = false;
-
 static void epdSetPixelVis(int vx, int vy, uint8_t color) {
-  if (g_hintCoords && epdHangLandscape()) {
+  if (epdHangLandscape()) {
     epdSetPixel(vx, vy, color);
     return;
   }
@@ -344,69 +268,41 @@ static void epdSetPixelVis(int vx, int vy, uint8_t color) {
   epdSetPixel(vy, EPD_HEIGHT - 1 - vx, color);
 }
 
-static void epdDot(int vx, int vy, uint8_t color, int scale) {
-  for (int dy = 0; dy < scale; dy++) {
-    for (int dx = 0; dx < scale; dx++) {
-      epdSetPixelVis(vx + dx, vy + dy, color);
+static const int HINT_BOX = 48;
+static const int HINT_MARGIN = 8;
+
+// 8×8, bit0 = left, row 0 = top.
+static const uint8_t ICON_BAT[8] = {0x3C, 0x7E, 0x42, 0x42, 0x42, 0x5A, 0x42, 0x7E};
+static const uint8_t ICON_ARROW[8] = {0x08, 0x18, 0x38, 0x7F, 0x7F, 0x38, 0x18, 0x08};
+
+static void epdDrawHintBox(int x0, int y0) {
+  for (int y = 0; y < HINT_BOX; y++) {
+    for (int x = 0; x < HINT_BOX; x++) {
+      uint8_t c = EPD_WHITE;
+      if (x < 4 || y < 4 || x >= HINT_BOX - 4 || y >= HINT_BOX - 4) {
+        c = EPD_BLACK;
+      }
+      epdSetPixelVis(x0 + x, y0 + y, c);
     }
   }
 }
 
-static void epdDrawGlyph(int vx, int vy, const uint8_t *col, uint8_t color, int scale) {
-  for (int cx = 0; cx < 5; cx++) {
-    uint8_t bits = col[cx];
-    for (int cy = 0; cy < 7; cy++) {
-      if (bits & (1 << cy)) {
-        epdDot(vx + cx * scale, vy + cy * scale, color, scale);
+static void epdDrawIcon8(int x0, int y0, const uint8_t *rows) {
+  const int scale = 4;
+  const int pad = (HINT_BOX - 8 * scale) / 2;
+  for (int r = 0; r < 8; r++) {
+    uint8_t bits = rows[r];
+    for (int c = 0; c < 8; c++) {
+      if (bits & (1 << c)) {
+        int px = x0 + pad + c * scale;
+        int py = y0 + pad + r * scale;
+        for (int dy = 0; dy < scale; dy++) {
+          for (int dx = 0; dx < scale; dx++) {
+            epdSetPixelVis(px + dx, py + dy, EPD_BLACK);
+          }
+        }
       }
     }
-  }
-}
-
-static void epdDrawChar(int vx, int vy, char c, uint8_t color, int scale) {
-  uint8_t col[5];
-  if (c == 'k') {
-    memcpy_P(col, FONT_K, 5);
-  } else if (c == 'u') {
-    memcpy_P(col, FONT_U, 5);
-  } else {
-    int i = epdFontIndex(c);
-    memcpy_P(col, FONT5X7[i], 5);
-  }
-  epdDrawGlyph(vx, vy, col, color, scale);
-  epdDrawGlyph(vx + 1, vy, col, color, scale);  // fett
-}
-
-static void epdDrawBatteryWarn() {
-  const char *msg = "Akku < 10 %";
-  const int scale = 3;
-  const int gw = 6 * scale;
-  const int gh = 7 * scale;
-  const int visW = EPD_HEIGHT;  // 480
-  const int visH = EPD_WIDTH;   // 800
-  int n = 0;
-  for (const char *p = msg; *p; p++) {
-    n++;
-  }
-  int tw = n * gw + 1;
-  int th = gh + 2;
-  int x0 = visW - tw - 18;
-  int y0 = visH - th - 14;
-  if (x0 < 8) {
-    x0 = 8;
-  }
-  if (y0 < 8) {
-    y0 = 8;
-  }
-  for (int y = y0 - 4; y < y0 + th + 4; y++) {
-    for (int x = x0 - 4; x < x0 + tw + 4; x++) {
-      epdSetPixelVis(x, y, EPD_WHITE);
-    }
-  }
-  int x = x0;
-  for (const char *p = msg; *p; p++) {
-    epdDrawChar(x, y0, *p, EPD_BLACK, scale);
-    x += gw;
   }
 }
 
@@ -419,49 +315,26 @@ void epdSetMoreMemoriesHint(int extra) {
   g_moreMemoriesHint = extra < 0 ? 0 : extra;
 }
 
-static void epdDrawMoreMemoriesHint(int extra, int lift) {
+static void epdDrawBatteryWarn() {
+  int visW = 0, visH = 0;
+  epdVisSize(visW, visH);
+  (void)visW;
+  int x0 = HINT_MARGIN;
+  int y0 = visH - HINT_BOX - HINT_MARGIN;
+  epdDrawHintBox(x0, y0);
+  epdDrawIcon8(x0, y0, ICON_BAT);
+}
+
+static void epdDrawMoreMemoriesHint(int extra) {
   if (extra < 1) {
     return;
   }
-  char msg[36];
-  if (extra == 1) {
-    snprintf(msg, sizeof(msg), "1 weitere Erinnerung");
-  } else if (extra < 100) {
-    snprintf(msg, sizeof(msg), "%d weitere Erinnerungen", extra);
-  } else {
-    snprintf(msg, sizeof(msg), "weitere Erinnerungen");
-  }
-  const int scale = 3;
-  const int gw = 6 * scale;
-  const int gh = 7 * scale;
   int visW = 0, visH = 0;
   epdVisSize(visW, visH);
-  int n = 0;
-  for (const char *p = msg; *p; p++) {
-    n++;
-  }
-  int tw = n * gw + 1;
-  int th = gh + 2;
-  int x0 = visW - tw - 18;
-  int y0 = visH - th - 14 - lift;
-  if (x0 < 8) {
-    x0 = 8;
-  }
-  if (y0 < 8) {
-    y0 = 8;
-  }
-  g_hintCoords = true;
-  for (int y = y0 - 4; y < y0 + th + 4; y++) {
-    for (int x = x0 - 4; x < x0 + tw + 4; x++) {
-      epdSetPixelVis(x, y, EPD_WHITE);
-    }
-  }
-  int x = x0;
-  for (const char *p = msg; *p; p++) {
-    epdDrawChar(x, y0, *p, EPD_BLACK, scale);
-    x += gw;
-  }
-  g_hintCoords = false;
+  int x0 = visW - HINT_BOX - HINT_MARGIN;
+  int y0 = visH - HINT_BOX - HINT_MARGIN;
+  epdDrawHintBox(x0, y0);
+  epdDrawIcon8(x0, y0, ICON_ARROW);
 }
 
 void epdDisplayCurrentBuffer() {
@@ -476,7 +349,7 @@ void epdDisplayCurrentBuffer() {
     }
   }
   if (g_moreMemoriesHint > 0) {
-    epdDrawMoreMemoriesHint(g_moreMemoriesHint, warn ? (7 * 3 + 18) : 0);
+    epdDrawMoreMemoriesHint(g_moreMemoriesHint);
   }
   if (warn) {
     epdDrawBatteryWarn();

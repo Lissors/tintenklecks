@@ -2206,6 +2206,10 @@ static void handleAudioGet() {
 
 static void handleSpeak() {
   powerNoteActivity();
+  if (!pmuUsbPowered()) {
+    server.send(503, "text/plain", "Ton nur bei USB");
+    return;
+  }
   if (!audioEnsureReady()) {
     server.send(503, "text/plain", "audio not ready (ES8311?)");
     return;
@@ -2404,7 +2408,21 @@ static void handleSleepNow() {
   server.send(200, "text/plain", "OK sleep");
   server.client().flush();
   delay(400);
-  powerSleepNow();
+  powerSleepForced();
+}
+
+static void handleStayAwake() {
+  powerNoteActivity();
+  bool on = true;
+  if (server.hasArg("on")) {
+    String v = server.arg("on");
+    on = (v == "1" || v == "true" || v == "on");
+  }
+  powerSetStayAwake(on);
+  String j = "{\"stayAwake\":";
+  j += powerStayAwake() ? "true" : "false";
+  j += "}";
+  server.send(200, "application/json", j);
 }
 
 static void handleWifiClear() {
@@ -2475,6 +2493,8 @@ static void handleStatus() {
   j += String(bat);
   j += ",\"usb\":";
   j += pmuUsbPowered() ? "true" : "false";
+  j += ",\"stayAwake\":";
+  j += powerStayAwake() ? "true" : "false";
   j += ",\"charging\":";
   j += pmuCharging() ? "true" : "false";
   j += ",\"voltage\":";
@@ -3473,6 +3493,7 @@ void webBegin() {
   server.collectHeaders(KEEP_HEADERS, 1);
 
   server.on("/api/status", HTTP_GET, handleStatus);
+  server.on("/api/stayawake", HTTP_POST, handleStayAwake);
   server.on("/api/hang", HTTP_GET, handleHangGet);
   server.on("/api/hang", HTTP_POST, handleHangPost);
   server.on("/api/volume", HTTP_GET, handleVolGet);

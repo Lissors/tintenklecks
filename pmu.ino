@@ -8,6 +8,7 @@
 #include <Preferences.h>
 #include <math.h>
 #include <string.h>
+#include <driver/gpio.h>
 
 static XPowersAXP2101 pmu;
 static bool pmuOk = false;
@@ -64,7 +65,18 @@ static void i2cBusRecover() {
   pinMode(I2C_SCL, INPUT_PULLUP);
 }
 
+static void pmuWakeIrqPulse() {
+  gpio_reset_pin((gpio_num_t)PIN_AXP_IRQ);
+  pinMode(PIN_AXP_IRQ, OUTPUT);
+  digitalWrite(PIN_AXP_IRQ, LOW);
+  delay(100);
+  digitalWrite(PIN_AXP_IRQ, HIGH);
+  delay(200);
+  pinMode(PIN_AXP_IRQ, INPUT_PULLUP);
+}
+
 bool pmuInit() {
+  pmuWakeIrqPulse();
   i2cBusRecover();
   Wire.begin(I2C_SDA, I2C_SCL);
   Wire.setTimeOut(250);
@@ -126,12 +138,48 @@ float pmuTemperature() {
   return pmu.getTemperature();
 }
 
+void shtc3Sleep() {
+  Wire.beginTransmission(SHTC3_ADDR);
+  Wire.write(0xB0);
+  Wire.write(0x98);
+  if (Wire.endTransmission() == 0) {
+    Serial.println(F("SHTC3 sleep"));
+  }
+}
+
 void pmuSleepRails() {
   if (!pmuOk) {
     return;
   }
+  pmu.disableIRQ(XPOWERS_AXP2101_ALL_IRQ);
+  pmu.clearIrqStatus();
+  int power_value = pmu.readRegister(0x26);
+  if (!(power_value & 0x04)) {
+    pmu.wakeupControl(XPOWERS_AXP2101_WAKEUP_DC_DLO_SELECT, true);
+  }
+  if (power_value & 0x08) {
+    pmu.wakeupControl(XPOWERS_AXP2101_WAKEUP_PWROK_TO_LOW, false);
+  }
+  if (!(power_value & 0x10)) {
+    pmu.wakeupControl(XPOWERS_AXP2101_WAKEUP_IRQ_PIN_TO_LOW, true);
+  }
+  pmu.disableBattVoltageMeasure();
+  pmu.disableBattDetection();
+  pmu.enableSleep();
+  pmu.disableDC2();
+  pmu.disableDC3();
+  pmu.disableDC4();
+  pmu.disableDC5();
+  pmu.disableALDO1();
+  pmu.disableALDO2();
+  pmu.disableBLDO1();
+  pmu.disableBLDO2();
+  pmu.disableCPUSLDO();
+  pmu.disableDLDO1();
+  pmu.disableDLDO2();
   pmu.disableALDO4();
-  Serial.println(F("PMU sleep: ALDO4 off"));
+  pmu.disableALDO3();
+  Serial.println(F("PMU sleep: AXP sleep, ALDO3 last"));
 }
 
 bool pmuReady() {

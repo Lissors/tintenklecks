@@ -5,7 +5,7 @@
 Deutsch · [English](README.en.md)
 
 Firmware für den **Waveshare ESP32-S3 PhotoPainter** (7,3″ Spectra-6 / E6, 480×800).
-Der Rahmen ist dafür da, **besondere Tage nicht zu vergessen**: Geburtstage, Sterbetage und andere Jahrestage (Hochzeit, Kennenlernen …). Zwei Töpfe: **Zufall** und **Erinnerungen**. Erinnerungen kommen von selbst, sobald der Tag **heute, morgen oder übermorgen** ist — ein Bild voll, bei mehreren Hinweis unten rechts. Zuschnitt, Verfahren und Beschriftung laufen im Browser auf dem Rahmen. Die Galerie liegt auf der SD-Karte. Kein ESP-IDF, nur Arduino IDE.
+Der Rahmen ist dafür da, **besondere Tage nicht zu vergessen**: Geburtstage, Sterbetage und andere Jahrestage (Hochzeit, Kennenlernen …). Zwei Töpfe: **Zufall** und **Erinnerungen**. Erinnerungen kommen von selbst, sobald der Tag **heute, morgen oder übermorgen** ist — ein Bild voll, bei mehreren ein Pfeil unten rechts. Zuschnitt, Verfahren und Beschriftung laufen im Browser auf dem Rahmen. Die Galerie liegt auf der SD-Karte. Kein ESP-IDF, nur Arduino IDE.
 
 © 2026 Ingo Lissors · Herkunft und Lizenzen: [CREDITS.txt](CREDITS.txt) · [LICENSE](LICENSE)
 
@@ -16,11 +16,11 @@ Sketch-Datei: `Bilderrahmen.ino` (Ordnername bleibt, sonst findet die Arduino ID
 
 ## Erinnerungen — Geburt, Tod, Besonderes, Texte
 
-Im Studio unter **Bildart** **Normal** oder **Erinnerung**. Normal bleibt im Zufallstopf. Erinnerung fliegt raus aus dem Zufall — unabhängig davon, ob schon ein Datum steht. Mit **Geburtsdatum**, **Sterbedatum** oder **Besonderes Datum** (`TT.MM.JJJJ`) hängt sie am Jahrestag: der Timer zeigt sie **am Tag selbst, morgen oder übermorgen**, jeweils **ein** Bild voll. Sind mehrere fällig: eines zufällig, unten rechts z. B. **2 weitere Erinnerungen**, **KEY** und alle **3 Stunden** das nächste. Beim besonderen Datum gehört ein **Anlass** dazu (z. B. Hochzeitstag, Kennenlerntag). Dafür muss die Chip-Uhr stimmen und unter Rahmen ein Wechsel (**Im Intervall** oder **1× pro Tag**) an sein.
+Im Studio unter **Bildart** **Normal** oder **Erinnerung**. Normal bleibt im Zufallstopf. Erinnerung fliegt raus aus dem Zufall — unabhängig davon, ob schon ein Datum steht. Mit **Geburtsdatum**, **Sterbedatum** oder **Besonderes Datum** (`TT.MM.JJJJ`) hängt sie am Jahrestag: der Timer zeigt sie **am Tag selbst, morgen oder übermorgen**, jeweils **ein** Bild voll. Sind mehrere fällig: eines zufällig, **Pfeil unten rechts**, **KEY** und alle **3 Stunden** das nächste. Anlass und besonderes Datum stehen als **zwei Zeilen** auf dem Bild. Dafür muss die Chip-Uhr stimmen und unter Rahmen ein Wechsel (**Im Intervall** oder **1× pro Tag**) an sein.
 
 **KEY** und **Jetzt wechseln** nehmen sonst nur Zufall. Nur wenn mehrere Erinnerungen fällig sind, blättert KEY durch die noch nicht gezeigten; sind alle durch, wieder Zufall. Alte JSON ohne Feld `kind`: Datum da = Erinnerung, sonst Zufall.
 
-Auf dem Bild selbst: Name, `*` Geburt, `†` Tod, Anlass plus Datum, plus freie Hinweise (z. B. „In Erinnerung“). Die **Bildbeschreibung** steht nur in der Live-Anzeige, nicht auf dem Panel.
+Auf dem Bild selbst: Name, `*` Geburt, `†` Tod, Anlass und Datum getrennt, plus freie Hinweise (z. B. „In Erinnerung“). Die **Bildbeschreibung** steht nur in der Live-Anzeige, nicht auf dem Panel.
 
 ![Beschriftung im Studio](docs/beschriftung.png)
 
@@ -28,7 +28,7 @@ Name, Daten, Häkchen **Name auf Bild** / **Geburt auf Bild** / **Tod auf Bild**
 
 ![Freier Text und Hinweise](docs/hinweistexte.png)
 
-Freitexte, Schrift, **Fett**, Drehung, Farbe. In der Liste stehen Name, Geburt, Tod, Besonderes und Hinweise.
+Freitexte, Schrift, **Fett**, Drehung, Farbe. In der Liste stehen Name, Geburt, Tod, Anlass, Datum und Hinweise.
 
 ![Live mit Person, Daten und Hinweis](docs/live_person.png)
 
@@ -149,7 +149,7 @@ Im Browser die IP des Rahmens öffnen: Access Point [http://192.168.4.1](http://
 
 Oben links das **Icon** und **Tintenklecks**: auf Unterseiten ein Link zurück ins Hauptmenü, auf dem Menü nur der Name. Im Browser-Tab dasselbe Icon.
 
-Rechts **Akku … %**, bei Ladung **· lädt**, oder **USB-Betrieb**. Daneben **zzz** — nur ohne USB sichtbar. Der Knopf schickt den Rahmen sofort in den Deep Sleep. Ein offener Tab (Status alle 15 s) hält den Rahmen wach.
+Rechts **Akku … %**, bei Ladung **· lädt**, oder **USB-Betrieb**. Daneben, nur ohne USB: Schalter **Wach bleiben** (Rahmen schläft nicht) und **zzz** (sofort Deep Sleep, auch wenn Wach bleiben an ist). Ein offener Tab (Status alle 15 s) hält den Rahmen wach.
 
 ### Tasten am Gerät
 
@@ -160,11 +160,11 @@ Rechts **Akku … %**, bei Ladung **· lädt**, oder **USB-Betrieb**. Daneben **
 
 ### USB und Akku
 
-USB: der Rahmen bleibt wach.
+USB: der Rahmen bleibt wach. Ton (Willkommen, WLAN, AP, Neustart) nur bei USB.
 
-Akku und Wechsel **≥ 10 Minuten** oder **1× pro Tag**: ohne offenes Web direkt nach dem Bildwechsel Deep Sleep, mit Browser nach 60 Sekunden Pause. **5 Minuten**-Intervall oder **Aus**: bleibt wach. Ping allein hält ihn nicht wach, ein offener Tab schon. Wecken: nächster Timer, KEY oder BOOT.
+Akku und Wechsel **≥ 10 Minuten** oder **1× pro Tag**: ohne offenes Web direkt nach dem Bildwechsel Deep Sleep, mit Browser nach 60 Sekunden Pause. **5 Minuten**-Intervall oder **Aus**: bleibt wach. **Wach bleiben** in der Kopfzeile verhindert den Sleep. Ping allein hält ihn nicht wach, ein offener Tab schon. Wecken: nächster Timer, KEY oder BOOT.
 
-Im Sleep: Panel-Spannung und Lautsprecher aus. Der Weck-Zähler (ESP) wird an der Chip-Uhr (Quarz) nachgezogen, damit der Wechsel nicht wegläuft.
+Im Sleep: ungenutzte AXP-Schienen, Panel (ALDO4), Codec (ALDO3), Lautsprecher, Sensor und SD aus. Der Weck-Zähler (ESP) wird an der Chip-Uhr (Quarz) nachgezogen, damit der Wechsel nicht wegläuft.
 
 ### Hauptmenü
 
@@ -177,7 +177,7 @@ Sechs Kacheln:
 | Live-Anzeige | aktuelles Bild im Holzrahmen, Text, blättern (Zufall / Erinnerungen) |
 | Neues Bild | Studio: Foto, Zuschnitt, Verfahren, Beschriftung |
 | Bilder | Galerie: Zufall und Erinnerungen, anzeigen, bearbeiten, umbenennen, löschen |
-| Rahmen | Wechsel, Lage, Panel, Topf; Timer nimmt Erinnerungen zuerst |
+| Rahmen | Wechsel, Lage, Topf; Timer nimmt Erinnerungen zuerst |
 | System | Uhr, Status, ntfy, Ton, Sicherung, Neustart, WLAN vergessen |
 | WLAN-Setup | Heimnetz und AP-Passwort |
 
@@ -185,7 +185,7 @@ Sechs Kacheln:
 
 ![Studio](docs/studio.png)
 
-Zwei Bühnen: links **Zuschnitt**, rechts **E6 Vorschau**. Das Foto in das gestrichelte Feld ziehen oder tippen (JPG, PNG, BMP). Mausrad zoomt, Ziehen auf der linken Bühne verschiebt den Ausschnitt — das Bild folgt der Maus (auch senkrecht).
+Zwei Bühnen: links **Zuschnitt**, rechts **E6 Vorschau**. Das Foto in das gestrichelte Feld ziehen oder tippen (JPG, PNG, BMP). Alternativ **Blanko-Seite einfügen**: eine der sechs E-Paper-Farben, Größe nach der Rahmenlage — Platzhalter ohne Foto, mit Text und Daten. Mausrad zoomt, Ziehen auf der linken Bühne verschiebt den Ausschnitt — das Bild folgt der Maus (auch senkrecht).
 
 Beim **Bearbeiten** aus der Galerie steht **Bearbeitung beenden**. Solange die Bearbeitung läuft, nimmt das Drop-Feld kein neues Foto. Die **E6 Vorschau** zeigt das gespeicherte Bild unverändert, inklusive Text. Lab-Schieber und Freitexte stehen wie zuletzt gespeichert. Neu gerechnet wird erst, wenn Zuschnitt oder Lab-Werte sich ändern.
 
@@ -201,7 +201,7 @@ E-Paper / Dither (nur Lab): Helligkeit, Kontrast, Wärme, Dither %, Algorithmus 
 
 #### Format und Ausgabe
 
-**Lage (Rahmen):** Hochkant 480×800 oder Quer 800×480 — steht unter Rahmen → Anzeige (**Rahmenlage**), im Studio nur Anzeige. Neue Fotos folgen der Lage, geladene Galeriebilder behalten ihre. Vorhandene BMP werden nicht umgerechnet. **Zoom** 10–400.
+Hochkant 480×800 oder Quer 800×480 steht unter Rahmen → Anzeige (**Rahmenlage**). Neue Fotos und Blanko-Seiten folgen der Lage, geladene Galeriebilder behalten ihre. Vorhandene BMP werden nicht umgerechnet. **Zoom** 10–400.
 
 **Anzeigen am Rahmen** schreibt nur aufs Panel, nicht in die Galerie. **Speichern in Galerie** legt BMP, Zuschnitt und Vorschaubild auf der SD ab. Ändert man an einem gespeicherten Bild nur Text oder Person, speichert der Rahmen die Metadaten, ohne neu zu dithern.
 
@@ -209,7 +209,7 @@ E-Paper / Dither (nur Lab): Helligkeit, Kontrast, Wärme, Dither %, Algorithmus 
 
 ![Beschriftung im Studio](docs/beschriftung.png)
 
-**Art:** **Normal** (Zufallstopf) oder **Erinnerung** (raus aus dem Zufall). Datumsfelder nur bei Erinnerung: Geburtsdatum, Sterbedatum, Besonderes Datum (`TT.MM.JJJJ`) und Anlass (Hochzeitstag, Kennenlerntag …). Häkchen **Name auf Bild**, **Geburt auf Bild**, **Tod auf Bild**, **Besonderes auf Bild** und Schieber **Größe Name** / **Größe Daten**. Name und Daten lassen sich auf dem Zuschnitt verschieben.
+**Art:** **Normal** (Zufallstopf) oder **Erinnerung** (raus aus dem Zufall). Datumsfelder nur bei Erinnerung: Geburtsdatum, Sterbedatum, Besonderes Datum (`TT.MM.JJJJ`) und Anlass (Hochzeitstag, Kennenlerntag …). Auf dem Bild zwei Zeilen: zuerst Anlass, darunter Datum. Häkchen **Name auf Bild**, **Geburt auf Bild**, **Tod auf Bild**, **Besonderes auf Bild** und Schieber **Größe Name** / **Größe Daten**. Name und Daten lassen sich auf dem Zuschnitt verschieben.
 
 Ohne passenden Jahrestag (heute/morgen/übermorgen) bleibt eine Erinnerung weg — der Timer greift dann auf Zufall zurück. KEY und **Jetzt wechseln** tun das auch, außer mehrere Erinnerungen sind gerade fällig: dann die noch nicht gezeigten, danach wieder Zufall.
 
@@ -229,7 +229,7 @@ Häkchen **Beschriftung anzeigen** (aus: Name, Daten und Freitexte unsichtbar). 
 
 ![Galerie](docs/galerie.png)
 
-Zwei Reiter: **Zufall** und **Erinnerungen**. Darunter **Suchen** (Name, Datum, Dateiname) — erst mit **Enter** oder Knopf **Suche**, alles andere wird ausgeblendet. Das **X** im Feld leert die Suche und zeigt wieder alle Bilder. Oben die Zähler und der **Zufallstopf** (noch *n* von *m*; ist der Topf leer: nächster Zug neue Runde). Karten nach Personenname. Vorschau mit Beschriftung wie im Studio, darunter Name, `*` Geburt, `†` Tod, Anlass plus besonderes Datum, Beschreibung (Tipp klappt den ganzen Text auf), Dateiname.
+Zwei Reiter: **Zufall** und **Erinnerungen**. Darunter **Suchen** (Name, Datum, Dateiname) — erst mit **Enter** oder Knopf **Suche**, alles andere wird ausgeblendet. Das **X** im Feld leert die Suche und zeigt wieder alle Bilder. Oben die Zähler und der **Zufallstopf** (noch *n* von *m*; ist der Topf leer: nächster Zug neue Runde). Karten nach Personenname. Vorschau mit Beschriftung wie im Studio, darunter Name, `*` Geburt, `†` Tod, Anlass und besonderes Datum getrennt, Beschreibung (Tipp klappt den ganzen Text auf), Dateiname.
 
 | Knopf | Wirkung |
 | --- | --- |
@@ -260,9 +260,11 @@ Leere Liste: **Kein Bild**.
 
 **Wechsel:** Modus **Aus**, **Im Intervall** (5 / 10 / 30 / 60 Minuten) oder **1× pro Tag** (Uhrzeit, Vorgabe 08:00). **Speichern** merkt den Modus. **Jetzt wechseln** sofort — nur Zufall, keine Erinnerungen. **Aus** = kein Timer.
 
-**Anzeige:** **Rahmenlage** Hochkant oder Quer, **Lage speichern**. Gilt für neue Bilder in Studio, Live und am Panel; vorhandene Bilder bleiben unverändert. Der Rahmen muss physisch so hängen. **Panel leeren (weiß)** — Bilder danach wieder über Galerie **Anzeigen**. **Akkuwarnung testen** legt „Akku < 10 %“ unten rechts auf das aktuelle Bild, unabhängig vom echten Stand (und sendet die ntfy-Probe, wenn ein Thema gesetzt ist).
+**Anzeige:** **Rahmenlage** Hochkant oder Quer, **Lage speichern**. Gilt für neue Bilder in Studio, Live und am Panel; vorhandene Bilder bleiben unverändert. Der Rahmen muss physisch so hängen.
 
-**Timer (Intervall / Uhr / Aufwachen zum Wechsel):** Ist bei einer Erinnerung Geburt, Tod oder ein besonderes Datum **heute, morgen oder übermorgen**, kommt zuerst **ein** solches Bild (voll, Schrift wie im Studio). Mehrere fällig: Hinweis unten rechts, alle 3 Stunden das nächste (KEY ebenso). Sonst nur Zufall, ohne Zurücklegen, bis der Topf leer ist, dann neu mischen. Gibt es gerade keine fällige Erinnerung und keinen Zufall, bleibt das Panel. USB bleibt wach. Akku schläft wie unter „USB und Akku“.
+**Timer (Intervall / Uhr / Aufwachen zum Wechsel):** Ist bei einer Erinnerung Geburt, Tod oder ein besonderes Datum **heute, morgen oder übermorgen**, kommt zuerst **ein** solches Bild (voll, Schrift wie im Studio). Mehrere fällig: Pfeil unten rechts, alle 3 Stunden das nächste (KEY ebenso). Sonst nur Zufall, ohne Zurücklegen, bis der Topf leer ist, dann neu mischen. Gibt es gerade keine fällige Erinnerung und keinen Zufall, bleibt das Panel. USB bleibt wach. Akku schläft wie unter „USB und Akku“.
+
+Auf dem Panel selbst keine Textzeilen als Hinweis: **Akku unter 10 %** als Symbol unten links, **weitere Erinnerungen** als Pfeil unten rechts (weiße Quadrate, schwarzer Rand).
 
 ### System
 
@@ -276,7 +278,7 @@ Leere Liste: **Kein Bild**.
 
 **ntfy:** Thema oder volle URL (leer = aus), Priorität Min / Niedrig / Normal / Hoch / Dringend. **Speichern**, **Probe senden**. Alle Benachrichtigungen richten sich nach der eingestellten Priorität. App [ntfy](https://ntfy.sh/).
 
-**Ton:** Lautstärke der Hinweise 0–100, Vorgabe 80. **Lautstärke speichern**.
+**Ton:** nur bei USB. Lautstärke der Hinweise 0–100, Vorgabe 80. **Lautstärke speichern**. Am Akku bleibt der Verstärker aus.
 
 **Sicherung:** **Sicherung als .txt** holt `pic/` und `sound/` in einer Datei (`tintenklecks-JJJJ-MM-TT.txt`) — geht in Chrome über HTTP. **Sicherung als .zip** dasselbe unkomprimiert; Chrome kann Zip über HTTP sperren, dann Firefox/Edge oder die `.txt`. USB stecken. **Wiederherstellen:** `.txt` und unkomprimiertes `.zip` in einem Rutsch. Komprimiertes Zip noch Datei für Datei. Gleicher Name überschreibt, sonst bleibt alles. Firmware-Backup ist das GitHub-Release.
 

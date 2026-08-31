@@ -7,6 +7,7 @@
 #include <esp_system.h>
 #include <WiFi.h>
 #include <driver/gpio.h>
+#include "driver/rtc_io.h"
 #include <Preferences.h>
 #include <math.h>
 #include <time.h>
@@ -26,6 +27,19 @@ static bool g_calLoaded = false;
 static uint32_t g_lastClientMs = 0;
 static bool g_clientSeen = false;
 static int g_busyDepth = 0;
+
+static esp_sleep_wakeup_cause_t g_wake = ESP_SLEEP_WAKEUP_UNDEFINED;
+static bool g_wakeBootBtn = false;
+static bool g_wakeKeyBtn = false;
+
+void powerCaptureWake() {
+  g_wake = esp_sleep_get_wakeup_cause();
+  pinMode(PIN_BOOT, INPUT_PULLUP);
+  pinMode(PIN_KEY, INPUT_PULLUP);
+  delay(2);
+  g_wakeBootBtn = digitalRead(PIN_BOOT) == LOW;
+  g_wakeKeyBtn = digitalRead(PIN_KEY) == LOW;
+}
 
 void powerNoteActivity() {
   g_lastClientMs = millis();
@@ -51,6 +65,14 @@ void ledsAfterWake() {
   gpio_hold_dis((gpio_num_t)PIN_LED_GREEN);
   gpio_hold_dis((gpio_num_t)PIN_LED_RED);
   gpio_hold_dis((gpio_num_t)PIN_AUDIO_PA);
+  for (int i = 0; i <= 21; i++) {
+    gpio_num_t pin = (gpio_num_t)i;
+    if (!rtc_gpio_is_valid_gpio(pin)) {
+      continue;
+    }
+    rtc_gpio_hold_dis(pin);
+    rtc_gpio_deinit(pin);
+  }
   gpio_reset_pin((gpio_num_t)PIN_AUDIO_PA);
   pinMode(PIN_AUDIO_PA, OUTPUT);
   digitalWrite(PIN_AUDIO_PA, LOW);
@@ -136,8 +158,27 @@ void powerSleepCalOnWake() {
   Serial.println();
 }
 
+static void gpioFloatUnusedRtc() {
+  for (int i = 0; i <= 21; i++) {
+    gpio_num_t pin = (gpio_num_t)i;
+    if (!rtc_gpio_is_valid_gpio(pin)) {
+      continue;
+    }
+    if (pin == (gpio_num_t)PIN_BOOT || pin == (gpio_num_t)PIN_KEY ||
+        pin == (gpio_num_t)PIN_AUDIO_PA || pin == (gpio_num_t)PIN_AXP_IRQ) {
+      continue;
+    }
+    rtc_gpio_init(pin);
+    rtc_gpio_pullup_dis(pin);
+    rtc_gpio_pulldown_dis(pin);
+    rtc_gpio_isolate(pin);
+  }
+}
+
 static void powerEnterDeepSleep(int64_t secs) {
   audioPowerDown();
+  shtc3Sleep();
+  sdDeinit();
   pinMode(PIN_AUDIO_PA, OUTPUT);
   digitalWrite(PIN_AUDIO_PA, LOW);
   gpio_hold_en((gpio_num_t)PIN_AUDIO_PA);
@@ -145,6 +186,10 @@ static void powerEnterDeepSleep(int64_t secs) {
   ledsHoldOff();
   epdPanelSleep();
   delay(100);
+  gpioFloatUnusedRtc();
+  keyPrepareSleepWake();
+  gpio_hold_dis((gpio_num_t)PIN_BOOT);
+  rtc_gpio_hold_dis((gpio_num_t)PIN_BOOT);
   pmuSleepRails();
   WiFi.disconnect(true);
   WiFi.mode(WIFI_OFF);
@@ -174,53 +219,99 @@ static void powerEnterDeepSleep(int64_t secs) {
     Serial.println(F("Deep sleep (KEY + BOOT)"));
     Serial.flush();
   }
-  // BOOT = GPIO0, active low
-  esp_sleep_enable_ext0_wakeup((gpio_num_t)PIN_BOOT, 0);
-  keyPrepareSleepWake();
+  gpio_hold_dis((gpio_num_t)PIN_BOOT);
+  rtc_gpio_hold_dis((gpio_num_t)PIN_BOOT);
 
   esp_deep_sleep_start();
 }
 
 void powerSleepNow() {
+  if (pmuUsbPowered() || powerStayAwake()) {
+    return;
+  }
+  powerEnterDeepSleep(slideshowSecondsUntilNext());
+}
+
+void powerSleepForced() {
   if (pmuUsbPowered()) {
     return;
   }
   powerEnterDeepSleep(slideshowSecondsUntilNext());
 }
 
+static bool g_stay = false;
+static bool g_stayKnown = false;
+
+bool powerStayAwake() {
+  if (!g_stayKnown) {
+    Preferences p;
+    p.begin("power", true);
+    g_stay = p.getBool("stay", false);
+    p.end();
+    g_stayKnown = true;
+  }
+  return g_stay;
+}
+
+void powerSetStayAwake(bool on) {
+  g_stay = on;
+  g_stayKnown = true;
+  Preferences p;
+  p.begin("power", false);
+  p.putBool("stay", on);
+  p.end();
+  if (on) {
+    powerNoteActivity();
+  }
+}
+
 void powerOnBoot() {
-  if (esp_reset_reason() != ESP_RST_DEEPSLEEP) {
-    Serial.println(F("Wake: power-on / reset"));
+  uint64_t ext1 = 0;
+  if (g_wake == ESP_SLEEP_WAKEUP_EXT1) {
+    ext1 = esp_sleep_get_ext1_wakeup_status();
+  }
+  const bool bootBit = (ext1 & (1ULL << PIN_BOOT)) != 0;
+  const bool keyBit = (ext1 & (1ULL << PIN_KEY)) != 0;
+  Serial.printf("reset=%d wake=%d boot=%d key=%d ext1=0x%llx\n", (int)esp_reset_reason(),
+                (int)g_wake, (g_wakeBootBtn || bootBit) ? 1 : 0,
+                (g_wakeKeyBtn || keyBit) ? 1 : 0, (unsigned long long)ext1);
+
+  const bool fromBoot = (g_wake == ESP_SLEEP_WAKEUP_EXT0) || g_wakeBootBtn || bootBit;
+  const bool fromTimer = (g_wake == ESP_SLEEP_WAKEUP_TIMER) && !fromBoot;
+  const bool fromKey = (g_wakeKeyBtn || keyBit) && !fromBoot;
+
+  if (fromBoot) {
+    Serial.println(F("Wake: BOOT — Web aktiv, kein Bildwechsel"));
+    slideshowHoldDue();
     powerNoteActivity();
     return;
   }
-  esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
-  switch (cause) {
-    case ESP_SLEEP_WAKEUP_TIMER:
+
+  if (fromTimer || fromKey) {
+    if (!sdOk()) {
+      sdInit();
+    }
+    if (!sdOk()) {
+      Serial.println(F("Wake: KEY/timer — SD missing, no picture"));
+      return;
+    }
+    powerNoteBusy(true);
+    if (fromTimer) {
       Serial.println(F("Wake: timer → Bildwechsel"));
-      if (sdOk()) {
-        powerNoteBusy(true);
-        slideshowOnTimer();
-        powerNoteBusy(false);
-      }
-      break;
-    case ESP_SLEEP_WAKEUP_EXT1:
+      slideshowOnTimer();
+    } else {
       Serial.println(F("Wake: KEY → Bildwechsel"));
-      if (sdOk()) {
-        powerNoteBusy(true);
-        slideshowForceNow();
-        powerNoteBusy(false);
-      }
-      break;
-    case ESP_SLEEP_WAKEUP_EXT0:
-      Serial.println(F("Wake: BOOT — Web aktiv, kein Bildwechsel"));
-      powerNoteActivity();
-      break;
-    default:
-      Serial.println(F("Wake: power-on / reset"));
-      powerNoteActivity();
-      break;
+      slideshowForceNow();
+    }
+    powerNoteBusy(false);
+    ntfyBegin();
+    ntfySendWake();
+    ntfyBatteryWatch();
+    powerSleepNow();
+    return;
   }
+  Serial.println(F("Wake: power-on / reset"));
+  powerNoteActivity();
 }
 
 void powerLoop() {
@@ -238,13 +329,14 @@ void powerLoop() {
   // Deep sleep: USB stays up. Battery: after 60 s without a client, and only when
   // pictures change rarely (daily or interval ≥ 10 min). 5 min / off: stays up.
   bool usb = pmuUsbPowered();
+  bool stay = powerStayAwake();
   bool allow = slideshowSleepAllowed();
-  if (usb || !allow || g_busyDepth > 0 || clientHere) {
+  if (usb || stay || !allow || g_busyDepth > 0 || clientHere) {
     static uint32_t lastWhy = 0;
     if ((uint32_t)(millis() - lastWhy) >= 10000UL) {
       lastWhy = millis();
-      Serial.printf("no sleep: usb=%d allow=%d busy=%d client=%d\n", usb ? 1 : 0, allow ? 1 : 0,
-                    g_busyDepth, clientHere ? 1 : 0);
+      Serial.printf("no sleep: usb=%d stay=%d allow=%d busy=%d client=%d\n", usb ? 1 : 0,
+                    stay ? 1 : 0, allow ? 1 : 0, g_busyDepth, clientHere ? 1 : 0);
     }
     return;
   }

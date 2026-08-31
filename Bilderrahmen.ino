@@ -18,16 +18,15 @@
  * Web: Menü, Studio, Galerie, Live, System, Rahmen
  * Erinnerung: Geburt/Tod/Besonderes im Studio (TT.MM.JJJJ) → Wechsel am Tag, morgen, übermorgen;
  *        ein Bild voll, mehrere nacheinander (KEY, alle 3 h). Uhr und Rahmen-Modus müssen stimmen.
- * Audio: /sound/*.wav — willkommen (jeder Reset/Reboot, nicht Sleep-Wake),
- *        dann wlan (STA ok) oder ap (kein WLAN / Connect fehlgeschlagen).
- *        neustart kurz vor jedem Software-Neustart.
+ * Audio: nur USB. /sound/*.wav — willkommen (Reset/Reboot, nicht Sleep-Wake),
+ *        dann wlan (STA ok) oder ap. neustart vor Software-Neustart.
  * OTA: Arduino IDE Netzwerk-Port „tintenklecks“ (nach erstem USB-Flash). Partition 16M / 3MB APP.
  * Bilder: /pic/ BMPs + JSON + Thumb
  * Power: USB = kein Deep Sleep. Akku: nur bei Wechsel ≥ 10 min oder täglich,
  *        ohne Client direkt nach Bildwechsel, mit Client 60 s Inaktivität.
- *        Sleep: PA und ALDO4 aus. ALDO3 bleibt (sonst klemmt der Codec I2C).
- *        Wecken: Timer (Bildwechsel; ESP-Zähler gegen PCF85063 kalibriert),
- *        KEY (Bildwechsel, dann wieder schlafen)
+ *        Sleep: SHTC3, SD, Codec, PA; AXP enableSleep; ALDO4 dann ALDO3.
+ *        Wecken: GPIO21 pulst den AXP. Timer (Bildwechsel; ESP-Zähler gegen
+ *        PCF85063 kalibriert), KEY (Bildwechsel, dann wieder schlafen)
  *        oder BOOT-Taste (Web an, kein Bildwechsel). ntfy: Akkustand bei jedem
  *        Aufwachen und Warnung Akku < 10 % einmal am Tag, Priorität wie eingestellt.
  */
@@ -52,6 +51,7 @@ static void bootBlink(int n) {
 
 void setup() {
   ledsAfterWake();
+  powerCaptureWake();
   ledsOff();
   bootBlink(3);
 

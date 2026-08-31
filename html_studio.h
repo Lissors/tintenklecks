@@ -21,6 +21,13 @@ body.busy button{pointer-events:none;opacity:.55}
 .bat{font-size:.78rem;color:var(--dim)}
 .head-right{display:flex;align-items:center;gap:.5rem}
 button.zzz{width:auto;margin:0;padding:.2rem .5rem;font-size:.78rem;letter-spacing:.08em;font-weight:700;flex:none;border-radius:6px;border:1px solid var(--line);background:#1a1612;color:var(--dim);cursor:pointer;font:inherit}
+.stay{display:inline-flex;align-items:center;gap:.4rem;margin:0;position:relative;font:inherit;font-size:.78rem;color:var(--dim);cursor:pointer;user-select:none;flex:none;white-space:nowrap}
+.stay[hidden]{display:none !important}
+.stay input{position:absolute;opacity:0;pointer-events:none}
+.stay-sw{width:1.9rem;height:1.05rem;border-radius:999px;background:#1a1612;border:1px solid var(--line);position:relative;flex:none}
+.stay-sw:before{content:'';position:absolute;top:1px;left:1px;width:.8rem;height:.8rem;border-radius:50%;background:var(--dim)}
+.stay input:checked+.stay-sw{background:var(--acc);border-color:var(--acc)}
+.stay input:checked+.stay-sw:before{left:auto;right:1px;background:#1a1612}
 main{display:grid;grid-template-columns:minmax(260px,1fr) 360px;gap:1rem;padding:1rem;max-width:1280px;margin:0 auto}
 @media(max-width:980px){main{grid-template-columns:1fr}}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1rem}
@@ -53,7 +60,7 @@ footer{text-align:center;padding:1rem;font-size:.75rem;color:var(--dim)}
 <div class="busy-ov" id="busyOv"><div class="hour"></div><div class="busy-msg" id="busyMsg">Bitte warten…</div></div>
 <div class="top">
   <div class="brand"><a href="/menu"><img src="/favicon.png" width="28" height="28" alt=""/>Tintenklecks</a></div>
-  <div class="head-right"><button type="button" class="zzz" id="btnZzz">zzz</button><div class="bat" id="bat">Akku …</div></div>
+  <div class="head-right"><label class="stay" id="btnWach"><input type="checkbox" id="chkWach"/><span class="stay-sw"></span>Wach bleiben</label><button type="button" class="zzz" id="btnZzz">zzz</button><div class="bat" id="bat">Akku …</div></div>
 </div>
 <main>
 <section class="panel">
@@ -66,6 +73,17 @@ footer{text-align:center;padding:1rem;font-size:.75rem;color:var(--dim)}
   <div class="drop" id="drop"><span id="dropTitle">Foto hierher · JPG/PNG/BMP</span><br/><small id="dropSub">oder tippen zum Auswählen</small></div>
   <input id="file" type="file" accept="image/*" hidden/>
   <button class="ghost" id="btnNewPic" type="button" hidden>Bearbeitung beenden</button>
+  <label class="row">Blanko-Farbe
+    <select id="blankColor">
+      <option value="#FFFFFF" selected>Weiß</option>
+      <option value="#000000">Schwarz</option>
+      <option value="#FFFF00">Gelb</option>
+      <option value="#FF0000">Rot</option>
+      <option value="#0000FF">Blau</option>
+      <option value="#00FF00">Grün</option>
+    </select>
+  </label>
+  <button class="ghost" id="btnBlankPage" type="button">Blanko-Seite einfügen</button>
   <h2>Verfahren</h2>
   <label class="row">Methode
     <select id="paintMode">
@@ -77,13 +95,10 @@ footer{text-align:center;padding:1rem;font-size:.75rem;color:var(--dim)}
   <button class="primary" id="btnSierra2" type="button" disabled>In E6 konvertieren</button>
   <button class="primary" id="btnTuneStyle" type="button" hidden disabled>Automatik</button>
   <h2>Format</h2>
-  <label class="row">Lage (Rahmen)
-    <select id="orient" disabled>
-      <option value="portrait" selected>Hochkant 480×800</option>
-      <option value="landscape">Quer 800×480</option>
-    </select>
-  </label>
-  <p class="status" style="margin:.2rem 0 .45rem">Ändern unter Rahmen. Neue Fotos folgen der Lage, geladene Galeriebilder behalten ihre.</p>
+  <select id="orient" hidden>
+    <option value="portrait" selected>Hochkant 480×800</option>
+    <option value="landscape">Quer 800×480</option>
+  </select>
   <label class="row">Zoom <input id="zoom" type="range" min="10" max="400" value="100"/><span class="val" data-for="zoom">100</span></label>
   <button class="primary" id="btnShow" disabled>Anzeigen am Rahmen</button>
   <button class="primary" id="btnSave" disabled>Speichern in Galerie</button>
@@ -200,6 +215,7 @@ let sierra2Sig='';
 let specLut=null;
 let imgSeq=0, tunedSig=null, tunePromise=null, tuning=false;
 let appliedSeq=-1;
+let blankHex=null;
 const crop=document.getElementById('crop'), out=document.getElementById('out');
 const cctx=crop.getContext('2d',{willReadFrequently:true});
 const octx=out.getContext('2d',{willReadFrequently:true});
@@ -345,7 +361,13 @@ function zoomFitPct(){
   return clamp(Math.round(100*con/cov), 10, 100);
 }
 function drawCrop(){
-  const [tw,th]=target(); cctx.fillStyle='#111'; cctx.fillRect(0,0,tw,th);
+  const [tw,th]=target();
+  if(blankHex){
+    cctx.fillStyle=blankHex;
+    cctx.fillRect(0,0,tw,th);
+    return;
+  }
+  cctx.fillStyle='#111'; cctx.fillRect(0,0,tw,th);
   if(!img) return;
   const z=coverBase()*(+zoom.value/100), dw=img.width*z, dh=img.height*z;
   cctx.imageSmoothingEnabled=true;
@@ -673,7 +695,8 @@ function roleTitle(role){
   if(role==='name') return 'Name';
   if(role==='birth') return 'Geburt';
   if(role==='death') return 'Tod';
-  if(role==='special') return 'Besonderes';
+  if(role==='special') return 'Datum';
+  if(role==='specialKind') return 'Anlass';
   return 'Text';
 }
 function selectLab(i){
@@ -698,7 +721,7 @@ function deleteLabAt(i){
   if(L.role==='name') showName.checked=false;
   if(L.role==='birth') showBirth.checked=false;
   if(L.role==='death') showDeath.checked=false;
-  if(L.role==='special') showSpecial.checked=false;
+  if(L.role==='special'||L.role==='specialKind') showSpecial.checked=false;
   labels.splice(i,1);
   if(selectedLab===i) selectedLab=-1;
   else if(selectedLab>i) selectedLab--;
@@ -747,12 +770,6 @@ function upsertRoleLabel(role, enabled, text, size, yDefault){
   const rotate=+document.getElementById('labRot').value||0;
   labels.push({role:role, text:text, x:0.5, y:yDefault, size:size, color:color, font:font, align:align, bold:bold, rotate:rotate});
 }
-function specialOnPicText(){
-  const dt=metaSpecial.value.trim();
-  if(!dt) return '';
-  const k=metaSpecialKind.value.trim();
-  return k?(k+' '+dt):dt;
-}
 function syncPersonLabels(){
   const n=metaName.value.trim();
   const b=metaBirth.value.trim();
@@ -761,7 +778,8 @@ function syncPersonLabels(){
   const mem=isMemoryKind();
   upsertRoleLabel('birth', mem && showBirth.checked, b?('* '+b):'', +sizeDates.value, 0.88);
   upsertRoleLabel('death', mem && showDeath.checked, d?('\u2020 '+d):'', +sizeDates.value, 0.94);
-  upsertRoleLabel('special', mem && showSpecial.checked, specialOnPicText(), +sizeDates.value, 0.70);
+  upsertRoleLabel('specialKind', mem && showSpecial.checked, metaSpecialKind.value.trim(), +sizeDates.value, 0.64);
+  upsertRoleLabel('special', mem && showSpecial.checked, metaSpecial.value.trim(), +sizeDates.value, 0.70);
   updateLabList();
 }
 function buildMeta(){
@@ -924,7 +942,23 @@ async function ditherSwKw(imgData, statusEl){
 }
 async function renderOut(){
   try{
-  if(!img) return;
+  if(!img && !blankHex) return;
+  if(blankHex){
+    drawCrop();
+    const wh=target(), w=wh[0], h=wh[1];
+    lastCrop=cctx.getImageData(0,0,w,h);
+    octx.fillStyle=blankHex;
+    octx.fillRect(0,0,w,h);
+    lastDither=octx.getImageData(0,0,w,h);
+    lastDitherSig=picSig();
+    sierra2Done=true;
+    sierra2Sig=cropSig();
+    tunedSig=cropSig();
+    drawLabels(cctx,w,h,true);
+    drawLabels(octx,w,h,true);
+    status.textContent='Blanko-Seite · Text setzen, dann speichern';
+    return;
+  }
   if(holdSavedE6 && lastDither){
     drawCrop();
     const wh=target(), w=wh[0], h=wh[1];
@@ -1049,6 +1083,7 @@ function syncKindUi(){
 function isSierra2(){ return paintMode.value==='sierra2'; }
 function isSwOnly(){ return !!(swOnly && swOnly.checked); }
 function e6Ready(){
+  if(blankHex) return !!(lastDither && lastDitherSig===picSig());
   if(!img) return false;
   if(isSierra2()) return !!(sierra2Done && lastDither && sierra2Sig===cropSig());
   return !!(lastDither && lastDitherSig===picSig() && tunedSig===cropSig());
@@ -1098,7 +1133,7 @@ function loadFile(f){
   status.textContent='Lade '+f.name+'…';
   const url=URL.createObjectURL(f); const im=new Image();
   im.onload=function(){
-    img=im; srcOriginal=f; editName=null; picKind.value='normal'; syncKindUi(); metaName.value=metaBirth.value=metaDeath.value=metaSpecial.value=metaSpecialKind.value=metaDesc.value='';
+    img=im; srcOriginal=f; blankHex=null; editName=null; picKind.value='normal'; syncKindUi(); metaName.value=metaBirth.value=metaDeath.value=metaSpecial.value=metaSpecialKind.value=metaDesc.value='';
     labels=[]; selectedLab=-1; updateLabList(); orient.value=hang||'portrait'; zoom.value=zoomFitPct(); panX=panY=0.5;
     styleId='portrait';
     holdSavedE6=false;
@@ -1152,8 +1187,39 @@ drop.addEventListener('drop',function(e){
 });
 btnNewPic.onclick=function(){
   if(uiBusy) return;
-  img=null; srcOriginal=null; srcNeedsRewrite=false; sierra2Done=false; sierra2Sig=''; editName=null; loadedPicSig=''; pictureDirty=false; holdSavedE6=false; lastDitherSig=''; paintMode.value='sierra2'; swOnly.checked=false; picKind.value='normal'; syncVerfahrenUi(); syncKindUi(); metaName.value=metaBirth.value=metaDeath.value=metaSpecial.value=metaSpecialKind.value=metaDesc.value=''; labels=[]; selectedLab=-1; updateLabList(); orient.value=hang||'portrait'; zoom.value=100; panX=panY=0.5; imgSeq++; tunedSig=null; tunePromise=null; lastDither=null; syncEditUi(); syncStage(); status.textContent='Neues Bild · Foto wählen';
+  img=null; srcOriginal=null; srcNeedsRewrite=false; sierra2Done=false; sierra2Sig=''; editName=null; loadedPicSig=''; pictureDirty=false; holdSavedE6=false; lastDitherSig=''; blankHex=null; paintMode.value='sierra2'; swOnly.checked=false; picKind.value='normal'; syncVerfahrenUi(); syncKindUi(); metaName.value=metaBirth.value=metaDeath.value=metaSpecial.value=metaSpecialKind.value=metaDesc.value=''; labels=[]; selectedLab=-1; updateLabList(); orient.value=hang||'portrait'; zoom.value=100; panX=panY=0.5; imgSeq++; tunedSig=null; tunePromise=null; lastDither=null; syncEditUi(); syncStage(); status.textContent='Neues Bild · Foto wählen';
 };
+function blankTextColor(hex){
+  const u=(hex||'').toUpperCase();
+  if(u==='#FFFFFF'||u==='#FFFF00') return '#000000';
+  return '#FFFFFF';
+}
+function insertBlank(){
+  if(uiBusy) return;
+  if(editName){ status.textContent='Bearbeitung: '+editName+' — neues Foto erst nach „Bearbeitung beenden“'; return; }
+  const hex=document.getElementById('blankColor').value||'#FFFFFF';
+  const keep=!!blankHex && !img;
+  blankHex=hex;
+  if(!keep){
+    img=null; srcOriginal=null; srcNeedsRewrite=false;
+    sierra2Done=true; sierra2Sig='';
+    editName=null; loadedPicSig=''; holdSavedE6=false;
+    lastDither=null; lastDitherSig='';
+    picKind.value='memory'; syncKindUi();
+    metaName.value=metaBirth.value=metaDeath.value=metaSpecial.value=metaSpecialKind.value=metaDesc.value='';
+    labels=[]; selectedLab=-1; updateLabList();
+    document.getElementById('labColor').value=blankTextColor(hex);
+    orient.value=hang||'portrait'; zoom.value=100; panX=panY=0.5;
+    tunePromise=null;
+    syncEditUi();
+  }
+  pictureDirty=true;
+  lastDither=null; lastDitherSig='';
+  imgSeq++; tunedSig=null;
+  syncStage();
+  status.textContent='Blanko-Seite · Text setzen, dann speichern';
+}
+document.getElementById('btnBlankPage').onclick=function(){ insertBlank(); };
 
 document.getElementById('btnAddLab').onclick=function(){
   if(uiBusy) return;
@@ -1177,7 +1243,7 @@ document.getElementById('btnDelLab').onclick=function(){
 };
 document.getElementById('btnClearLab').onclick=function(){
   if(uiBusy) return;
-  labels=labels.filter(function(L){return L.role==='name'||L.role==='birth'||L.role==='death'||L.role==='special';});
+  labels=labels.filter(function(L){return L.role==='name'||L.role==='birth'||L.role==='death'||L.role==='special'||L.role==='specialKind';});
   selectedLab=-1;
   updateLabList(); schedule();
 };
@@ -1194,7 +1260,7 @@ sizeName.addEventListener('input', function(){
 sizeDates.addEventListener('input', function(){
   const s=+sizeDates.value;
   labels.forEach(function(L){
-    if(L.role==='birth'||L.role==='death'||L.role==='special') L.size=s;
+    if(L.role==='birth'||L.role==='death'||L.role==='special'||L.role==='specialKind') L.size=s;
   });
   updateLabList(); schedule();
 });
@@ -1357,6 +1423,16 @@ function isJpegFile(f){
   return t==='image/jpeg' || n.endsWith('.jpg') || n.endsWith('.jpeg');
 }
 async function srcBlobForSave(){
+  if(blankHex){
+    drawCrop();
+    const wh=target(), w=wh[0], h=wh[1];
+    const c=document.createElement('canvas');
+    c.width=w; c.height=h;
+    c.getContext('2d').drawImage(crop,0,0);
+    return new Promise(function(resolve){
+      c.toBlob(function(b){ resolve(b); }, 'image/jpeg', 0.92);
+    });
+  }
   if(!img || !img.width) return null;
   const edge=Math.max(img.width, img.height);
   if(srcOriginal && isJpegFile(srcOriginal) && edge<=SRC_MAX_EDGE) return srcOriginal;
@@ -1401,7 +1477,7 @@ async function saveMetaOnly(fname){
 }
 async function send(show){
   if(busyDepth>0 && busy) return;
-  if(!img){ status.textContent='Kein Bild'; return; }
+  if(!img && !blankHex){ status.textContent='Kein Bild'; return; }
   if(isMemoryKind() && !metaBirth.value.trim() && !metaDeath.value.trim() && !metaSpecial.value.trim()){
     status.textContent='Erinnerung: ein Datum eintragen';
     return;
@@ -1416,8 +1492,8 @@ async function send(show){
     finally{ setBusy(false); }
     return;
   }
-  if(isSierra2() && !sierra2Done){ status.textContent='Zuerst In E6 konvertieren'; return; }
-  if(!isSierra2() && tunedSig!==cropSig()){ status.textContent='Zuerst Automatik'; return; }
+  if(!blankHex && isSierra2() && !sierra2Done){ status.textContent='Zuerst In E6 konvertieren'; return; }
+  if(!blankHex && !isSierra2() && tunedSig!==cropSig()){ status.textContent='Zuerst Automatik'; return; }
   if(tunePromise) await tunePromise;
   setBusy(true, show?'Anzeigen…':'Speichern…');
   try{
@@ -1523,7 +1599,7 @@ function loadImgUrl(url){
 async function loadEdit(name){
   setBusy(true,'Bild laden…');
   try{
-    editName=name; srcOriginal=null; srcNeedsRewrite=false; syncEditUi();
+    editName=name; srcOriginal=null; srcNeedsRewrite=false; blankHex=null; syncEditUi();
     status.textContent='Lade '+name+'…';
     let meta=null;
     try{
@@ -1591,7 +1667,7 @@ function cropSig(){
           Math.round(panX*1000), Math.round(panY*1000)].join('|');
 }
 function picSig(){
-  return cropSig()+'|'+[paintMode.value, swOnly.checked?1:0, bright.value, contrast.value, warmth.value, dither.value, algo.value,
+  return cropSig()+'|'+[paintMode.value, swOnly.checked?1:0, blankHex||'', bright.value, contrast.value, warmth.value, dither.value, algo.value,
     prepExp.value, prepSat.value, prepScurve.value, prepHi.value, prepShadow.value, prepMid.value,
     prepCdr.checked?1:0].join('|');
 }
@@ -1692,6 +1768,10 @@ async function refreshStatus(){
     else bat.textContent='Akku '+s.battery+'%'+(s.charging?' · lädt':'');
     const z=document.getElementById('btnZzz');
     if(z) z.hidden=!!s.usb;
+    const w=document.getElementById('btnWach');
+    const c=document.getElementById('chkWach');
+    if(w) w.hidden=!!s.usb;
+    if(c) c.checked=!!s.stayAwake;
     document.getElementById('foot').textContent=s.copyright||'© 2026 Ingo Lissors';
     if(s.hang==='portrait'||s.hang==='landscape'){
       hang=s.hang;
@@ -1702,6 +1782,12 @@ async function refreshStatus(){
     }
   }catch(e){}
 }
+document.getElementById('chkWach').onchange=()=>{
+  if(window.__zzz){ const c=document.getElementById('chkWach'); if(c) c.checked=!c.checked; return; }
+  const on=document.getElementById('chkWach').checked;
+  fetch('/api/stayawake',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'on='+(on?'1':'0')})
+    .catch(function(){});
+};
 document.getElementById('btnZzz').onclick=()=>{
   if(window.__zzz) return;
   window.__zzz=1;
